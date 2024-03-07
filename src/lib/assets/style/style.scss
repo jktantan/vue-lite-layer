@@ -1,0 +1,211 @@
+@import 'icon';
+@import './common/var.scss';
+
+.lite-layer {
+  overflow: hidden;
+
+  &__shade {
+    background-color: $--lite-layer__color-grey;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0.3;
+  }
+
+  &__mask-button {
+    height: 100%;
+    width: $--lite-layer__icon-size;
+    background-color: $--lite-layer__text-color;
+    margin-left: $--lite-layer__icon-margin;
+    transition: $--lite-layer__trans;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $--lite-layer__color-primary;
+    }
+
+    &:active {
+      background-color: $--lite-layer__color-primary-activate;
+    }
+  }
+  &__window {
+    background-color: $--lite-layer__color-white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+    //box-sizing: border-box;
+    box-sizing: content-box;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+
+    &-header {
+      padding: 0 8px;
+      height: 40px;
+      line-height: 40px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #f0f0f0;
+      //user-select: none;
+      &:hover {
+        cursor: grab;
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      &-title {
+        flex: 1 1 0;
+        font-size: $--lite-layer__font-size;
+        text-align: left;
+        user-select: none;
+        //pointer-events: all;
+        overflow: hidden; //溢出隐藏
+        white-space: nowrap; //禁止换行
+        text-overflow: ellipsis; //...
+      }
+      &-operator {
+        cursor: initial;
+        height: 100%;
+        color: $--lite-layer__color-black;
+        display: flex;
+        flex-direction: row;
+        pointer-events: all;
+      }
+    }
+
+    &-container {
+      flex: 1 1 0;
+      position: relative;
+      overflow: hidden;
+
+    }
+    &-wrapper {
+      padding: 8px;
+      height:100%;
+      width: 100%;
+      overflow: auto;
+      &::-webkit-scrollbar {
+        // 滚动条样式
+        width: 6px;
+        height: 6px;
+      }
+      &::-webkit-scrollbar-corner {
+        background-color: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        border-radius: 5px;
+        background: rgba($--lite-layer__color-primary, 0.8);
+      }
+      &::-webkit-scrollbar-track {
+        border-radius: 0;
+        background: rgba($--lite-layer__color-disabled, 0.4);
+      }
+    }
+
+    &-footer {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+      padding: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
+  }
+
+  &__button {
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid #dcdfe6;
+    color: #606266;
+    appearance: none;
+    text-align: center;
+    box-sizing: border-box;
+    outline: none;
+    margin: 0;
+    transition: 0.1s;
+    font-weight: 500;
+    user-select: none;
+    padding: 8px 18px;
+    //font-size: $--lite-layer__font-size;
+    font-size: 14px;
+    border-radius: 4px;
+
+    & + .lite-layer__button {
+      margin-left: 12px;
+    }
+
+    &:hover {
+      color: #409eff;
+      border-color: #c6e2ff;
+      background-color: #ecf5ff;
+    }
+
+    &:active {
+      color: #3a8ee6;
+      border-color: #3a8ee6;
+      outline: none;
+    }
+
+    &.primary {
+      color: #fff;
+      background-color: #409eff;
+      border-color: #409eff;
+
+      &:hover {
+        background: #66b1ff;
+        border-color: #66b1ff;
+        color: #fff;
+      }
+
+      &:active {
+        background: #3a8ee6;
+        border-color: #3a8ee6;
+        color: #fff;
+      }
+    }
+  }
+
+  &__shadow-top-inset::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    box-shadow: $--shadow-top-inset;
+  }
+  &__shadow-bottom-inset::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    box-shadow: $--shadow-bottom-inset;
+  }
+  &__shadow-horizontal-inset::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    box-shadow: $--shadow-horizontal-inset;
+  }
+  &__disabled-point-event {
+    //pointer-events: none;
+    &:hover {
+      cursor: initial;
+      &:active {
+        cursor: initial;
+      }
+    }
+  }
+}

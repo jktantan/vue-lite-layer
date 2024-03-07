@@ -1,0 +1,22 @@
+.lite-layer__icon-close {
+  /* 类似一个到路径上做一个遮罩， 用法和background属性一样 */
+  mask: url('../image/close.svg') no-repeat center center;
+  mask-size: contain;
+}
+
+.lite-layer__icon-maximum {
+  /* 类似一个到路径上做一个遮罩， 用法和background属性一样 */
+  mask: url('../image/maximum.svg') no-repeat center center;
+  mask-size: contain;
+}
+
+.lite-layer__icon-minimum {
+  /* 类似一个到路径上做一个遮罩， 用法和background属性一样 */
+  mask: url('../image/minimum.svg') no-repeat center center;
+  mask-size: contain;
+}
+.lite-layer__icon-restore {
+  /* 类似一个到路径上做一个遮罩， 用法和background属性一样 */
+  mask: url('../image/restore.svg') no-repeat center center;
+  mask-size: contain;
+}
