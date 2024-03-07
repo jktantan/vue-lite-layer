@@ -103,11 +103,11 @@ const useLayerSize = LayerSizeUtils()
 
 // @ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const unmount = () => {
-  // currentApp.unmount()
-  // layerOperator.remove(props.id, props.group, props.uniqueGroup)
-  emitter.emit('unmount')
-}
+// const unmount = () => {
+//   // currentApp.unmount()
+//   // layerOperator.remove(props.id, props.group, props.uniqueGroup)
+//   emitter.emit('unmount')
+// }
 const onClose = () => {
   show.value = false
 }

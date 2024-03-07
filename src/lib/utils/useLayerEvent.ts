@@ -1,5 +1,5 @@
-import { type Callback } from '../model/CallbackFunction'
-import { useEmitter } from './layerMitt'
+import { type Callback } from '@/lib/model/CallbackFunction'
+import { useEmitter } from '@/lib/utils/layerMitt'
 
 export default () => {
   const emitter = useEmitter()

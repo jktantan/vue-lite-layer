@@ -25,7 +25,7 @@ LiteLayer.install = (app: App, globalOptions: object) => {
    * 实现composable的实际方法
    */
   const $layer = {
-    open: (group: string, options?: LayerConfig, appContext?: AppContext): ExportInstance | null => {
+    open: (group: string = 'default', options?: LayerConfig, appContext?: AppContext): ExportInstance | null => {
       const id = nanoid()
       const currentOptions: LayerConfig = defu(
         {
@@ -95,6 +95,7 @@ LiteLayer.install = (app: App, globalOptions: object) => {
       LayerOperator.closeAll(group)
     }
   }
+
   app.provide('$layer', $layer)
   app.config.globalProperties.$layer = $layer
 }
