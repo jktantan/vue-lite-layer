@@ -3,12 +3,12 @@ import { nanoid } from 'nanoid'
 import { type App, type AppContext, createApp } from 'vue'
 import { defu } from 'defu'
 import { createI18n } from 'vue-i18n'
-import LayerOperator from '@/lib/utils/LayerOperator'
-
-import LiteLayer from '@/lib/LiteLayer.vue'
-import defaultOption from '@/lib/model/DefaultOption'
-import type { LayerConfig } from '@/lib/model/AreaModel'
-import VueMitter, { setEmitter } from '@/lib/utils/layerMitt'
+import LayerOperator from '@lib/utils/LayerOperator'
+import banner from '@lib/banner'
+import LiteLayer from '@lib/LiteLayer.vue'
+import defaultOption from '@lib/model/DefaultOption'
+import type { LayerConfig } from '@lib/model/AreaModel'
+import VueMitter, { setEmitter } from '@lib/utils/layerMitt'
 
 // main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
@@ -17,6 +17,7 @@ const i18n = createI18n({
   locale: 'zh-CN', // 首选语言
   fallbackLocale: 'en-US' // 备选语言
 })
+banner('1.0.0')
 console.log('install layer')
 LiteLayer.install = (app: App, globalOptions: object) => {
   const mergeGlobalOptions = defu(globalOptions, defaultOption)
@@ -46,14 +47,15 @@ LiteLayer.install = (app: App, globalOptions: object) => {
       setEmitter(emitter)
 
       const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions })
-      // 全局组件
-      for (const prop in appContext!.components) {
-        DynamicLayerApp.component(prop, appContext!.components[prop])
-      }
+
       const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n).mount(document.createElement('div'))
       // 使当前的appContext和主页面的一样
       if (appContext !== null) {
         DynamicLayerInstance.$.appContext = appContext!
+        // 全局组件
+        for (const prop in appContext!.components) {
+          DynamicLayerApp.component(prop, appContext!.components[prop])
+        }
       }
       /**
        * 关闭窗体
@@ -96,7 +98,7 @@ LiteLayer.install = (app: App, globalOptions: object) => {
     }
   }
 
-  app.provide('$layer', $layer)
+  app.provide('layer', $layer)
   app.config.globalProperties.$layer = $layer
 }
-export default LiteLayer
+export default {install:LiteLayer.install}

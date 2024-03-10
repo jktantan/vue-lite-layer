@@ -1,5 +1,5 @@
 import { VueElement, type RendererNode } from 'vue'
-import { type Callback } from '@/lib/model/CallbackFunction'
+import { type Callback } from '@lib/model/CallbackFunction'
 
 /**
  * 可拖拽范围

@@ -12,7 +12,7 @@ let emitter: Emitter<Record<EventType, unknown>> // = mitt()
 const plugin = {
   install(app: App) {
     // const emitter = mitt()
-    app.provide('$layerEmitter', emitter)
+    app.provide('layerEmitter', emitter)
     // app.config.globalProperties.$emitter = emitter
   }
 }
@@ -20,7 +20,7 @@ export const setEmitter = (mitter: Emitter<Record<EventType, unknown>>) => {
   emitter = mitter
 }
 export const useEmitter = <T extends Record<EventType, unknown>>(): Emitter<T> => {
-  return inject('$layerEmitter')!
+  return inject('layerEmitter')!
 }
 
 export default plugin

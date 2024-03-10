@@ -1,7 +1,7 @@
-import { type AppContext, getCurrentInstance, onMounted } from 'vue'
-import { nanoid } from 'nanoid'
-import { type LayerConfig } from '@/lib/model/AreaModel'
-import { type ExportInstance } from '@/lib/model/ExportInstanceModel'
+import { type AppContext, inject, onMounted } from 'vue'
+import { type LayerConfig } from '@lib/model/AreaModel'
+import { type ExportInstance } from '@lib/model/ExportInstanceModel'
+import LiteLayer from '@lib/LiteLayer.vue'
 
 /**
  * 提供给调用端使用的方法
@@ -9,14 +9,15 @@ import { type ExportInstance } from '@/lib/model/ExportInstanceModel'
  *
  */
 export default () => {
-  let $layer: any
+  // let $layer: any
   let group: string
+  const $layer = inject<typeof LiteLayer>('layer')
   onMounted(() => {
     // @ts-ignore
-    const { proxy } = getCurrentInstance()
-    group = nanoid()
-    console.log(group)
-    $layer = proxy.$layer
+    // const { proxy } = getCurrentInstance()
+    // group = nanoid()
+    // console.log(group)
+    // $layer = proxy.$layer
   })
 
   /**
@@ -25,7 +26,7 @@ export default () => {
    */
   const openLayer = (options?: LayerConfig, appContext?: AppContext): ExportInstance | null => {
     console.log(group)
-    return $layer.open(group, options, appContext)
+    return $layer!.open(group, options, appContext)
   }
 
   /**
@@ -33,14 +34,14 @@ export default () => {
    * @param instance
    */
   const closeLayer = (instance: ExportInstance): void => {
-    $layer.close(instance)
+    $layer!.close(instance)
   }
   /**
    * 关闭所有同一个组的Layer
    * @param group
    */
   const closeAllLayer = (): void => {
-    $layer.closeAll()
+    $layer!.closeAll()
   }
   return {
     openLayer,

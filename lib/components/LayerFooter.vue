@@ -10,8 +10,8 @@
 </template>
 
 <script lang="ts" setup>
-import localeI18n from '@/lib/i18n'
-import useLayerEvent from '@/lib/utils/useLayerEvent'
+import localeI18n from '@lib/i18n'
+import useLayerEvent from '@lib/utils/useLayerEvent'
 
 const { t } = localeI18n().getI18n()
 const { emitCancel, emitOk } = useLayerEvent()

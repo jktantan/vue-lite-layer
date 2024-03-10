@@ -40,9 +40,9 @@ import { ResizeObserver } from '@juggle/resize-observer'
 import { computed, reactive, provide, ref, onMounted, nextTick } from 'vue'
 import useDraggable from './utils/useDraggable'
 
-import LayerHeader from '@/lib/components/LayerHeader.vue'
-import LayerContainer from '@/lib/components/LayerContainer.vue'
-import LayerFooter from '@/lib/components/LayerFooter.vue'
+import LayerHeader from '@lib/components/LayerHeader.vue'
+import LayerContainer from '@lib/components/LayerContainer.vue'
+import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
 import  { type LayerArea, type LayerConfig, LocationType } from './model/AreaModel'
 import LayerSizeUtils from './utils/useLayerSize'
@@ -95,27 +95,11 @@ const layerSizeStyle = reactive<LayerArea>({
 const layer = ref<HTMLElement>()
 const emitter = useEmitter()
 const useLayerSize = LayerSizeUtils()
-// let currentApp: App
-// let layerOperator: typeof LayerOperator
-/**
- * 关闭window后直接干掉整个layer
- */
 
-// @ts-ignore
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// const unmount = () => {
-//   // currentApp.unmount()
-//   // layerOperator.remove(props.id, props.group, props.uniqueGroup)
-//   emitter.emit('unmount')
-// }
 const onClose = () => {
   show.value = false
 }
 
-// const setController = (app: App, operator: typeof LayerOperator) => {
-//   currentApp = app
-//   layerOperator = operator
-// }
 // 窗体恢复
 const onRestore = () => {
   isMax.value = false

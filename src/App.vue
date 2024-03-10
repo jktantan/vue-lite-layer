@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import TheWelcome from './components/TheWelcome.vue'
+import useLiteLayer from '@lib/utils/useLiteLayer'
+const { openLayer } = useLiteLayer()
+
 </script>
 
 <template>
