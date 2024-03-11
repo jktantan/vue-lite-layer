@@ -16,10 +16,30 @@
     </div>
 
     <div class="lite-layer__window-header-operator" @mousedown.stop>
-      <div v-if="false" class="lite-layer__mask-button lite-layer__icon-minimum" :title="t('VueLiteLayer.minimum')" @click="onMaximum" />
-      <div v-if="max && !isMax" class="lite-layer__mask-button lite-layer__icon-maximum" :title="t('VueLiteLayer.maximum')" @click="onMaximum" />
-      <div v-if="isMax" class="lite-layer__mask-button lite-layer__icon-restore" :title="t('VueLiteLayer.maximum')" @click="onRestore" />
-      <div v-if="close" class="lite-layer__mask-button lite-layer__icon-close" :title="t('VueLiteLayer.close')" @click="onClose" />
+      <div
+        v-if="false"
+        class="lite-layer__mask-button lite-layer__icon-minimum"
+        :title="t('VueLiteLayer.minimum')"
+        @click="onMaximum"
+      />
+      <div
+        v-if="max && !isMax"
+        class="lite-layer__mask-button lite-layer__icon-maximum"
+        :title="t('VueLiteLayer.maximum')"
+        @click="onMaximum"
+      />
+      <div
+        v-if="isMax"
+        class="lite-layer__mask-button lite-layer__icon-restore"
+        :title="t('VueLiteLayer.maximum')"
+        @click="onRestore"
+      />
+      <div
+        v-if="close"
+        class="lite-layer__mask-button lite-layer__icon-close"
+        :title="t('VueLiteLayer.close')"
+        @click="onClose"
+      />
     </div>
   </div>
 </template>

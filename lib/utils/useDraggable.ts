@@ -1,12 +1,20 @@
 export default () => {
-  const DragBind = (dragBox: HTMLElement | undefined, moveBox: HTMLElement | undefined, layer: HTMLElement | undefined, layerSizeUtils: any) => {
-    dragBox!.onmousedown = e => {
-      if (moveBox?.offsetWidth === layer?.offsetWidth && moveBox?.offsetHeight === layer?.offsetHeight) {
+  const DragBind = (
+    dragBox: HTMLElement | undefined,
+    moveBox: HTMLElement | undefined,
+    layer: HTMLElement | undefined,
+    layerSizeUtils: any
+  ) => {
+    dragBox!.onmousedown = (e) => {
+      if (
+        moveBox?.offsetWidth === layer?.offsetWidth &&
+        moveBox?.offsetHeight === layer?.offsetHeight
+      ) {
         return
       }
       const disX = e.clientX - moveBox!.offsetLeft
       const disY = e.clientY - moveBox!.offsetTop
-      document.onmousemove = e => {
+      document.onmousemove = (e) => {
         e.preventDefault()
         const bodyWidth = layer!.offsetWidth
         // that.appendElement !== null

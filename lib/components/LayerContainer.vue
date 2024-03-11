@@ -1,7 +1,12 @@
 <template>
   <suspense>
     <div class="lite-layer__window-container">
-      <div ref="container" class="lite-layer__window-wrapper" :class="[shadowTypeClass]" @scroll.prevent="onScroll">
+      <div
+        ref="container"
+        class="lite-layer__window-wrapper"
+        :class="[shadowTypeClass]"
+        @scroll.prevent="onScroll"
+      >
         <component :is="content" v-bind="props" ref="layerContent" />
       </div>
     </div>

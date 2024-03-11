@@ -5,11 +5,7 @@ $--lite-layer__color-white: #fff !default;
 $--lite-layer__color-black: #000 !default;
 $--lite-layer__color-grey: #4d4d4d !default;
 $--lite-layer__color-disabled: #aaa !default;
-$--lite-layer__color-primary-activate: mix(
-  $--lite-layer__color-primary,
-  #000,
-  80%
-) !default;
+$--lite-layer__color-primary-activate: mix($--lite-layer__color-primary, #000, 80%) !default;
 /*
 tab文本颜色
  */

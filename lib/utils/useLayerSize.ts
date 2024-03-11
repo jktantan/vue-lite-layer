@@ -34,7 +34,11 @@ export default () => {
       moveBox!.style.left = layer!.offsetWidth - moveBox!.offsetWidth + 'px'
     }
   }
-  const initLocation = (location: Location | LocationType, layer: HTMLElement | undefined, moveBox: HTMLElement | undefined) => {
+  const initLocation = (
+    location: Location | LocationType,
+    layer: HTMLElement | undefined,
+    moveBox: HTMLElement | undefined
+  ) => {
     if (isLocation(location)) {
       moveBox!.style.top = location.top
       moveBox!.style.left = location.left

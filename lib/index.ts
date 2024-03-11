@@ -26,7 +26,11 @@ LiteLayer.install = (app: App, globalOptions: object) => {
    * 实现composable的实际方法
    */
   const $layer = {
-    open: (group: string = 'default', options?: LayerConfig, appContext?: AppContext): ExportInstance | null => {
+    open: (
+      group: string = 'default',
+      options?: LayerConfig,
+      appContext?: AppContext
+    ): ExportInstance | null => {
       const id = nanoid()
       const currentOptions: LayerConfig = defu(
         {
@@ -48,7 +52,9 @@ LiteLayer.install = (app: App, globalOptions: object) => {
 
       const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions })
 
-      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n).mount(document.createElement('div'))
+      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter)
+        .use(i18n)
+        .mount(document.createElement('div'))
       // 使当前的appContext和主页面的一样
       if (appContext !== null) {
         DynamicLayerInstance.$.appContext = appContext!
@@ -101,4 +107,4 @@ LiteLayer.install = (app: App, globalOptions: object) => {
   app.provide('layer', $layer)
   app.config.globalProperties.$layer = $layer
 }
-export default {install:LiteLayer.install}
+export default { install: LiteLayer.install }

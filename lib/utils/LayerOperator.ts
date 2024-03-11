@@ -71,7 +71,7 @@ export default {
     }
   },
   closeAll(group: string) {
-    instances.get(group)!.forEach(value => {
+    instances.get(group)!.forEach((value) => {
       this.close(value)
     })
   }
