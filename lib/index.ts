@@ -7,9 +7,10 @@ import LayerOperator from '@lib/utils/LayerOperator'
 import banner from '@lib/banner'
 import LiteLayer from '@lib/LiteLayer.vue'
 import defaultOption from '@lib/model/DefaultOption'
-import type { LayerConfig } from '@lib/model/AreaModel'
+import type { LayerConfig, LayerGlobalConfig } from '@lib/model/LayerModel'
 import VueMitter, { setEmitter } from '@lib/utils/layerMitt'
-
+import useLiteLayer from '@lib/utils/useLiteLayer'
+import useLayerEvent from '@lib/utils/useLayerEvent'
 // main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
 const i18n = createI18n({
@@ -19,30 +20,25 @@ const i18n = createI18n({
 })
 banner('1.0.0')
 console.log('install layer')
-LiteLayer.install = (app: App, globalOptions: object) => {
-  const mergeGlobalOptions = defu(globalOptions, defaultOption)
+LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
+  // const mergeGlobalOptions = defu(globalOptions, defaultOption)
 
   /**
    * 实现composable的实际方法
    */
   const $layer = {
-    open: (
-      group: string = 'default',
-      options?: LayerConfig,
-      appContext?: AppContext
-    ): ExportInstance | null => {
+    open: (options?: LayerConfig, appContext?: AppContext): ExportInstance | null => {
       const id = nanoid()
       const currentOptions: LayerConfig = defu(
         {
           id,
-          group
         },
         options,
-        mergeGlobalOptions
+        globalOptions, defaultOption
       )
       // currentOptions.id = id
       // 判断是否可以多开
-      if (LayerOperator.has(group, currentOptions.uniqueGroup!)) {
+      if (LayerOperator.has(currentOptions.uniqueGroup!)) {
         return null
       }
 
@@ -52,11 +48,9 @@ LiteLayer.install = (app: App, globalOptions: object) => {
 
       const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions })
 
-      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter)
-        .use(i18n)
-        .mount(document.createElement('div'))
+      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n).mount(document.createElement('div'))
       // 使当前的appContext和主页面的一样
-      if (appContext !== null) {
+      if (appContext) {
         DynamicLayerInstance.$.appContext = appContext!
         // 全局组件
         for (const prop in appContext!.components) {
@@ -68,11 +62,10 @@ LiteLayer.install = (app: App, globalOptions: object) => {
        */
       emitter.on('unmount', () => {
         DynamicLayerApp.unmount()
-        LayerOperator.remove(currentOptions.id!, currentOptions.group!, currentOptions.uniqueGroup)
+        LayerOperator.remove(currentOptions.id!, currentOptions.uniqueGroup)
       })
       const exportInstance: ExportInstance = {
         id,
-        group,
         uniqueGroup: currentOptions.uniqueGroup,
         close: () => {
           emitter.emit('close')
@@ -99,12 +92,13 @@ LiteLayer.install = (app: App, globalOptions: object) => {
         LayerOperator.close(instance)
       }
     },
-    closeAll(group: string): void {
-      LayerOperator.closeAll(group)
+    closeAll(): void {
+      LayerOperator.closeAll()
     }
   }
 
   app.provide('layer', $layer)
   app.config.globalProperties.$layer = $layer
 }
-export default { install: LiteLayer.install }
+export {useLiteLayer,useLayerEvent}
+export default {install:LiteLayer.install}

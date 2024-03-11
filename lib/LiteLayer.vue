@@ -1,37 +1,37 @@
 <template>
   <Teleport :to="teleport">
-    <div
-      ref="layer"
-      class="lite-layer"
-      :style="{
-        position: teleport === 'body' ? 'fixed' : 'absolute',
-        'z-index': currentIndex,
-        overflow: 'hidden',
-        ...layerSizeStyle
-      }"
-    >
-      <div class="lite-layer__shade" />
-      <transition name="lite-layer-zoom" appear @after-leave="emitter.emit('unmount')">
-        <div
-          v-if="show"
-          ref="moveBox"
-          class="lite-layer__window"
-          :style="{
-            maxWidth: maxWidth,
-            maxHeight: maxHeight,
-            ...size
-          }"
-        >
-          <layer-header ref="dragBox" :max="max" :close="close" :title="title" />
-          <!--          <suspense v-if="canShowContainer">-->
-          <layer-container ref="container" :content="content" :props="props.props" />
-          <!--          </suspense>-->
-          <layer-footer v-if="footer && typeof footer === 'boolean'" />
-          <component :is="footer" v-if="!!footer && typeof footer !== 'boolean'" />
-          <layer-loading />
-        </div>
-      </transition>
-    </div>
+      <div
+        ref="layer"
+        class="lite-layer"
+        :style="{
+          position: teleport === 'body' ? 'fixed' : 'absolute',
+          'z-index': currentIndex,
+          overflow: 'hidden',
+          ...layerSizeStyle
+        }"
+      >
+        <div class="lite-layer__shade" />
+        <transition name="lite-layer-zoom" appear @after-leave="emitter.emit('unmount')">
+          <div
+            v-if="show"
+            ref="moveBox"
+            class="lite-layer__window"
+            :style="{
+              maxWidth: maxWidth,
+              maxHeight: maxHeight,
+              ...size
+            }"
+          >
+            <layer-header ref="dragBox" :max="max" :close="close" :title="title" />
+            <!--          <suspense v-if="canShowContainer">-->
+            <layer-container ref="container" :content="content" :props="props.props" />
+            <!--          </suspense>-->
+            <layer-footer v-if="footer && typeof footer === 'boolean'" />
+            <component :is="footer" v-if="!!footer && typeof footer !== 'boolean'" />
+            <layer-loading />
+          </div>
+        </transition>
+      </div>
   </Teleport>
 </template>
 
@@ -44,7 +44,7 @@ import LayerHeader from '@lib/components/LayerHeader.vue'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
-import { type LayerArea, type LayerConfig, LocationType } from './model/AreaModel'
+import  { type LayerArea, type LayerConfig, LocationType } from './model/LayerModel'
 import LayerSizeUtils from './utils/useLayerSize'
 
 import { useEmitter } from './utils/layerMitt'
@@ -127,7 +127,7 @@ emitter.on('afterCommand', (eventMessage: any) => {
   }
 })
 
-const resizeUpdate = new ResizeObserver((entries: ResizeObserverEntry[]) => {
+const resizeUpdate = new ResizeObserver((entries:ResizeObserverEntry[]) => {
   if (moveBox.value!) {
     useLayerSize.setMaximumSize(entries[0].target as HTMLElement)
     useLayerSize.setDefaultSize(moveBox.value)
