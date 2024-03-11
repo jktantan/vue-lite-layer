@@ -19,7 +19,7 @@ import type { ExportInstance } from './model/ExportInstanceModel'
 //   locale: 'zh-CN', // 首选语言
 //   fallbackLocale: 'en-US' // 备选语言
 // })
-banner('1.0.0')
+banner(import.meta.env.PACKAGE_VERSION)
 console.log('install layer')
 LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
   // const mergeGlobalOptions = defu(globalOptions, defaultOption)
