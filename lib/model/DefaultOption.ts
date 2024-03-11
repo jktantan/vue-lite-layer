@@ -14,6 +14,6 @@ const defaultConfig: LayerGlobalConfig = {
   location: LocationType.CENTER_CENTER,
   max: true,
   close: true,
-  i18n: { locale: 'zh_CN' },
+  i18n: { locale: 'zh-CN' },
 }
 export default defaultConfig

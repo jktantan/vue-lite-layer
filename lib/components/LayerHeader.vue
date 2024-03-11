@@ -46,9 +46,11 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
-import localeI18n from '../i18n'
+// import localeI18n from '../i18n'
 import { useEmitter } from '../utils/layerMitt'
-const { t } = localeI18n().getI18n()
+import { useI18n } from 'vue-i18n-lite'
+// const { t } = localeI18n().getI18n()
+const { t } = useI18n()
 const el = ref<HTMLElement>()
 const emitter = useEmitter()
 const isMax = ref<boolean>(false)

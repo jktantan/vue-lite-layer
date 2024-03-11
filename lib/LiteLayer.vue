@@ -74,7 +74,7 @@ const props = withDefaults(defineProps<LayerConfig>(), {
   onCommand: null,
   i18n: () => ({ locale: 'zh-CN', messages: {} })
 })
-provide('locales', { ...props.i18n })
+// provide('locales', { ...props.i18n })
 
 const { DragBind } = useDraggable()
 const moveBox = ref<HTMLElement>()

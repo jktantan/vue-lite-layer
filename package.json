@@ -1,6 +1,6 @@
 {
   "name": "vue-lite-layer",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": false,
   "type": "module",
   "files": [
@@ -48,7 +48,7 @@
     "mitt": "^3.0.1",
     "nanoid": "^5.0.6",
     "vue": "^3.4.21",
-    "vue-i18n": "^9.10.1"
+    "vue-i18n-lite": "^1.0.2"
   },
   "devDependencies": {
     "@mdit/plugin-tasklist": "^0.8.0",

@@ -2,7 +2,8 @@ import mitt from 'mitt'
 import { nanoid } from 'nanoid'
 import { type App, type AppContext, createApp } from 'vue'
 import { defu } from 'defu'
-import { createI18n } from 'vue-i18n'
+// import { createI18n } from 'vue-i18n'
+import i18n from '@lib/i18n'
 import LayerOperator from '@lib/utils/LayerOperator'
 import banner from '@lib/banner'
 import LiteLayer from '@lib/LiteLayer.vue'
@@ -13,11 +14,11 @@ import useLiteLayer from '@lib/utils/useLiteLayer'
 import useLayerEvent from '@lib/utils/useLayerEvent'
 // main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN', // 首选语言
-  fallbackLocale: 'en-US' // 备选语言
-})
+// const i18n = createI18n({
+//   legacy: false,
+//   locale: 'zh-CN', // 首选语言
+//   fallbackLocale: 'en-US' // 备选语言
+// })
 banner('1.0.0')
 console.log('install layer')
 LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
@@ -48,7 +49,7 @@ LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
 
       const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions })
 
-      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n).mount(document.createElement('div'))
+      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n().getI18n(currentOptions.i18n)).mount(document.createElement('div'))
       // 使当前的appContext和主页面的一样
       if (appContext) {
         DynamicLayerInstance.$.appContext = appContext!

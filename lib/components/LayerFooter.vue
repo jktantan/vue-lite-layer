@@ -10,10 +10,11 @@
 </template>
 
 <script lang="ts" setup>
-import localeI18n from '@lib/i18n'
+// import localeI18n from '@lib/i18n'
+import {useI18n} from 'vue-i18n-lite'
 import useLayerEvent from '@lib/utils/useLayerEvent'
 
-const { t } = localeI18n().getI18n()
+const { t } = useI18n()
 const { emitCancel, emitOk } = useLayerEvent()
 </script>
 
