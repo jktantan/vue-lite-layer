@@ -1,5 +1,5 @@
 import { isNil } from 'lodash-es'
-import { type Location, LocationType, type Size } from '../model/AreaModel'
+import { type Location, LocationType, type Size } from '../model/LayerModel'
 
 export default () => {
   const defaultSize: Size = { height: 0, width: 0 }

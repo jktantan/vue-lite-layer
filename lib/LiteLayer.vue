@@ -44,7 +44,7 @@ import LayerHeader from '@lib/components/LayerHeader.vue'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
-import  { type LayerArea, type LayerConfig, LocationType } from './model/AreaModel'
+import  { type LayerArea, type LayerConfig, LocationType } from './model/LayerModel'
 import LayerSizeUtils from './utils/useLayerSize'
 
 import { useEmitter } from './utils/layerMitt'

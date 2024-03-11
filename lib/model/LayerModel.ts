@@ -84,12 +84,10 @@ export enum LocationType {
 //     return ''
 //   }
 // }
-
-export interface LayerConfig {
-  id?: string
-  group?: string
-  uniqueGroup?: string
-  title?: string
+/**
+ * GLOBAL Config
+ */
+export interface LayerGlobalConfig {
   footer?: NonNullable<unknown> | string | boolean
   shade?: boolean
   shadeClose?: boolean
@@ -98,12 +96,21 @@ export interface LayerConfig {
   size?: WindowSize
   location?: Location | LocationType
   teleport?: string | HTMLElement | RendererNode
-  content?: VueElement | HTMLElement | any
-  props?: object | null
   max?: boolean
   close?: boolean
+  i18n?: { locale?: string; messages?: object }
+}
+
+/**
+ * config for every Layer
+ */
+export interface LayerConfig extends LayerGlobalConfig{
+  id?: string
+  uniqueGroup?: string
+  title?: string
+  content?: VueElement | HTMLElement | any
+  props?: object | null
   onCancel?: Callback | null
   onOk?: Callback | null
   onCommand?: Callback | null
-  i18n?: { locale?: string; messages?: object }
 }

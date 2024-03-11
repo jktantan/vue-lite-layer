@@ -2,8 +2,10 @@
 import HelloWorld from './components/HelloWorld.vue'
 import TheWelcome from './components/TheWelcome.vue'
 import useLiteLayer from '@lib/utils/useLiteLayer'
+import { getCurrentInstance } from 'vue'
+const {appContext} = getCurrentInstance()
 const { openLayer } = useLiteLayer()
-
+openLayer()
 </script>
 
 <template>
