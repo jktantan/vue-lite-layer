@@ -9,7 +9,6 @@ import LiteLayer from '@lib/LiteLayer.vue'
 import defaultOption from '@lib/model/DefaultOption'
 import type { LayerConfig, LayerGlobalConfig } from '@lib/model/LayerModel'
 import VueMitter, { setEmitter } from '@lib/utils/layerMitt'
-
 // main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
 const i18n = createI18n({
