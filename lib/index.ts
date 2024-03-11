@@ -9,6 +9,8 @@ import LiteLayer from '@lib/LiteLayer.vue'
 import defaultOption from '@lib/model/DefaultOption'
 import type { LayerConfig, LayerGlobalConfig } from '@lib/model/LayerModel'
 import VueMitter, { setEmitter } from '@lib/utils/layerMitt'
+import useLiteLayer from '@lib/utils/useLiteLayer'
+import useLayerEvent from '@lib/utils/useLayerEvent'
 // main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
 const i18n = createI18n({
@@ -98,4 +100,5 @@ LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
   app.provide('layer', $layer)
   app.config.globalProperties.$layer = $layer
 }
+export {useLiteLayer,useLayerEvent}
 export default {install:LiteLayer.install}
