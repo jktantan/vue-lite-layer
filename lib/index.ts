@@ -47,16 +47,20 @@ LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
       const emitter = mitt()
       setEmitter(emitter)
 
-      const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions })
+      const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions }).use(VueMitter).use(i18n().getI18n(currentOptions.i18n))
 
-      const DynamicLayerInstance = DynamicLayerApp.use(VueMitter).use(i18n().getI18n(currentOptions.i18n)).mount(document.createElement('div'))
+      let DynamicLayerInstance
       // 使当前的appContext和主页面的一样
       if (appContext) {
-        DynamicLayerInstance.$.appContext = appContext!
+        // DynamicLayerInstance.$.appContext = appContext!
         // 全局组件
         for (const prop in appContext!.components) {
           DynamicLayerApp.component(prop, appContext!.components[prop])
         }
+        DynamicLayerInstance= DynamicLayerApp.mount(document.createElement('div'))
+        DynamicLayerInstance.$.vnode.appContext=appContext!
+      }else{
+        DynamicLayerApp.mount(document.createElement('div'))
       }
       /**
        * 关闭窗体
