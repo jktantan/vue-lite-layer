@@ -2,7 +2,6 @@ import mitt from 'mitt'
 import { nanoid } from 'nanoid'
 import { type App, type AppContext, createApp } from 'vue'
 import { defu } from 'defu'
-// import { createI18n } from 'vue-i18n'
 import i18n from '@lib/i18n'
 import LayerOperator from '@lib/utils/LayerOperator'
 import banner from '@lib/banner'
@@ -12,18 +11,12 @@ import type { LayerConfig, LayerGlobalConfig } from '@lib/model/LayerModel'
 import VueMitter, { setEmitter } from '@lib/utils/layerMitt'
 import useLiteLayer from '@lib/utils/useLiteLayer'
 import useLayerEvent from '@lib/utils/useLayerEvent'
-// main.ts
 import type { ExportInstance } from './model/ExportInstanceModel'
-// const i18n = createI18n({
-//   legacy: false,
-//   locale: 'zh-CN', // 首选语言
-//   fallbackLocale: 'en-US' // 备选语言
-// })
+
 banner(import.meta.env.PACKAGE_VERSION)
 console.log('install layer')
 LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
   // const mergeGlobalOptions = defu(globalOptions, defaultOption)
-
   /**
    * 实现composable的实际方法
    */
@@ -49,16 +42,17 @@ LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
 
       const DynamicLayerApp = createApp(LiteLayer, { ...currentOptions }).use(VueMitter).use(i18n().getI18n(currentOptions.i18n))
 
-      let DynamicLayerInstance
+      // let DynamicLayerInstance
       // 使当前的appContext和主页面的一样
       if (appContext) {
         // DynamicLayerInstance.$.appContext = appContext!
         // 全局组件
         for (const prop in appContext!.components) {
-          DynamicLayerApp.component(prop, appContext!.components[prop])
+          if(!DynamicLayerApp.component(prop)) {
+            DynamicLayerApp.component(prop, appContext!.components[prop])
+          }
         }
-        DynamicLayerInstance= DynamicLayerApp.mount(document.createElement('div'))
-        DynamicLayerInstance.$.vnode.appContext=appContext!
+        DynamicLayerApp.mount(document.createElement('div')).$.vnode.appContext=appContext!
       }else{
         DynamicLayerApp.mount(document.createElement('div'))
       }
