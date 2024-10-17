@@ -1,11 +1,11 @@
-@import 'icon';
-@import './common/var.scss';
+@use 'icon';
+@use 'common/var' as *;
 
 .lite-layer {
   overflow: hidden;
 
   &__shade {
-    background-color: $--lite-layer__color-grey;
+    background-color: $lite-layer__color-grey;
     position: absolute;
     width: 100%;
     height: 100%;
@@ -16,22 +16,22 @@
 
   &__mask-button {
     height: 100%;
-    width: $--lite-layer__icon-size;
-    background-color: $--lite-layer__text-color;
-    margin-left: $--lite-layer__icon-margin;
-    transition: $--lite-layer__trans;
+    width: $lite-layer__icon-size;
+    background-color: $lite-layer__text-color;
+    margin-left: $lite-layer__icon-margin;
+    transition: $lite-layer__trans;
     cursor: pointer;
 
     &:hover {
-      background-color: $--lite-layer__color-primary;
+      background-color: $lite-layer__color-primary;
     }
 
     &:active {
-      background-color: $--lite-layer__color-primary-activate;
+      background-color: $lite-layer__color-primary-activate;
     }
   }
   &__window {
-    background-color: $--lite-layer__color-white;
+    background-color: $lite-layer__color-white;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
     //box-sizing: border-box;
@@ -57,7 +57,7 @@
 
       &-title {
         flex: 1 1 0;
-        font-size: $--lite-layer__font-size;
+        font-size: $lite-layer__font-size;
         text-align: left;
         user-select: none;
         //pointer-events: all;
@@ -68,7 +68,7 @@
       &-operator {
         cursor: initial;
         height: 100%;
-        color: $--lite-layer__color-black;
+        color: $lite-layer__color-black;
         display: flex;
         flex-direction: row;
         pointer-events: all;
@@ -95,11 +95,11 @@
       }
       &::-webkit-scrollbar-thumb {
         border-radius: 5px;
-        background: rgba($--lite-layer__color-primary, 0.8);
+        background: rgba($lite-layer__color-primary, 0.8);
       }
       &::-webkit-scrollbar-track {
         border-radius: 0;
-        background: rgba($--lite-layer__color-disabled, 0.4);
+        background: rgba($lite-layer__color-disabled, 0.4);
       }
     }
 
@@ -129,7 +129,7 @@
     font-weight: 500;
     user-select: none;
     padding: 8px 18px;
-    //font-size: $--lite-layer__font-size;
+    //font-size: $-lite-layer__font-size;
     font-size: 14px;
     border-radius: 4px;
 
@@ -176,7 +176,7 @@
     top: 0;
     bottom: 0;
     pointer-events: none;
-    box-shadow: $--shadow-top-inset;
+    box-shadow: $shadow-top-inset;
   }
   &__shadow-bottom-inset::after {
     content: '';
@@ -186,7 +186,7 @@
     top: 0;
     bottom: 0;
     pointer-events: none;
-    box-shadow: $--shadow-bottom-inset;
+    box-shadow: $shadow-bottom-inset;
   }
   &__shadow-horizontal-inset::after {
     content: '';
@@ -196,7 +196,7 @@
     top: 0;
     bottom: 0;
     pointer-events: none;
-    box-shadow: $--shadow-horizontal-inset;
+    box-shadow: $shadow-horizontal-inset;
   }
   &__disabled-point-event {
     //pointer-events: none;
