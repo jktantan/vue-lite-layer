@@ -39,6 +39,7 @@
     position: absolute;
     display: flex;
     flex-direction: column;
+    transition: all 200ms;
 
     &-header {
       padding: 0 8px;

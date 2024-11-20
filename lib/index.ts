@@ -1,7 +1,7 @@
 import mitt from 'mitt'
 import { nanoid } from 'nanoid'
-import { type App,  createApp, getCurrentInstance } from 'vue'
-import type {ComponentInternalInstance} from 'vue'
+import { type App, createApp } from 'vue'
+import type { AppContext } from 'vue'
 import { defu } from 'defu'
 import i18n from '@lib/i18n'
 import LayerOperator from '@lib/utils/LayerOperator'
@@ -22,9 +22,8 @@ LiteLayer.install = (app: App, globalOptions: LayerGlobalConfig) => {
    * 实现composable的实际方法
    */
   const $layer = {
-    open: (options?: LayerConfig): ExportInstance | null => {
+    open: (options?: LayerConfig, appContext?:AppContext): ExportInstance | null => {
       const id = nanoid()
-      const { appContext } = getCurrentInstance() as ComponentInternalInstance
       const currentOptions: LayerConfig = defu(
         {
           id,
