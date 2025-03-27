@@ -7,10 +7,11 @@
           position: teleport === 'body' ? 'fixed' : 'absolute',
           'z-index': currentIndex,
           overflow: 'hidden',
+          'pointer-events': shade?'all':'none',
           ...layerSizeStyle
         }"
       >
-        <div class="lite-layer__shade" />
+        <div class="lite-layer__shade" v-if="shade"/>
         <transition name="lite-layer-zoom" appear @after-leave="emitter.emit('unmount')">
           <div
             v-if="show"
@@ -21,6 +22,8 @@
               maxHeight: maxHeight,
               ...size
             }"
+            style="pointer-events:all"
+            @mousedown="onTop"
           >
             <layer-header ref="dragBox" :max="max" :close="close" :title="title" />
             <!--          <suspense v-if="canShowContainer">-->
@@ -83,9 +86,10 @@ const container = ref<any>()
 const show = ref<boolean>(true)
 // 是否最大化
 const isMax = ref<boolean>(false)
-const currentIndex = computed<number>(() => {
-  return 10
-})
+// const currentIndex = computed<number>(() => {
+//   return getMaxZIndex(props.teleport)
+// })
+const currentIndex = ref<number>(1)
 const layerSizeStyle = reactive<LayerArea>({
   top: '0px',
   left: '0px',
@@ -109,6 +113,9 @@ const onRestore = () => {
 const onMaximum = () => {
   isMax.value = true
   useLayerSize.maximum(moveBox.value)
+}
+const onTop = () => {
+  currentIndex.value =getMaxZIndex(props.teleport+" *")
 }
 
 emitter.on('afterOk', (message?: any) => {
@@ -167,6 +174,7 @@ onMounted(() => {
   //   width: layer.value?.parentNode!.offsetWidth + 'px',
   //   height: layer.value?.parentNode!.offsetHeight + 'px',
   // })
+  onTop()
   nextTick(() => {
     // 下面数据不在nextTick里面，数值会出错
     useLayerSize.setDefaultSize(moveBox.value)
@@ -184,13 +192,26 @@ onMounted(() => {
   emitter.on('close', () => {
     onClose()
   })
+  emitter.on('top', () => {
+    onTop()
+  })
   // })
 })
-
+/**
+ * 获取最大z-index
+ * @returns 最大z-index的值
+ */
+const getMaxZIndex = (key = 'body *'): number => {
+  const allZIndex = Array.from(document.querySelectorAll(key)).map(
+    (e) => +window.getComputedStyle(e).zIndex || 0
+  )
+  // 特殊处理，不高于90000的才行
+  return allZIndex.length ? Math.max(...allZIndex.filter((item) => item < 90000)) + 1 : 1
+}
 defineExpose({
   id: props.id,
   close: onClose,
-  top,
+  top: onTop,
   max: onMaximum,
   restore: onRestore
 })

@@ -24,6 +24,18 @@ const tableData = ref<RowVO[]>([
   { id: 10004, name: 'Test4', role: 'Designer', sex: 'Women', age: 24, address: 'Shanghai' }
 ])
 openLayer({
+  shade: false,
+  size: {
+    width: '60%',
+    height: '80%'
+  },
+  title: '新增任务',
+  content: table,
+  onOk: () => {
+
+  }},appContext)
+openLayer({
+  shade: false,
   size: {
     width: '60%',
     height: '80%'
