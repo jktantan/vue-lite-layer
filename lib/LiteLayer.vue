@@ -115,7 +115,7 @@ const onMaximum = () => {
   useLayerSize.maximum(moveBox.value)
 }
 const onTop = () => {
-  currentIndex.value =getMaxZIndex(props.teleport+" *")
+  currentIndex.value =getMaxZIndex(props.teleport)
 }
 
 emitter.on('afterOk', (message?: any) => {
@@ -201,10 +201,18 @@ onMounted(() => {
  * 获取最大z-index
  * @returns 最大z-index的值
  */
-const getMaxZIndex = (key = 'body *'): number => {
-  const allZIndex = Array.from(document.querySelectorAll(key)).map(
-    (e) => +window.getComputedStyle(e).zIndex || 0
-  )
+const getMaxZIndex = (key = 'body'): number => {
+  let allZIndex;
+  if(key.constructor === String){
+    allZIndex = Array.from(document.querySelectorAll(key+" *")).map(
+      (e) => +window.getComputedStyle(e).zIndex || 0
+    )
+  }else{
+    allZIndex = Array.from(key.querySelectorAll("*")).map(
+      (e) => +window.getComputedStyle(e).zIndex || 0
+    )
+  }
+
   // 特殊处理，不高于90000的才行
   return allZIndex.length ? Math.max(...allZIndex.filter((item) => item < 90000)) + 1 : 1
 }
