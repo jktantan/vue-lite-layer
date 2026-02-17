@@ -2,14 +2,22 @@
   <suspense>
     <div class="lite-layer__window-container">
       <div
-        ref="container"
+        ref="wrapperRef"
         class="lite-layer__window-wrapper"
-        :class="[shadowTypeClass]"
-        @scroll.prevent="onScroll"
+        :class="[shadowClass]"
+        @scroll="handleScroll"
       >
-        <component :is="content" v-bind="props" ref="layerContent" />
+        <!-- 字符串内容直接渲染 / Render string content directly -->
+        <div v-if="content && typeof content === 'string'" v-html="content"></div>
+        <!-- 组件内容使用 component / Render component content using component -->
+        <component v-else-if="content" :is="content" v-bind="props" ref="contentRef" />
       </div>
     </div>
+    <template #fallback>
+      <div class="lite-layer__window-container" style="display:flex;align-items:center;justify-content:center;">
+        <div class="vll-loading-spinner" />
+      </div>
+    </template>
   </suspense>
 </template>
 
@@ -17,53 +25,62 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { ResizeObserver } from '@juggle/resize-observer'
 
-const shadowTypeClass = ref<string>('')
-const container = ref<HTMLElement>()
-const layerContent = ref()
+const shadowClass = ref('')
+const wrapperRef = ref<HTMLElement>()
+const contentRef = ref()
+
 defineProps<{
-  content: NonNullable<unknown> | string
+  /** 弹层内容：Vue 组件或字符串 / Layer content: Vue component or string */
+  content?: NonNullable<unknown> | string
+  /** 传递给内容组件的 props / Props passed to content component */
   props?: object | null
 }>()
+
+/**
+ * 根据滚动位置计算上下阴影样式
+ * Calculate top and bottom shadow styles based on scroll position
+ *
+ * - 内容不超出容器：无阴影
+ *   Content doesn't exceed container: no shadow
+ * - 滚动到顶部：底部阴影
+ *   Scrolled to top: bottom shadow
+ * - 滚动到底部：顶部阴影
+ *   Scrolled to bottom: top shadow
+ * - 中间位置：上下双向阴影
+ *   Middle position: both top and bottom shadows
+ */
 const updateShadow = (target: HTMLElement) => {
-  // 滑入屏幕滚动条滚动时，距离顶部的距离
-  const scrollTop = target.scrollTop
-  // 能看到的页面的高度
-  const windowHeight = target.clientHeight
-  // 监控的整个div的高度（包括现在看到的和上下隐藏起来看不到的）
-  const scrollHeight = target.scrollHeight
-  const total = scrollTop + windowHeight
-  if (scrollHeight <= windowHeight) {
-    shadowTypeClass.value = ''
-  } else if (total >= scrollHeight - 10) {
-    shadowTypeClass.value = 'lite-layer__shadow-top-inset'
-    // 加载操作
+  const { scrollTop, clientHeight, scrollHeight } = target
+
+  if (scrollHeight <= clientHeight) {
+    shadowClass.value = ''
+  } else if (scrollTop + clientHeight >= scrollHeight - 10) {
+    shadowClass.value = 'lite-layer__shadow-top-inset'
   } else if (scrollTop <= 10) {
-    shadowTypeClass.value = 'lite-layer__shadow-bottom-inset'
+    shadowClass.value = 'lite-layer__shadow-bottom-inset'
   } else {
-    shadowTypeClass.value = 'lite-layer__shadow-horizontal-inset'
+    shadowClass.value = 'lite-layer__shadow-horizontal-inset'
   }
 }
-const onScroll = (e: UIEvent) => {
-  const target = e.target as HTMLElement
-  updateShadow(target)
+
+const handleScroll = (e: Event) => {
+  updateShadow(e.target as HTMLElement)
 }
-const resizeUpdate = new ResizeObserver(() => {
-  updateShadow(container.value!)
-})
+
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
-  resizeUpdate.observe(container.value as Element)
-  // resizeUpdate.observe(layerContent.value as Element)
+  if (!wrapperRef.value) return
+  resizeObserver = new ResizeObserver(() => {
+    if (wrapperRef.value) {
+      updateShadow(wrapperRef.value)
+    }
+  })
+  resizeObserver.observe(wrapperRef.value)
 })
 
 onUnmounted(() => {
-  resizeUpdate.disconnect()
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
-
-// defineExpose({
-//   onOk,
-//   onCancel,
-//   onCommand
-// })
 </script>
-
-<style scoped></style>

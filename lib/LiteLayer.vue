@@ -1,58 +1,61 @@
 <template>
   <Teleport :to="teleport">
+    <div
+      ref="layerRef"
+      class="lite-layer"
+      :style="{
+        position: teleport === 'body' ? 'fixed' : 'absolute',
+        'z-index': currentZIndex,
+        pointerEvents: shade ? 'auto' : 'none',
+        ...layerStyle
+      }"
+    >
+      <div v-if="shade" class="lite-layer__shade" @click="handleShadeClick" />
       <div
-        ref="layer"
-        class="lite-layer"
-        :style="{
-          position: teleport === 'body' ? 'fixed' : 'absolute',
-          'z-index': currentIndex,
-          overflow: 'hidden',
-          'pointer-events': shade?'all':'none',
-          ...layerSizeStyle
+        v-if="visible"
+        ref="windowRef"
+        class="lite-layer__window"
+        :class="{
+          'lite-layer__window--initial': initialHide,
+          'lite-layer__window--enter': enterAnim,
+          'lite-layer__window--leave': leaveAnim,
+          'lite-layer__window--resizing': isResizing,
         }"
+        :style="{
+          maxWidth: maxWidth,
+          maxHeight: maxHeight,
+          pointerEvents: 'auto',
+          ...layerSize.windowStyle
+        }"
+        @mousedown="handleWindowMouseDown"
+        @animationend="handleAnimationEnd"
       >
-        <div class="lite-layer__shade" v-if="shade"/>
-        <transition name="lite-layer-zoom" appear @after-leave="emitter.emit('unmount')">
-          <div
-            v-if="show"
-            ref="moveBox"
-            class="lite-layer__window"
-            :style="{
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
-              ...size
-            }"
-            style="pointer-events:all"
-            @mousedown="onTop"
-          >
-            <layer-header ref="dragBox" :max="max" :close="close" :title="title" />
-            <!--          <suspense v-if="canShowContainer">-->
-            <layer-container ref="container" :content="content" :props="props.props" />
-            <!--          </suspense>-->
-            <layer-footer v-if="footer && typeof footer === 'boolean'" />
-            <component :is="footer" v-if="!!footer && typeof footer !== 'boolean'" />
-            <layer-loading />
-          </div>
-        </transition>
+        <layer-header ref="headerRef" :max="max" :close="close" :title="title" />
+        <layer-container :content="content" :props="props.props" />
+        <layer-footer v-if="footer && typeof footer === 'boolean'" />
+        <component :is="footer" v-else-if="!!footer" />
+        <layer-loading />
       </div>
+    </div>
   </Teleport>
 </template>
 
 <script lang="ts" setup>
 import { ResizeObserver } from '@juggle/resize-observer'
-import { computed, reactive, provide, ref, onMounted, nextTick } from 'vue'
-import useDraggable from './utils/useDraggable'
+import { reactive, ref, onMounted, onUnmounted, nextTick } from 'vue'
+import useDraggable from './composables/use-draggable'
 
 import LayerHeader from '@lib/components/LayerHeader.vue'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
-import  { type LayerArea, type LayerConfig, LocationType } from './model/LayerModel'
-import LayerSizeUtils from './utils/useLayerSize'
+import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
+import useLayerSize from './composables/use-layer-size'
+import layerManager from './core/layer-manager'
 
-import { useEmitter } from './utils/layerMitt'
+import { useLayerEmitter } from './core/layer-emitter'
 import LayerLoading from './components/LayerLoading.vue'
-import { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
+import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
 
 const props = withDefaults(defineProps<LayerConfig>(), {
   title: '',
@@ -61,13 +64,11 @@ const props = withDefaults(defineProps<LayerConfig>(), {
   shadeClose: true,
   maxWidth: 'none',
   maxHeight: 'none',
-  size: () => {
-    return {
-      height: '400px',
-      width: '300px'
-    }
-  },
-  location: LocationType.CENTER_CENTER,
+  size: () => ({
+    height: '400px',
+    width: '300px'
+  }),
+  location: PositionPreset.CENTER_CENTER,
   teleport: 'body',
   props: null,
   max: true,
@@ -77,152 +78,183 @@ const props = withDefaults(defineProps<LayerConfig>(), {
   onCommand: null,
   i18n: () => ({ locale: 'zh-CN', messages: {} })
 })
-// provide('locales', { ...props.i18n })
 
-const { DragBind } = useDraggable()
-const moveBox = ref<HTMLElement>()
-const dragBox = ref<any>()
-const container = ref<any>()
-const show = ref<boolean>(true)
-// 是否最大化
-const isMax = ref<boolean>(false)
-// const currentIndex = computed<number>(() => {
-//   return getMaxZIndex(props.teleport)
-// })
-const currentIndex = ref<number>(1)
-const layerSizeStyle = reactive<LayerArea>({
+// ──── 模板引用 / Template Refs ────
+const { bindDrag, unbindDrag } = useDraggable()
+const windowRef = ref<HTMLElement>()
+const headerRef = ref<any>()
+const layerRef = ref<HTMLElement>()
+
+// ──── 状态 / State ────
+const visible = ref(true)
+const initialHide = ref(true)  // 初始隐藏，等定位完成后移除 / Initially hidden, removed after positioning completes
+const enterAnim = ref(false)
+const leaveAnim = ref(false)
+const isMaximized = ref(false)
+const isResizing = ref(false)
+
+// ──── z-index 管理 / Z-index Management ────
+const teleportGroup = typeof props.teleport === 'string' ? props.teleport : '__element__'
+const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
+
+// ──── 弹层尺寸与定位 / Layer Size and Positioning ────
+const layerStyle = reactive<LayerArea>({
   top: '0px',
   left: '0px',
   width: '100vw',
   height: '100vh'
 })
-const layer = ref<HTMLElement>()
-const emitter = useEmitter()
-const useLayerSize = LayerSizeUtils()
+const emitter = useLayerEmitter()
+const layerSize = useLayerSize(props.size)
+let resizeObserver: ResizeObserver | null = null
 
-const onClose = () => {
-  show.value = false
-}
+// ──── 事件处理 / Event Handlers ────
 
-// 窗体恢复
-const onRestore = () => {
-  isMax.value = false
-  useLayerSize.restore(moveBox.value, layer.value)
-}
-// 窗体最大化
-const onMaximum = () => {
-  isMax.value = true
-  useLayerSize.maximum(moveBox.value)
-}
-const onTop = () => {
-  currentIndex.value =getMaxZIndex(props.teleport)
+const handleClose = () => {
+  if (leaveAnim.value) return
+  leaveAnim.value = true
+  enterAnim.value = false
 }
 
-emitter.on('afterOk', (message?: any) => {
-  if (props.onOk !== null) {
-    props.onOk!(message)
+const handleAnimationEnd = (e: AnimationEvent) => {
+  // 只处理窗口自身的动画事件，忽略子元素冒泡 / Only handle animation events from window itself, ignore bubbling from children
+  if (e.target !== windowRef.value) return
+
+  if (leaveAnim.value) {
+    visible.value = false
+    emitter.emit('unmount')
+  } else if (enterAnim.value) {
+    // 入场动画完毕，移除 class 释放 CSS 引擎对 animation 的追踪 / Remove class after enter animation to release CSS engine tracking
+    enterAnim.value = false
   }
-})
-emitter.on('afterCancel', (message?: any) => {
-  if (props.onCancel !== null) {
-    props.onCancel!(message)
-  }
-})
-emitter.on('afterCommand', (eventMessage: any) => {
-  if (props.onCommand !== null) {
-    props.onCommand!(eventMessage.command, eventMessage.message)
-  }
-})
+}
 
-const resizeUpdate = new ResizeObserver((entries:ResizeObserverEntry[]) => {
-  if (moveBox.value!) {
-    useLayerSize.setMaximumSize(entries[0].target as HTMLElement)
-    useLayerSize.setDefaultSize(moveBox.value)
-    if (!isMax.value) {
-      // 重定位
-      useLayerSize.initLocation(props.location, entries[0].target as HTMLElement, moveBox.value)
-    } else {
-      useLayerSize.maximum(moveBox.value)
+const handleShadeClick = () => {
+  if (props.shadeClose && props.shade) {
+    handleClose()
+  }
+}
+
+const handleRestore = () => {
+  isMaximized.value = false
+  isResizing.value = true
+  layerSize.restore(windowRef.value, layerRef.value, () => {
+    isResizing.value = false
+  })
+}
+
+const handleMaximize = () => {
+  isMaximized.value = true
+  isResizing.value = true
+  layerSize.maximize(windowRef.value, () => {
+    isResizing.value = false
+  })
+}
+
+const handleBringToTop = () => {
+  currentZIndex.value = layerManager.bringToTop(props.id!, teleportGroup)
+}
+
+const handleWindowMouseDown = () => {
+  handleBringToTop()
+}
+
+// ──── 回调事件 / Callback Events ────
+
+const handleAfterOk = (message?: any) => {
+  props.onOk?.(message)
+}
+
+const handleAfterCancel = (message?: any) => {
+  props.onCancel?.(message)
+}
+
+const handleAfterCommand = (eventMessage: any) => {
+  props.onCommand?.(eventMessage.command, eventMessage.message)
+}
+
+const handleContainerResize = (entries: ResizeObserverEntry[]) => {
+  if (windowRef.value && entries[0]) {
+    layerSize.setMaximumSize(entries[0].target as HTMLElement)
+    if (isMaximized.value) {
+      // 最大化状态下仅更新最大尺寸并重新铺满，不要覆盖 defaultSize
+      // When maximized, only update maximum size and re-fill, DO NOT overwrite defaultSize
+      isResizing.value = true
+      layerSize.maximize(windowRef.value, () => {
+        isResizing.value = false
+      })
     }
+    // 非最大化时仅更新 maximumSize，不调用 initPosition，否则会覆盖用户拖拽后的位置
+    // （ResizeObserver 可能在点击/聚焦等操作时意外触发，导致窗口被重置到中心）
+    // When not maximized, only update maximumSize; do NOT call initPosition to avoid
+    // overwriting user-dragged position (ResizeObserver may fire spuriously on click/focus)
   }
-})
-// 初始化数据
+}
+
+// ──── 生命周期 / Lifecycle ────
+
 onMounted(() => {
+  resizeObserver = new ResizeObserver(handleContainerResize)
+
   if (props.teleport !== 'body') {
-    if (layer.value?.parentElement!.style.position === 'relative') {
-      Object.assign(layerSizeStyle, {
+    const parent = layerRef.value?.parentElement
+    if (parent?.style.position === 'relative') {
+      Object.assign(layerStyle, { width: '100%', height: '100%' })
+    } else if (parent) {
+      Object.assign(layerStyle, {
+        top: parent.offsetTop + 'px',
+        left: parent.offsetLeft + 'px',
         width: '100%',
         height: '100%'
-      })
-    } else {
-      Object.assign(layerSizeStyle, {
-        top: layer.value?.parentElement!.offsetTop + 'px',
-        left: layer.value?.parentElement!.offsetLeft + 'px',
-        width: '100%',
-        height: '100%'
-        // height: layer.value?.parentElement!.offsetHeight + 'px'
       })
     }
-    resizeUpdate.observe(layer.value?.parentNode as Element)
-  } else {
-    resizeUpdate.observe(layer.value as Element)
+    if (layerRef.value?.parentNode) {
+      resizeObserver.observe(layerRef.value.parentNode as Element)
+    }
+  } else if (layerRef.value) {
+    resizeObserver.observe(layerRef.value)
   }
 
-  // nextTick().then(() => {
-  // console.log(layer.value?.parentNode!.style)
-  // Object.assign(layerSizeStyle, {
-  //   width: layer.value?.parentNode!.offsetWidth + 'px',
-  //   height: layer.value?.parentNode!.offsetHeight + 'px',
-  // })
-  onTop()
   nextTick(() => {
-    // 下面数据不在nextTick里面，数值会出错
-    useLayerSize.setDefaultSize(moveBox.value)
-    useLayerSize.setMaximumSize(layer.value)
-    useLayerSize.initLocation(props.location, layer.value, moveBox.value)
-    DragBind(dragBox.value.el, moveBox.value, layer.value, useLayerSize)
+    layerSize.setDefaultSize(windowRef.value)
+    layerSize.setMaximumSize(layerRef.value)
+    layerSize.initPosition(props.location, layerRef.value, windowRef.value)
+    bindDrag(headerRef.value?.el, windowRef.value, layerRef.value, layerSize)
+    // 定位完成后：移除初始隐藏 → 触发入场动画 / After positioning: remove initial hide → trigger enter animation
+    requestAnimationFrame(() => {
+      initialHide.value = false
+      enterAnim.value = true
+    })
   })
 
-  emitter.on('maximum', () => {
-    onMaximum()
-  })
-  emitter.on('restore', () => {
-    onRestore()
-  })
-  emitter.on('close', () => {
-    onClose()
-  })
-  emitter.on('top', () => {
-    onTop()
-  })
-  // })
+  emitter.on('maximum', handleMaximize)
+  emitter.on('restore', handleRestore)
+  emitter.on('close', handleClose)
+  emitter.on('top', handleBringToTop)
+  emitter.on('afterOk', handleAfterOk)
+  emitter.on('afterCancel', handleAfterCancel)
+  emitter.on('afterCommand', handleAfterCommand)
 })
-/**
- * 获取最大z-index
- * @returns 最大z-index的值
- */
-const getMaxZIndex = (key = 'body'): number => {
-  let allZIndex;
-  if(key.constructor === String){
-    allZIndex = Array.from(document.querySelectorAll(key+" *")).map(
-      (e) => +window.getComputedStyle(e).zIndex || 0
-    )
-  }else{
-    allZIndex = Array.from(key.querySelectorAll("*")).map(
-      (e) => +window.getComputedStyle(e).zIndex || 0
-    )
-  }
 
-  // 特殊处理，不高于90000的才行
-  return allZIndex.length ? Math.max(...allZIndex.filter((item) => item < 90000)) + 1 : 1
-}
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  unbindDrag()
+
+  emitter.off('maximum', handleMaximize)
+  emitter.off('restore', handleRestore)
+  emitter.off('close', handleClose)
+  emitter.off('top', handleBringToTop)
+  emitter.off('afterOk', handleAfterOk)
+  emitter.off('afterCancel', handleAfterCancel)
+  emitter.off('afterCommand', handleAfterCommand)
+})
+
 defineExpose({
   id: props.id,
-  close: onClose,
-  top: onTop,
-  max: onMaximum,
-  restore: onRestore
+  close: handleClose,
+  bringToTop: handleBringToTop,
+  maximize: handleMaximize,
+  restore: handleRestore
 })
 </script>
-
-<style scoped></style>

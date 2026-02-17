@@ -1,0 +1,20 @@
+{
+  "name": "vue-lite-layer-test-nuxt",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 5175",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "element-plus": "^2.13.2",
+    "vue-lite-layer": "file:../.."
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.3.1",
+    "nuxt": "^4.3.1",
+    "vue": "^3.5.28"
+  }
+}
