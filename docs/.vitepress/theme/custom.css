@@ -1,0 +1,159 @@
+/* Demo 容器样式 */
+.demo-block {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 16px 0;
+  background: var(--vp-c-bg-soft);
+}
+
+.demo-block__title {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.demo-block button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  margin: 4px 8px 4px 0;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-brand-1);
+  background: var(--vp-c-brand-1);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.demo-block button:hover {
+  background: var(--vp-c-brand-2);
+  border-color: var(--vp-c-brand-2);
+}
+
+.demo-block button:active {
+  background: var(--vp-c-brand-3);
+  border-color: var(--vp-c-brand-3);
+}
+
+.demo-block button.outline {
+  background: transparent;
+  color: var(--vp-c-brand-1);
+}
+
+.demo-block button.outline:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+/* Demo 内容组件样式 */
+.demo-content {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--vp-c-text-1);
+}
+
+.demo-content h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.demo-content p {
+  margin: 8px 0;
+}
+
+.demo-content .demo-form-item {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.demo-content .demo-form-item label {
+  width: 80px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.demo-content .demo-form-item input,
+.demo-content .demo-form-item select {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  outline: none;
+  font-size: 14px;
+}
+
+.demo-content .demo-form-item input:focus,
+.demo-content .demo-form-item select:focus {
+  border-color: var(--vp-c-brand-1);
+}
+
+/* ──── VitePress 环境下弹层样式修复 / Layer style fixes in VitePress ──── */
+
+/* 确保弹层在 VitePress 导航/侧边栏之上 (VP --vp-z-index-sidebar: 60) */
+/* 使用 min() 保证不低于 VP，同时不覆盖组件内联的动态 z-index */
+body > .lite-layer {
+  position: fixed;
+  z-index: max(1000, var(--vp-z-index-sidebar, 60));
+}
+
+/* 修复动画：VitePress 可能通过 @layer 或 cascade 覆盖弹层动画，在此显式恢复 */
+@keyframes lite-layer-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes lite-layer-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.lite-layer__window--initial {
+  opacity: 0 !important;
+  transform: scale(0.6) !important;
+}
+
+.lite-layer__window--enter {
+  animation: lite-layer-enter 0.15s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
+}
+
+.lite-layer__window--leave {
+  animation: lite-layer-leave 0.12s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+}
+
+/* 最大化/还原时的 transition 动画 - 仅在 resizing 时启用，避免拖拽卡顿 */
+.lite-layer__window--resizing {
+  transition: top 200ms ease, left 200ms ease, width 200ms ease, height 200ms ease !important;
+}
+
+/* Loading 旋转动画 - VitePress 可能覆盖弹层内动画 */
+@keyframes vll-loading-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vll-loading-spinner {
+  animation: vll-loading-rotate 0.8s linear infinite !important;
+}

@@ -1,81 +1,60 @@
 import { createI18n } from 'vue-i18n-lite'
 
+/**
+ * 内置语言文件缓存（模块级单例，仅解析一次）
+ * Built-in language file cache (module-level singleton, parsed only once)
+ */
+let builtInMessagesCache: Record<string, any> | null = null
+
+const modules = import.meta.glob('./lang/*', { eager: true })
+
+/**
+ * 解析并缓存内置语言文件
+ * Parse and cache built-in language files
+ */
+function getBuiltInMessages(): Record<string, any> {
+  if (builtInMessagesCache) return builtInMessagesCache
+
+  const messages: Record<string, any> = {}
+  for (const path in modules) {
+    const mod = modules[path] as any
+    if (mod.default) {
+      const name = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'))
+      messages[name] = { ...messages[name], ...mod.default }
+    }
+  }
+  builtInMessagesCache = messages
+  return messages
+}
+
+/**
+ * 创建 i18n 工具对象
+ * Create i18n utility object
+ */
 export default () => {
-  // 引入lang目录下文件
-  // 此处使用了 VITE 的 import.meta.globEager。非 VITE 的 可以使用 require.context
-  const modules = import.meta.glob('./lang/*', { eager: true })
+  const getI18n = (localeI18n?: { locale?: string; messages?: Record<string, any> }) => {
+    const builtIn = getBuiltInMessages()
+    // 浅拷贝内置消息，避免污染缓存 / Shallow copy built-in messages to avoid polluting cache
+    const combinedMessages: Record<string, any> = {}
+    for (const locale in builtIn) {
+      combinedMessages[locale] = { ...builtIn[locale] }
+    }
 
-  /**
-   * 获取所有语言文件
-   * @param {Object} mList
-   */
-  function getLangFiles(mList: any, msg: any) {
-    for (const path in mList) {
-      if (mList[path].default) {
-        //  获取文件名
-        const pathName = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'))
-
-        if (msg[pathName]) {
-          msg[pathName] = {
-            ...mList[pathName],
-            ...mList[path].default
-          }
-        } else {
-          msg[pathName] = mList[path].default
+    if (localeI18n?.messages) {
+      for (const locale in localeI18n.messages) {
+        combinedMessages[locale] = {
+          ...combinedMessages[locale],
+          ...localeI18n.messages[locale]
         }
       }
     }
-  }
-
-  /**
-   * 注册i18n实例并引入语言文件
-   */
-  // const i18n = createI18n({
-  //   fallbackLocale: 'zh-CN',
-  //   // 定义默认语言为中文
-  //   locale: 'zh-CN',
-  //   legacy: false,
-  //   // 挂载到全局，不然会报错
-  //   // globalInjection: true,
-  //   messages: getAllLang(),
-  // })
-  /**
-   * 局部使用i18n
-   */
-  // const i18n = useI18n({
-  //   useScope: 'local',
-  //   locale: 'zh-CN',
-  //   messages: getAllLang(),
-  // })
-
-  // 假设你还有其他目录下的语言文件 它的路径是 src/views/home/locales/en-US.ts
-  // 那么你就可以 使用 :lower:（小写） :upper:（大写） 来引入文件
-  // const viewModules = import.meta.globEager('../views/**/locales/[[:lower:]][[:lower:]]-[[:upper:]][[:upper:]].ts')
-
-  const allLangs: any = () => {
-    const message: any = {}
-    getLangFiles(modules, message)
-    return message
-  }
-  // const localeI18n = inject('locales') as { locale: string; messages: object }
-  const getI18n = (localeI18n?:any) => {
-    let combinateMessage ={ ...allLangs()}
-    if(!localeI18n){
-      combinateMessage = { ...allLangs(), ...localeI18n.messages }
-    }
 
     return createI18n({
-      locale: localeI18n.locale,
+      locale: localeI18n?.locale ?? 'zh-CN',
       fallbackLocale: 'en',
-      messages: combinateMessage
+      messages: combinedMessages
     })
-    // return useI18n({
-    //   useScope: 'local',
-    //   locale: localeI18n.locale,
-    //   messages: combinateMessage
-    // })
   }
-  return {
-    getI18n
-  }
+
+  return { getI18n }
 }

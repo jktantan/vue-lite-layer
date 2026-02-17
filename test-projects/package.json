@@ -1,0 +1,12 @@
+{
+  "name": "vue-lite-layer-test-projects",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test projects for vue-lite-layer",
+  "scripts": {
+    "test:vue": "cd vue-test && pnpm dev",
+    "test:nuxt": "cd nuxt-test && pnpm dev",
+    "install:all": "cd vue-test && pnpm install && cd ../nuxt-test && pnpm install",
+    "clean": "rm -rf vue-test/node_modules nuxt-test/node_modules vue-test/.vite nuxt-test/.nuxt"
+  }
+}

@@ -1,4 +1,4 @@
-@use "sass:color";
+@use 'sass:color';
 $lite-layer__color-primary: #409eff !default;
 $lite-layer__color-primary-invert: #ffac30 !default;
 $lite-layer__color-danger: #ef4f4f !default;
@@ -7,13 +7,9 @@ $lite-layer__color-black: #000 !default;
 $lite-layer__color-grey: #4d4d4d !default;
 $lite-layer__color-disabled: #aaa !default;
 $lite-layer__color-primary-activate: color.mix($lite-layer__color-primary, #000, 80%) !default;
-/*
-tab文本颜色
- */
+/** 标题栏文本颜色 / Title bar text color */
 $lite-layer__text-color: $lite-layer__color-grey;
-/*
-tab文本大小
- */
+/** 标题栏文本大小 / Title bar font size */
 $lite-layer__font-size: 16px;
 
 $lite-layer__icon-margin: 10px;
@@ -21,6 +17,6 @@ $lite-layer__icon-size: $lite-layer__font-size;
 
 $lite-layer__trans: all 0.3s ease-in-out;
 
-$shadow-top-inset: inset 0 12px 10px -12px rgb(0 0 0 / 60%); /* 上内阴影 */
-$shadow-bottom-inset: inset 0 -12px 10px -12px rgb(0 0 0 / 60%); /* 上内阴影 */
+$shadow-top-inset: inset 0 12px 10px -12px rgb(0 0 0 / 60%); /* 上内阴影 / Top inset shadow */
+$shadow-bottom-inset: inset 0 -12px 10px -12px rgb(0 0 0 / 60%); /* 下内阴影 / Bottom inset shadow */
 $shadow-horizontal-inset: $shadow-top-inset, $shadow-bottom-inset;

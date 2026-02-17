@@ -7,15 +7,27 @@ import loadVersion from 'vite-plugin-package-version'
 import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [vue(), vueJsx(), loadVersion(), dts({ insertTypesEntry:true,tsconfigPath:'tsconfig.lib.json' })],
+  plugins: [
+    vue(),
+    vueJsx(),
+    loadVersion(),
+    dts({ insertTypesEntry: true, tsconfigPath: 'tsconfig.lib.json' })
+  ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler'
+      }
+    }
+  },
   resolve: {
     alias: {
       '@lib': fileURLToPath(new URL('./lib', import.meta.url))
     }
   },
   esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : []
-    // drop: ['console','debugger']
+    // 暂时保留 console 用于调试
+    drop: [] // mode === 'production' ? ['console', 'debugger'] : []
   },
   build: {
     lib: {
@@ -28,7 +40,7 @@ export default defineConfig(({ mode }) => ({
       external: ['vue'],
       output: {
         globals: {
-          vue: 'Vue',
+          vue: 'Vue'
         }
       }
     }

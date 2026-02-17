@@ -10,12 +10,9 @@
 </template>
 
 <script lang="ts" setup>
-// import localeI18n from '@lib/i18n'
-import {useI18n} from 'vue-i18n-lite'
-import useLayerEvent from '@lib/utils/useLayerEvent'
+import { useI18n } from 'vue-i18n-lite'
+import useLayerEvent from '@lib/composables/use-layer-event'
 
 const { t } = useI18n()
 const { emitCancel, emitOk } = useLayerEvent()
 </script>
-
-<style scoped></style>

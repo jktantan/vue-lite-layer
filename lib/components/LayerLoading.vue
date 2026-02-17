@@ -1,62 +1,69 @@
 <template>
-  <div v-if="loading" class="Layer-loading-mask">
-    <div class="vll-loading--spin turn" />
+  <div v-if="loading" class="vll-loading-mask">
+    <div class="vll-loading-spinner" />
   </div>
 </template>
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useEmitter } from '../utils/layerMitt'
-const loading = ref<boolean>(false)
 
-useEmitter().on('startLoading', () => {
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useLayerEmitter } from '../core/layer-emitter'
+
+const loading = ref(false)
+const emitter = useLayerEmitter()
+
+const handleStart = () => {
   loading.value = true
-})
-useEmitter().on('stopLoading', () => {
+}
+const handleStop = () => {
   loading.value = false
+}
+
+onMounted(() => {
+  emitter.on('startLoading', handleStart)
+  emitter.on('stopLoading', handleStop)
+})
+
+onUnmounted(() => {
+  emitter.off('startLoading', handleStart)
+  emitter.off('stopLoading', handleStop)
 })
 </script>
-<style scoped>
-.Layer-loading-mask {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  display: flex;
-  background: white;
-  opacity: 0.8;
-  align-items: center;
-  justify-content: center;
-}
-.vll-loading--spin {
-  align-self: center;
-  z-index: auto;
-  width: 36px;
-  height: 36px;
-  background: url('../assets/image/loading.svg');
-  background-size: contain;
-  animation: turn 1.5s linear infinite;
-}
 
-/*
-      turn : 定义的动画名称
-      1s : 动画时间
-      linear : 动画以何种运行轨迹完成一个周期
-      infinite :规定动画应该无限次播放
-     */
-@keyframes turn {
-  0% {
+<!--
+  Non-scoped style block: prevents Vue from hashing @keyframes name
+  (Vue 3.3.4+ scopes keyframe names in <style scoped>, which can cause
+  the animation property and @keyframes declaration to reference
+  different hashed names, breaking the animation)
+-->
+<style>
+@keyframes vll-loading-rotate {
+  from {
     transform: rotate(0deg);
   }
-  25% {
-    transform: rotate(90deg);
-  }
-  50% {
-    transform: rotate(180deg);
-  }
-  75% {
-    transform: rotate(270deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
+}
+
+.vll-loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.vll-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e6eb;
+  border-top-color: #409eff;
+  border-radius: 50%;
+  animation: vll-loading-rotate 0.8s linear infinite;
 }
 </style>

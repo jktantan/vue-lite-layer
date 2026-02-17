@@ -1,83 +1,78 @@
 import { defineConfig } from 'vitepress'
-import { tasklist } from '@mdit/plugin-tasklist'
+import { fileURLToPath, URL } from 'node:url'
+
 export default defineConfig({
-  markdown: {
-    config(md) {
-      md.use(tasklist)
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler'
+        }
+      }
+    },
+    resolve: {
+      alias: {
+        '@lib': fileURLToPath(new URL('../../lib', import.meta.url))
+      }
     }
   },
+  title: 'Vue Lite Layer',
+  head: [['link', { rel: 'icon', href: '/img/logo.svg' }]],
+
   locales: {
     root: {
-      label: 'English',
-      lang: 'en'
-    },
-    zh: {
-      label: '简体中文',
-      lang: 'cmn-Hans-CN',
+      label: '中文',
+      lang: 'zh-CN',
+      description: '基于 Vue 3 的服务式弹层组件',
       themeConfig: {
         nav: [
-          { text: '教程', link: '/zh/guide/' },
-          { text: 'API', items: [{ text: 'useStackTab', link: '/zh/api/useStackTab' }] },
-          { text: '在线预览', link: 'http://www.baidu.com' },
-          { text: '更新日志', link: '/zh/changelog' },
+          { text: '指南', link: '/guide/install' },
+          { text: 'API', link: '/api/config' },
+          { text: '演示', link: '/demo/' },
           {
-            text: '代码',
-            items: [
-              { text: 'GitHub', link: 'https://github.com/jktantan/vue-stack-tabs.git' },
-              { text: 'Gitee', link: '/zh/api/useStackTab' }
-            ]
+            text: '代码仓库',
+            items: [{ text: 'GitHub', link: 'https://github.com/jktantan/vue-lite-layer' }]
           }
         ],
         sidebar: [
           {
-            text: '开始',
-            items: [{ text: '简介', link: '/zh/guide/' }]
-          },
-          {
-            text: '基础',
+            text: '指南',
             items: [
-              { text: '安装', link: '/zh/base/install' },
-              { text: '入门', link: '/zh/base/introduction' },
-              { text: 'Nuxt', link: '/zh/base/nuxt' },
-              { text: '页签操作', link: '/getting-started' },
-              { text: '页签规则', link: '/getting-started' },
-              { text: 'Iframe页签', link: '/getting-started' }
+              { text: '安装', link: '/guide/install' },
+              { text: '快速上手', link: '/guide/quickstart' },
+              { text: 'Nuxt 支持', link: '/guide/nuxt' }
             ]
           },
           {
-            text: '基础',
+            text: 'API 参考',
             items: [
-              { text: '安装', link: '/introduction' },
-              { text: '入门', link: '/getting-started' },
-              { text: 'Nuxt', link: '/getting-started' },
-              { text: '页签操作', link: '/getting-started' },
-              { text: '页签规则', link: '/getting-started' },
-              { text: 'Iframe页签', link: '/getting-started' }
+              { text: '配置项', link: '/api/config' },
+              { text: '弹层实例', link: '/api/instance' },
+              { text: 'Composables', link: '/api/composables' }
+            ]
+          },
+          {
+            text: '交互演示',
+            items: [{ text: 'Demo', link: '/demo/' }]
+          },
+          {
+            text: '进阶',
+            items: [
+              { text: '国际化', link: '/advanced/i18n' },
+              { text: 'Teleport 挂载', link: '/advanced/teleport' }
             ]
           }
         ],
         docFooter: {
           next: '下一页',
           prev: '上一页'
-        }
-      }
-    }
-  },
-  lang: 'zh-CN',
-  title: 'Vue Stack Tabs',
-  description: 'Vue Stack Tabs',
-  head: [['link', { rel: 'icon', href: '/img/logo.svg' }]],
-  themeConfig: {
-    logo: '/img/logo.svg',
-    footer: {
-      message: 'Released under the Apache License.',
-      copyright: 'Copyright © 2024-present tantan'
-    },
-    search: {
-      provider: 'local',
-      options: {
-        locales: {
-          zh: {
+        },
+        outline: {
+          label: '本页目录'
+        },
+        search: {
+          provider: 'local',
+          options: {
             translations: {
               button: {
                 buttonText: '搜索文档',
@@ -97,6 +92,69 @@ export default defineConfig({
         }
       }
     },
-    nav: [{ text: 'Guide', link: '/guide/' }]
+    en: {
+      label: 'English',
+      lang: 'en-US',
+      link: '/en/',
+      description: 'Service-style modal/layer component for Vue 3',
+      themeConfig: {
+        nav: [
+          { text: 'Guide', link: '/en/guide/install' },
+          { text: 'API', link: '/en/api/config' },
+          { text: 'Demo', link: '/en/demo/' },
+          {
+            text: 'Repository',
+            items: [{ text: 'GitHub', link: 'https://github.com/jktantan/vue-lite-layer' }]
+          }
+        ],
+        sidebar: [
+          {
+            text: 'Guide',
+            items: [
+              { text: 'Installation', link: '/en/guide/install' },
+              { text: 'Quick Start', link: '/en/guide/quickstart' },
+              { text: 'Nuxt Support', link: '/en/guide/nuxt' }
+            ]
+          },
+          {
+            text: 'API Reference',
+            items: [
+              { text: 'Configuration', link: '/en/api/config' },
+              { text: 'Layer Instance', link: '/en/api/instance' },
+              { text: 'Composables', link: '/en/api/composables' }
+            ]
+          },
+          {
+            text: 'Interactive Demo',
+            items: [{ text: 'Demo', link: '/en/demo/' }]
+          },
+          {
+            text: 'Advanced',
+            items: [
+              { text: 'Internationalization', link: '/en/advanced/i18n' },
+              { text: 'Teleport Mounting', link: '/en/advanced/teleport' }
+            ]
+          }
+        ],
+        docFooter: {
+          next: 'Next',
+          prev: 'Previous'
+        },
+        outline: {
+          label: 'On this page'
+        }
+      }
+    }
+  },
+
+  themeConfig: {
+    logo: '/img/logo.svg',
+    footer: {
+      message: 'Released under the Apache License.',
+      copyright: 'Copyright © 2024-present tantan'
+    },
+    search: {
+      provider: 'local'
+    }
   }
 })

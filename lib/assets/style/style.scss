@@ -1,6 +1,13 @@
 @use 'icon';
 @use 'common/var' as *;
 
+@mixin inset-shadow-overlay {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .lite-layer {
   overflow: hidden;
 
@@ -34,8 +41,7 @@
     background-color: $lite-layer__color-white;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
-    //box-sizing: border-box;
-    box-sizing: content-box;
+    box-sizing: border-box;
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -47,7 +53,6 @@
       display: flex;
       align-items: center;
       border-bottom: 1px solid #f0f0f0;
-      //user-select: none;
       &:hover {
         cursor: grab;
         &:active {
@@ -60,10 +65,9 @@
         font-size: $lite-layer__font-size;
         text-align: left;
         user-select: none;
-        //pointer-events: all;
-        overflow: hidden; //溢出隐藏
-        white-space: nowrap; //禁止换行
-        text-overflow: ellipsis; //...
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
       }
       &-operator {
         cursor: initial;
@@ -85,8 +89,8 @@
       height: 100%;
       width: 100%;
       overflow: auto;
+      box-sizing: border-box;
       &::-webkit-scrollbar {
-        // 滚动条样式
         width: 6px;
         height: 6px;
       }
@@ -129,7 +133,6 @@
     font-weight: 500;
     user-select: none;
     padding: 8px 18px;
-    //font-size: $-lite-layer__font-size;
     font-size: 14px;
     border-radius: 4px;
 
@@ -169,37 +172,18 @@
   }
 
   &__shadow-top-inset::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    pointer-events: none;
+    @include inset-shadow-overlay;
     box-shadow: $shadow-top-inset;
   }
   &__shadow-bottom-inset::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    pointer-events: none;
+    @include inset-shadow-overlay;
     box-shadow: $shadow-bottom-inset;
   }
   &__shadow-horizontal-inset::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    pointer-events: none;
+    @include inset-shadow-overlay;
     box-shadow: $shadow-horizontal-inset;
   }
   &__disabled-point-event {
-    //pointer-events: none;
     &:hover {
       cursor: initial;
       &:active {

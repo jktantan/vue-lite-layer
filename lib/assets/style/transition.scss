@@ -1,14 +1,39 @@
-// transition 过渡样式
-.lite-layer-zoom {
-  &-enter-active,
-  &-leave-active {
-    transition: all 0.3s ease-in-out;
-  }
+// ──── 弹层打开/关闭 @keyframes 动画 ────
 
-  &-enter-from,
-  &-leave-to {
-    transform: scale(0);
-    transform-origin: center center;
+@keyframes lite-layer-enter {
+  from {
     opacity: 0;
+    transform: scale(0.6);
   }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes lite-layer-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+// 初始隐藏（等待定位完成）
+.lite-layer__window--initial {
+  opacity: 0 !important;
+  transform: scale(0.6) !important;
+}
+
+// 入场动画 — 0.15s，快速但可感知
+.lite-layer__window--enter {
+  animation: lite-layer-enter 0.15s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+// 离场动画 — 0.12s，比打开稍快，干脆利落
+.lite-layer__window--leave {
+  animation: lite-layer-leave 0.12s cubic-bezier(0.55, 0, 1, 0.45) forwards;
 }
