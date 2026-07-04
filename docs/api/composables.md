@@ -39,7 +39,7 @@ const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 // 打开弹层
 const instance = openLayer({
   title: '弹层标题',
-  content: '内容文本',
+  textContent: '内容文本',
 }, appContext)
 
 // 关闭指定弹层
@@ -66,25 +66,25 @@ closeAllLayer()
 
 | 方法 | 类型 | 说明 |
 | --- | --- | --- |
-| `emitOk` | `() => void` | 触发确认事件 |
-| `emitCancel` | `() => void` | 触发取消事件 |
-| `emitCommand` | `(command?: any) => void` | 触发自定义命令 |
+| `emitOk` | `(message?: unknown) => void` | 触发确认事件；默认 Footer 不传 payload，自定义 Footer 可显式传递 |
+| `emitCancel` | `(message?: unknown) => void` | 触发取消事件；默认 Footer 不传 payload，自定义 Footer 可显式传递 |
+| `emitCommand` | `(command: string, message?: unknown) => void` | 触发自定义命令 |
 
 #### Container 监听 Footer 事件
 
 | 方法 | 类型 | 说明 |
 | --- | --- | --- |
-| `onOk` | `(callback?: LayerCallback) => void` | 监听确认按钮点击 |
-| `onCancel` | `(callback?: LayerCallback) => void` | 监听取消按钮点击 |
-| `onCommand` | `(callback?: LayerCallback) => void` | 监听自定义命令 |
+| `onOk` | `(callback?: LayerCallback) => LayerEventDisposer` | 监听确认按钮点击，返回取消监听函数；在 Vue effect scope 中会自动清理 |
+| `onCancel` | `(callback?: LayerCallback) => LayerEventDisposer` | 监听取消按钮点击，返回取消监听函数；在 Vue effect scope 中会自动清理 |
+| `onCommand` | `(callback?: LayerCallback) => LayerEventDisposer` | 监听自定义命令，返回取消监听函数；在 Vue effect scope 中会自动清理 |
 
 #### Container 向调用方传递处理结果
 
 | 方法 | 类型 | 说明 |
 | --- | --- | --- |
-| `resolveOk` | `(message?: any) => void` | 确认处理完成，将结果传回给 `onOk` 回调 |
-| `resolveCancel` | `(message?: any) => void` | 取消处理完成，将结果传回给 `onCancel` 回调 |
-| `resolveCommand` | `(command: string, message?: any) => void` | 命令处理完成，将结果传回给 `onCommand` 回调 |
+| `resolveOk` | `(message?: unknown) => void` | 确认处理完成，将结果传回给 `onOk` 回调 |
+| `resolveCancel` | `(message?: unknown) => void` | 取消处理完成，将结果传回给 `onCancel` 回调 |
+| `resolveCommand` | `(command: string, message?: unknown) => void` | 命令处理完成，将结果传回给 `onCommand` 回调 |
 
 #### Loading 控制
 
@@ -100,6 +100,9 @@ closeAllLayer()
 | `close` | `() => void` | 直接关闭弹层 |
 
 ### 事件流程
+
+`LayerCallback` 的 payload 类型为 `unknown`；请在业务代码中按需缩小类型后再读取字段。`onOk` / `onCancel` / `onCommand` 返回 disposer，可手动取消监听；如果在组件 `setup()` 的 active effect scope 中调用，也会随组件卸载自动清理。
+
 
 弹层的事件系统遵循以下流程：
 

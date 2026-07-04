@@ -12,17 +12,13 @@ export default defineConfig({
     vueJsx(),
     loadVersion(),
   ],
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: 'modern-compiler'
-      }
-    }
-  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@lib': fileURLToPath(new URL('./lib', import.meta.url))
     }
+  },
+  build: {
+    outDir: 'node_modules/.tmp/dist-app'
   }
 })

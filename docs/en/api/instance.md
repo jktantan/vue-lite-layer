@@ -9,11 +9,14 @@ interface LayerInstance {
   /** Unique layer identifier */
   id: string
 
-  /** Unique group identifier */
-  uniqueGroup: string
+  /** Unique group identifier; undefined when no uniqueGroup is configured */
+  uniqueGroup?: string
 
-  /** Teleport target selector */
+  /** Teleport target selector, kept for backward compatibility */
   teleportTarget: string
+
+  /** Normalized Teleport key for internal grouping and cleanup */
+  teleportKey: string
 
   /** Close the layer */
   close: () => boolean
@@ -28,6 +31,10 @@ interface LayerInstance {
   restore: () => void
 }
 ```
+
+::: tip Teleport metadata
+`teleportTarget` is kept for backward compatibility with older instance fields. New code that needs to distinguish `HTMLElement` Teleport groups should read the stable `teleportKey`. When no `uniqueGroup` is configured, `uniqueGroup` is `undefined`.
+:::
 
 ## Methods
 

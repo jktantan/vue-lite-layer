@@ -11,9 +11,11 @@ export interface LayerInstance {
   /** 弹层唯一标识 / Layer unique identifier */
   id: string
   /** 唯一分组标识，同组内只允许打开一个弹层 / Unique group identifier, only one layer allowed per group */
-  uniqueGroup: string
-  /** Teleport 目标选择器，用于按父容器分组管理 z-index / Teleport target selector for grouping z-index by parent container */
+  uniqueGroup?: string
+  /** Teleport 目标选择器，用于兼容旧版实例字段 / Teleport target selector kept for compatibility */
   teleportTarget: string
+  /** 归一化 Teleport key，用于内部 z-index 分组和清理 / Normalized Teleport key for internal z-index grouping and cleanup */
+  teleportKey: string
   /** 关闭弹层 / Close layer */
   close: () => boolean
   /** 将弹层置顶 / Bring layer to top */

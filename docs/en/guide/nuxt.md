@@ -59,7 +59,7 @@ const { appContext } = getCurrentInstance()
 const handleOpen = () => {
   openLayer({
     title: 'Layer from Nuxt',
-    content: 'Using Vue Lite Layer in Nuxt is this simple.',
+    textContent: 'Using Vue Lite Layer in Nuxt is this simple.',
     size: { width: '500px', height: '300px' },
   }, appContext)
 }
@@ -100,3 +100,13 @@ export default defineNuxtConfig({
 ```
 
 These global defaults can be overridden by configuration in individual `openLayer()` calls.
+
+## Nuxt Configuration Limits
+
+`vueLiteLayer` is written to `runtimeConfig.public`, so it only supports serializable configuration. This configuration is exposed to the client, so do not put secrets, tokens, or private security decisions there:
+
+- `footer` only supports `boolean` or a string component name, not direct component objects.
+- `teleport` only supports CSS selector strings or `'body'`, not `HTMLElement`.
+- `i18n.messages` must be a plain JSON object.
+
+When you need components, DOM elements, or functions, pass them from a client component via `openLayer()` instead of putting them in `nuxt.config.ts`.

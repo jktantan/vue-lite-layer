@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import useLayerEvent from '../../lib/composables/use-layer-event'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title?: string
     desc?: string

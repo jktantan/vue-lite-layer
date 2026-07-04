@@ -1,3 +1,4 @@
+import { copyFileSync, existsSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import dts from 'vite-plugin-dts'
 import { defineConfig } from 'vite'
@@ -5,44 +6,71 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import loadVersion from 'vite-plugin-package-version'
 import { resolve } from 'path'
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    vue(),
-    vueJsx(),
-    loadVersion(),
-    dts({ insertTypesEntry: true, tsconfigPath: 'tsconfig.lib.json' })
-  ],
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: 'modern-compiler'
-      }
-    }
-  },
-  resolve: {
-    alias: {
-      '@lib': fileURLToPath(new URL('./lib', import.meta.url))
-    }
-  },
-  esbuild: {
-    // 暂时保留 console 用于调试
-    drop: [] // mode === 'production' ? ['console', 'debugger'] : []
-  },
-  build: {
-    lib: {
-      entry: resolve(__dirname, 'lib/index.ts'),
-      name: 'vue-lite-layer',
-      fileName: (format) => `vue-lite-layer.${format}.js`
-    },
-    rollupOptions: {
-      // 确保外部化处理那些你不想打包进库的依赖
-      external: ['vue'],
-      output: {
-        globals: {
-          vue: 'Vue'
-        }
-      }
+
+const copyLegacyStyleEntry = () => ({
+  name: 'copy-legacy-style-entry',
+  closeBundle() {
+    const source = resolve(__dirname, 'dist/vue-lite-layer.css')
+    const target = resolve(__dirname, 'dist/style.css')
+    if (existsSync(source)) {
+      copyFileSync(source, target)
     }
   }
-}))
+})
+
+export default defineConfig(({ mode }) => {
+  const isNuxtBuild = mode === 'nuxt'
+
+  return {
+    plugins: [
+      vue(),
+      vueJsx(),
+      loadVersion(),
+      ...(isNuxtBuild ? [] : [copyLegacyStyleEntry()]),
+      dts({
+        insertTypesEntry: !isNuxtBuild,
+        tsconfigPath: 'tsconfig.lib.json',
+        outDir: isNuxtBuild ? 'dist/nuxt' : 'dist',
+        entryRoot: isNuxtBuild ? 'lib/nuxt' : 'lib'
+      })
+    ],
+    resolve: {
+      alias: {
+        '@lib': fileURLToPath(new URL('./lib', import.meta.url))
+      }
+    },
+    esbuild: {
+      drop: []
+    },
+    build: isNuxtBuild
+      ? {
+          lib: {
+            entry: {
+              module: resolve(__dirname, 'lib/nuxt/module.ts'),
+              'runtime/plugin': resolve(__dirname, 'lib/nuxt/runtime/plugin.ts')
+            },
+            formats: ['es'],
+            fileName: (_format, entryName) => `nuxt/${entryName}.mjs`
+          },
+          rollupOptions: {
+            external: ['@nuxt/kit', 'defu', 'vue-lite-layer', 'nuxt/app']
+          },
+          emptyOutDir: false
+        }
+      : {
+          lib: {
+            entry: resolve(__dirname, 'lib/index.ts'),
+            name: 'vue-lite-layer',
+            fileName: (format) => `vue-lite-layer.${format}.js`
+          },
+          rollupOptions: {
+            external: ['vue'],
+            output: {
+              globals: {
+                vue: 'Vue'
+              }
+            }
+          }
+        }
+  }
+})

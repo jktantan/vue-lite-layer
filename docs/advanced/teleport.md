@@ -78,7 +78,7 @@ const { openLayer } = useLiteLayer()
 const openLocalLayer = () => {
   openLayer({
     title: '局部弹层',
-    content: '此弹层仅在 main-content 容器内显示。',
+    textContent: '此弹层仅在 main-content 容器内显示。',
     teleport: '#main-content',
     size: { width: '80%', height: '60%' },
   }, appContext)
@@ -97,6 +97,18 @@ openLayer({ teleport: '#container-a', ... }, appContext)
 
 // 这个弹层属于另一个分组
 openLayer({ teleport: '#container-b', ... }, appContext)
+```
+
+当 `teleport` 是 DOM 元素时，Vue Lite Layer 会为该元素生成稳定的内部分组 key。打开、置顶和关闭都使用同一个 key，因此关闭后会正确清理 z-index 记录。
+
+挂载目标建议通过 CSS class 或 inline style 设置定位上下文：
+
+```css
+.local-layer-host {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+}
 ```
 
 ## 全局设置

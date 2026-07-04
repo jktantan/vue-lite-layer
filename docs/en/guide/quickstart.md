@@ -9,7 +9,7 @@ Register the Vue Lite Layer plugin in your application entry file:
 import { createApp } from 'vue'
 import App from './App.vue'
 import VueLiteLayer from 'vue-lite-layer'
-import 'vue-lite-layer/dist/style.css'
+import 'vue-lite-layer/dist/vue-lite-layer.css'
 
 const app = createApp(App)
 app.use(VueLiteLayer)
@@ -44,7 +44,7 @@ const { openLayer } = useLiteLayer()
 const handleOpen = () => {
   openLayer({
     title: 'Hello World',
-    content: 'This is a simple layer content.',
+    textContent: 'This is a simple layer content.',
     size: { width: '400px', height: '300px' },
   }, appContext)
 }

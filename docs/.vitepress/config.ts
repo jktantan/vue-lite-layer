@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  ignoreDeadLinks: [/^http:\/\/localhost:5174\/?$/],
   vite: {
     css: {
       preprocessorOptions: {

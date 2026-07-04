@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, provide, readonly, inject, getCurrentInstance, h, type Ref } from 'vue'
+import { ref, reactive, provide, inject, getCurrentInstance, h, type Ref } from 'vue'
 import { useLiteLayer } from 'vue-lite-layer'
 
 const { openLayer } = useLiteLayer()

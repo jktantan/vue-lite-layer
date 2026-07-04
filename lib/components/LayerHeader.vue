@@ -5,29 +5,33 @@
     :class="{ 'lite-layer__disabled-point-event': isMaximized }"
     @dblclick="handleDoubleClick"
   >
-    <!-- 弹层标题 / Layer Title -->
-    <div ref="layerTitle" class="lite-layer__window-header-title" :title="title">
+    <div :id="titleId" ref="layerTitle" class="lite-layer__window-header-title" :title="title">
       {{ title }}
     </div>
 
-    <!-- 窗口操作按钮区 / Window Control Buttons -->
     <div class="lite-layer__window-header-operator" @mousedown.stop>
-      <div
+      <button
         v-if="max && !isMaximized"
+        type="button"
         class="lite-layer__mask-button lite-layer__icon-maximum"
         :title="t('VueLiteLayer.maximum')"
+        :aria-label="t('VueLiteLayer.maximum')"
         @click="handleMaximize"
       />
-      <div
+      <button
         v-if="isMaximized"
+        type="button"
         class="lite-layer__mask-button lite-layer__icon-restore"
         :title="t('VueLiteLayer.restore')"
+        :aria-label="t('VueLiteLayer.restore')"
         @click="handleRestore"
       />
-      <div
+      <button
         v-if="close"
+        type="button"
         class="lite-layer__mask-button lite-layer__icon-close"
         :title="t('VueLiteLayer.close')"
+        :aria-label="t('VueLiteLayer.close')"
         @click="handleClose"
       />
     </div>
@@ -39,7 +43,8 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useLayerEmitter } from '../core/layer-emitter'
 import { useI18n } from 'vue-i18n-lite'
 
-const { t } = useI18n()
+const i18n = useI18n()
+const t = i18n?.t ?? ((key: string) => key)
 const el = ref<HTMLElement>()
 const emitter = useLayerEmitter()
 const isMaximized = ref(false)
@@ -48,6 +53,8 @@ const props = withDefaults(
   defineProps<{
     /** 弹层标题文字 / Layer title text */
     title?: string
+    /** 标题元素 id，用于 aria-labelledby / Title element id for aria-labelledby */
+    titleId?: string
     /** 是否允许最大化 / Whether maximization is allowed */
     max?: boolean
     /** 是否显示关闭按钮 / Whether to show close button */
@@ -55,6 +62,7 @@ const props = withDefaults(
   }>(),
   {
     title: '',
+    titleId: undefined,
     max: true,
     close: true
   }

@@ -39,7 +39,7 @@ const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 // Open a layer
 const instance = openLayer({
   title: 'Layer Title',
-  content: 'Content text',
+  textContent: 'Content text',
 }, appContext)
 
 // Close a specific layer
@@ -66,25 +66,25 @@ This composable only works inside layer content components, as it depends on the
 
 | Method | Type | Description |
 | --- | --- | --- |
-| `emitOk` | `() => void` | Trigger confirm event |
-| `emitCancel` | `() => void` | Trigger cancel event |
-| `emitCommand` | `(command?: any) => void` | Trigger custom command |
+| `emitOk` | `(message?: unknown) => void` | Trigger confirm event. The default footer sends no payload; custom footers may pass one explicitly |
+| `emitCancel` | `(message?: unknown) => void` | Trigger cancel event. The default footer sends no payload; custom footers may pass one explicitly |
+| `emitCommand` | `(command: string, message?: unknown) => void` | Trigger custom command |
 
 #### Container: Listen for Footer Events
 
 | Method | Type | Description |
 | --- | --- | --- |
-| `onOk` | `(callback?: LayerCallback) => void` | Listen for confirm button click |
-| `onCancel` | `(callback?: LayerCallback) => void` | Listen for cancel button click |
-| `onCommand` | `(callback?: LayerCallback) => void` | Listen for custom command |
+| `onOk` | `(callback?: LayerCallback) => LayerEventDisposer` | Listen for confirm button click and return a disposer; auto-disposes in an active Vue effect scope |
+| `onCancel` | `(callback?: LayerCallback) => LayerEventDisposer` | Listen for cancel button click and return a disposer; auto-disposes in an active Vue effect scope |
+| `onCommand` | `(callback?: LayerCallback) => LayerEventDisposer` | Listen for custom command and return a disposer; auto-disposes in an active Vue effect scope |
 
 #### Container: Pass Processing Results to Caller
 
 | Method | Type | Description |
 | --- | --- | --- |
-| `resolveOk` | `(message?: any) => void` | Confirm complete, pass result to `onOk` callback |
-| `resolveCancel` | `(message?: any) => void` | Cancel complete, pass result to `onCancel` callback |
-| `resolveCommand` | `(command: string, message?: any) => void` | Command complete, pass result to `onCommand` callback |
+| `resolveOk` | `(message?: unknown) => void` | Confirm complete, pass result to `onOk` callback |
+| `resolveCancel` | `(message?: unknown) => void` | Cancel complete, pass result to `onCancel` callback |
+| `resolveCommand` | `(command: string, message?: unknown) => void` | Command complete, pass result to `onCommand` callback |
 
 #### Loading Control
 
@@ -100,6 +100,9 @@ This composable only works inside layer content components, as it depends on the
 | `close` | `() => void` | Directly close the layer |
 
 ### Event Flow
+
+`LayerCallback` payloads are typed as `unknown`; narrow them in application code before reading fields. `onOk` / `onCancel` / `onCommand` return disposers for manual cleanup, and they auto-dispose when called inside an active Vue effect scope such as component `setup()`.
+
 
 The layer event system follows this flow:
 

@@ -9,11 +9,14 @@ interface LayerInstance {
   /** 弹层唯一标识 */
   id: string
 
-  /** 唯一分组标识 */
-  uniqueGroup: string
+  /** 唯一分组标识；未配置 uniqueGroup 时为空 */
+  uniqueGroup?: string
 
-  /** Teleport 目标选择器 */
+  /** Teleport 目标选择器；为兼容旧版保留 */
   teleportTarget: string
+
+  /** 归一化 Teleport key，用于内部分组和清理 */
+  teleportKey: string
 
   /** 关闭弹层 */
   close: () => boolean
@@ -28,6 +31,10 @@ interface LayerInstance {
   restore: () => void
 }
 ```
+
+::: tip Teleport 元数据
+`teleportTarget` 保留用于兼容旧版实例字段；新代码如需区分 `HTMLElement` Teleport 分组，应读取稳定的 `teleportKey`。未传入 `uniqueGroup` 时，`uniqueGroup` 为 `undefined`。
+:::
 
 ## 方法说明
 
