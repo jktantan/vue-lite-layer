@@ -59,7 +59,7 @@ const { appContext } = getCurrentInstance()
 const handleOpen = () => {
   openLayer({
     title: '来自 Nuxt 的弹层',
-    content: '在 Nuxt 中使用 Vue Lite Layer，就是这么简单。',
+    textContent: '在 Nuxt 中使用 Vue Lite Layer，就是这么简单。',
     size: { width: '500px', height: '300px' },
   }, appContext)
 }
@@ -100,3 +100,13 @@ export default defineNuxtConfig({
 ```
 
 这些全局默认值可以被单个 `openLayer()` 调用中的配置覆盖。
+
+## Nuxt 配置限制
+
+`vueLiteLayer` 写入 `runtimeConfig.public`，因此只支持可序列化配置。该配置会暴露给客户端，请不要放入密钥、令牌或安全决策所依赖的私有值：
+
+- `footer` 只支持 `boolean` 或字符串组件名，不支持直接传入组件对象。
+- `teleport` 只支持 CSS 选择器字符串或 `'body'`，不支持 `HTMLElement`。
+- `i18n.messages` 必须是普通 JSON 对象。
+
+需要传入组件、DOM 元素或函数时，请在客户端组件中调用 `openLayer()` 时传入，而不是放在 `nuxt.config.ts`。

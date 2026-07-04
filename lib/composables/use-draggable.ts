@@ -7,6 +7,19 @@
  * 拖拽范围被限制在容器元素内部，最大化状态下禁止拖拽。
  * Drag range is constrained within container element, dragging is disabled when maximized.
  */
+interface DragSizeHelper {
+  setCurrentPosition: (windowEl: HTMLElement | undefined) => void
+}
+
+interface DragBounds {
+  maxX: number
+  maxY: number
+  offsetX: number
+  offsetY: number
+}
+
+const SNAP_MARGIN = 10
+
 export default () => {
   /** 当前绑定了 mousedown 事件的拖拽手柄元素 / Currently bound drag handle element with mousedown event */
   let activeDragHandle: HTMLElement | null = null
@@ -14,6 +27,22 @@ export default () => {
   let onMouseDown: ((e: MouseEvent) => void) | null = null
   /** 当前活跃的 document 事件清理函数（防止中途卸载泄漏） / Active document event cleanup function (prevents leak on mid-drag unmount) */
   let activeCleanup: (() => void) | null = null
+  let animationFrame = 0
+  let nextLeft = 0
+  let nextTop = 0
+
+  const clampDragPosition = (value: number, max: number): number => {
+    const safeMax = Math.max(0, max)
+    if (value < SNAP_MARGIN) return 0
+    if (value > safeMax - SNAP_MARGIN) return safeMax
+    return Math.max(0, value)
+  }
+
+  const writePosition = (windowEl: HTMLElement): void => {
+    animationFrame = 0
+    windowEl.style.left = `${nextLeft}px`
+    windowEl.style.top = `${nextTop}px`
+  }
 
   /**
    * 绑定拖拽行为
@@ -28,7 +57,7 @@ export default () => {
     handleEl: HTMLElement | undefined,
     windowEl: HTMLElement | undefined,
     containerEl: HTMLElement | undefined,
-    sizeHelper: any
+    sizeHelper: DragSizeHelper
   ) => {
     if (!handleEl || !windowEl || !containerEl) return
 
@@ -41,26 +70,30 @@ export default () => {
         return
       }
 
-      // 记录鼠标按下时的偏移量 / Record offset when mouse is pressed
-      const offsetX = e.clientX - windowEl.offsetLeft
-      const offsetY = e.clientY - windowEl.offsetTop
+      const bounds: DragBounds = {
+        maxX: containerEl.offsetWidth - windowEl.offsetWidth,
+        maxY: containerEl.offsetHeight - windowEl.offsetHeight,
+        offsetX: e.clientX - windowEl.offsetLeft,
+        offsetY: e.clientY - windowEl.offsetTop
+      }
 
       const onMouseMove = (e: MouseEvent) => {
         e.preventDefault()
-        const maxX = containerEl.offsetWidth - windowEl.offsetWidth
-        const maxY = containerEl.offsetHeight - windowEl.offsetHeight
-        // 计算新位置，并限制在容器边界内（10px 吸附边距） / Calculate new position and constrain within container boundaries (10px snap margin)
-        let left = e.clientX - offsetX
-        let top = e.clientY - offsetY
-        left = left < 10 ? 0 : left > maxX - 10 ? maxX : left
-        top = top < 10 ? 0 : top > maxY - 10 ? maxY : top
-        windowEl.style.left = Math.max(0, left) + 'px'
-        windowEl.style.top = Math.max(0, top) + 'px'
+        nextLeft = clampDragPosition(e.clientX - bounds.offsetX, bounds.maxX)
+        nextTop = clampDragPosition(e.clientY - bounds.offsetY, bounds.maxY)
+
+        if (!animationFrame) {
+          animationFrame = requestAnimationFrame(() => writePosition(windowEl))
+        }
       }
 
       const onMouseUp = () => {
         document.removeEventListener('mousemove', onMouseMove)
         document.removeEventListener('mouseup', onMouseUp)
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame)
+          writePosition(windowEl)
+        }
         activeCleanup = null
         // 仅在拖拽结束时同步坐标（而非每次 mousemove），减少 DOM 读取开销
         // Only sync coordinates on drag end (not every mousemove) to reduce DOM read overhead
@@ -75,6 +108,10 @@ export default () => {
       activeCleanup = () => {
         document.removeEventListener('mousemove', onMouseMove)
         document.removeEventListener('mouseup', onMouseUp)
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame)
+          animationFrame = 0
+        }
       }
     }
 

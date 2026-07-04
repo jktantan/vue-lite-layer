@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.lib.json",
+  "include": ["env.d.ts", "lib/**/*", "lib/**/*.vue", "tests/types/**/*.test-d.ts"],
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lib/*": ["./lib/*"],
+      "vue-lite-layer": ["./lib/index.ts"]
+    }
+  }
+}

@@ -21,6 +21,7 @@ const defaultConfig: LayerGlobalConfig = {
   location: PositionPreset.CENTER_CENTER,
   max: true,
   close: true,
+  banner: true,
   i18n: { locale: 'zh-CN' }
 }
 

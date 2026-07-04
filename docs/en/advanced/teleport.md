@@ -78,7 +78,7 @@ const { openLayer } = useLiteLayer()
 const openLocalLayer = () => {
   openLayer({
     title: 'Local Layer',
-    content: 'This layer only appears within the main-content container.',
+    textContent: 'This layer only appears within the main-content container.',
     teleport: '#main-content',
     size: { width: '80%', height: '60%' },
   }, appContext)
@@ -97,6 +97,18 @@ openLayer({ teleport: '#container-a', ... }, appContext)
 
 // This layer belongs to a different group
 openLayer({ teleport: '#container-b', ... }, appContext)
+```
+
+When `teleport` is a DOM element, Vue Lite Layer generates a stable internal group key for that element. Opening, bringing to top, and closing all use the same key, so z-index records are cleaned up correctly after close.
+
+The mount target should define a positioning context via a CSS class or inline style:
+
+```css
+.local-layer-host {
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+}
 ```
 
 ## Global Setting

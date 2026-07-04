@@ -4,7 +4,7 @@
       ref="layerRef"
       class="lite-layer"
       :style="{
-        position: teleport === 'body' ? 'fixed' : 'absolute',
+        position: normalizedTeleport.isBody ? 'fixed' : 'absolute',
         'z-index': currentZIndex,
         pointerEvents: shade ? 'auto' : 'none',
         ...layerStyle
@@ -15,11 +15,14 @@
         v-if="visible"
         ref="windowRef"
         class="lite-layer__window"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="titleId"
         :class="{
           'lite-layer__window--initial': initialHide,
           'lite-layer__window--enter': enterAnim,
           'lite-layer__window--leave': leaveAnim,
-          'lite-layer__window--resizing': isResizing,
+          'lite-layer__window--resizing': isResizing
         }"
         :style="{
           maxWidth: maxWidth,
@@ -30,8 +33,19 @@
         @mousedown="handleWindowMouseDown"
         @animationend="handleAnimationEnd"
       >
-        <layer-header ref="headerRef" :max="max" :close="close" :title="title" />
-        <layer-container :content="content" :props="props.props" />
+        <layer-header
+          ref="headerRef"
+          :title-id="titleId"
+          :max="max"
+          :close="close"
+          :title="title"
+        />
+        <layer-container
+          :content="content"
+          :text-content="textContent"
+          :content-type="contentType"
+          :props="props.props"
+        />
         <layer-footer v-if="footer && typeof footer === 'boolean'" />
         <component :is="footer" v-else-if="!!footer" />
         <layer-loading />
@@ -52,12 +66,15 @@ import './assets/style/index.scss'
 import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
 import layerManager from './core/layer-manager'
+import { normalizeTeleportTarget } from './core/teleport-target'
 
 import { useLayerEmitter } from './core/layer-emitter'
 import LayerLoading from './components/LayerLoading.vue'
 import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
 
-const props = withDefaults(defineProps<LayerConfig>(), {
+type InternalLayerConfig = LayerConfig & { teleportKey?: string }
+
+const props = withDefaults(defineProps<InternalLayerConfig>(), {
   title: '',
   footer: true,
   shade: true,
@@ -87,14 +104,19 @@ const layerRef = ref<HTMLElement>()
 
 // ──── 状态 / State ────
 const visible = ref(true)
-const initialHide = ref(true)  // 初始隐藏，等定位完成后移除 / Initially hidden, removed after positioning completes
+const initialHide = ref(true) // 初始隐藏，等定位完成后移除 / Initially hidden, removed after positioning completes
 const enterAnim = ref(false)
 const leaveAnim = ref(false)
 const isMaximized = ref(false)
 const isResizing = ref(false)
+const titleId = `lite-layer-title-${props.id}`
+const LEAVE_ANIMATION_FALLBACK_MS = 220
+let closeFallbackTimer: ReturnType<typeof setTimeout> | null = null
+let hasUnmounted = false
 
 // ──── z-index 管理 / Z-index Management ────
-const teleportGroup = typeof props.teleport === 'string' ? props.teleport : '__element__'
+const normalizedTeleport = normalizeTeleportTarget(props.teleport)
+const teleportGroup = props.teleportKey ?? normalizedTeleport.key
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
 
 // ──── 弹层尺寸与定位 / Layer Size and Positioning ────
@@ -110,10 +132,22 @@ let resizeObserver: ResizeObserver | null = null
 
 // ──── 事件处理 / Event Handlers ────
 
+const finalizeClose = (): void => {
+  if (hasUnmounted) return
+  hasUnmounted = true
+  if (closeFallbackTimer) {
+    clearTimeout(closeFallbackTimer)
+    closeFallbackTimer = null
+  }
+  visible.value = false
+  emitter.emit('unmount')
+}
+
 const handleClose = () => {
-  if (leaveAnim.value) return
+  if (leaveAnim.value || hasUnmounted) return
   leaveAnim.value = true
   enterAnim.value = false
+  closeFallbackTimer = setTimeout(finalizeClose, LEAVE_ANIMATION_FALLBACK_MS)
 }
 
 const handleAnimationEnd = (e: AnimationEvent) => {
@@ -121,8 +155,7 @@ const handleAnimationEnd = (e: AnimationEvent) => {
   if (e.target !== windowRef.value) return
 
   if (leaveAnim.value) {
-    visible.value = false
-    emitter.emit('unmount')
+    finalizeClose()
   } else if (enterAnim.value) {
     // 入场动画完毕，移除 class 释放 CSS 引擎对 animation 的追踪 / Remove class after enter animation to release CSS engine tracking
     enterAnim.value = false
@@ -196,9 +229,12 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
 onMounted(() => {
   resizeObserver = new ResizeObserver(handleContainerResize)
 
-  if (props.teleport !== 'body') {
+  if (!normalizedTeleport.isBody) {
     const parent = layerRef.value?.parentElement
-    if (parent?.style.position === 'relative') {
+    const parentPosition = parent ? window.getComputedStyle(parent).position : 'static'
+    const isPositionedParent = ['relative', 'absolute', 'fixed', 'sticky'].includes(parentPosition)
+
+    if (parent && isPositionedParent) {
       Object.assign(layerStyle, { width: '100%', height: '100%' })
     } else if (parent) {
       Object.assign(layerStyle, {
@@ -237,6 +273,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (closeFallbackTimer) {
+    clearTimeout(closeFallbackTimer)
+    closeFallbackTimer = null
+  }
   resizeObserver?.disconnect()
   resizeObserver = null
   unbindDrag()

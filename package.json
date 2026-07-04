@@ -17,13 +17,13 @@
       "require": "./dist/vue-lite-layer.umd.js"
     },
     "./nuxt": {
-      "import": "./lib/nuxt/module.ts",
-      "require": "./lib/nuxt/module.ts"
+      "types": "./dist/nuxt/module.d.ts",
+      "import": "./dist/nuxt/module.mjs"
     },
     "./dist/*": "./dist/*"
   },
   "nuxt": {
-    "module": "./lib/nuxt/module.ts"
+    "module": "./dist/nuxt/module.mjs"
   },
   "repository": {
     "type": "git",
@@ -54,9 +54,17 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint --fix",
     "format": "prettier --write \"lib/**/*.{ts,vue,scss}\" \"docs/**/*.{ts,vue,css}\" \"src/**/*.{ts,vue}\"",
-    "lib:build": "vite --config vite.config.lib.ts build",
+    "lib:build": "run-s lib:build:main lib:build:nuxt lib:build:verify",
+    "test:unit": "vitest run",
+    "test:types": "vue-tsc --noEmit --pretty false --project tsconfig.test.json",
+    "test:dist": "node tests/dist-checks/html-warning.test.mjs",
+    "test:dist-types": "vue-tsc --noEmit --pretty false --project tsconfig.dist-test.json",
+    "test": "run-p test:unit test:types",
     "test:lib": "bash scripts/test-lib.sh",
-    "test:lib:win": "powershell -ExecutionPolicy Bypass -File scripts/test-lib.ps1"
+    "test:lib:win": "powershell -ExecutionPolicy Bypass -File scripts/test-lib.ps1",
+    "lib:build:main": "vite --config vite.config.lib.ts build",
+    "lib:build:nuxt": "vite --config vite.config.lib.ts build --mode nuxt",
+    "lib:build:verify": "pnpm test:dist"
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.4.0",
@@ -67,7 +75,13 @@
     "vue-i18n-lite": "^1.0.2"
   },
   "peerDependencies": {
+    "@nuxt/kit": ">=3.0.0",
     "vue": "^3.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@nuxt/kit": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@mdit/plugin-tasklist": "^0.22.3",
@@ -78,10 +92,12 @@
     "@vitejs/plugin-vue-jsx": "^5.1.4",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/runtime-core": "^3.5.28",
+    "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.8.0",
+    "jsdom": "^27.2.0",
     "npm-run-all2": "^8.0.4",
     "nuxt": "^4.3.1",
     "prettier": "^3.8.1",
@@ -92,6 +108,7 @@
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-package-version": "^1.1.0",
     "vitepress": "^1.6.4",
+    "vitest": "^4.0.15",
     "vue": "^3.5.28",
     "vue-tsc": "^3.2.4",
     "vxe-table": "^4.17.48"

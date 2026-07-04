@@ -156,6 +156,17 @@ const layerManager = {
   },
 
   /**
+   * 重置测试状态
+   * Reset test state
+   */
+  resetForTest(): void {
+    uniqueGroups.clear()
+    instances.clear()
+    zIndexGroups.clear()
+    globalZIndex = BASE_Z_INDEX
+  },
+
+  /**
    * 关闭所有弹层
    * Close all layers
    */

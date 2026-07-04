@@ -1,5 +1,14 @@
+import { getCurrentScope, onScopeDispose } from 'vue'
+import { type LayerEmitter, useLayerEmitter } from '@lib/core/layer-emitter'
+import type { LayerCommandPayload, LayerEventDisposer } from '@lib/core/layer-events'
 import type { LayerCallback } from '@lib/types/callback'
-import { useLayerEmitter } from '@lib/core/layer-emitter'
+
+const registerDisposer = (dispose: LayerEventDisposer): LayerEventDisposer => {
+  if (getCurrentScope()) {
+    onScopeDispose(dispose)
+  }
+  return dispose
+}
 
 /**
  * 弹层事件 Composable
@@ -38,24 +47,24 @@ import { useLayerEmitter } from '@lib/core/layer-emitter'
  * ### General
  * - `close()` — 直接关闭弹层 / Close layer directly
  */
-export default () => {
-  const emitter = useLayerEmitter()
+export default (providedEmitter?: LayerEmitter) => {
+  const emitter = providedEmitter ?? useLayerEmitter()
 
   // ──── Footer 专用：通知 Container 按钮点击 / Footer Specific: Notify Container of Button Clicks ────
 
   /** 触发确认事件（Footer → Container） / Trigger confirm event (Footer → Container) */
-  const emitOk = () => {
-    emitter.emit('ok')
+  const emitOk = (message?: unknown): void => {
+    emitter.emit('ok', message)
   }
 
   /** 触发取消事件（Footer → Container） / Trigger cancel event (Footer → Container) */
-  const emitCancel = () => {
-    emitter.emit('cancel')
+  const emitCancel = (message?: unknown): void => {
+    emitter.emit('cancel', message)
   }
 
   /** 触发自定义命令事件（Footer → Container） / Trigger custom command event (Footer → Container) */
-  const emitCommand = (command?: any) => {
-    emitter.emit('command', command)
+  const emitCommand = (command?: unknown, message?: unknown): void => {
+    emitter.emit('command', { command, message })
   }
 
   // ──── Container 专用：监听 Footer 事件 / Container Specific: Listen to Footer Events ────
@@ -66,10 +75,12 @@ export default () => {
    *
    * @param callback - 回调函数；若未提供，则默认关闭弹层 / Callback function; if not provided, closes layer by default
    */
-  const onOk = (callback?: LayerCallback) => {
-    emitter.on('ok', () => {
-      callback ? callback() : emitter.emit('close')
-    })
+  const onOk = (callback?: LayerCallback): LayerEventDisposer => {
+    const handler = (message?: unknown) => {
+      callback ? callback(message) : emitter.emit('close')
+    }
+    emitter.on('ok', handler)
+    return registerDisposer(() => emitter.off('ok', handler))
   }
 
   /**
@@ -78,10 +89,12 @@ export default () => {
    *
    * @param callback - 回调函数；若未提供，则默认关闭弹层 / Callback function; if not provided, closes layer by default
    */
-  const onCancel = (callback?: LayerCallback) => {
-    emitter.on('cancel', () => {
-      callback ? callback() : emitter.emit('close')
-    })
+  const onCancel = (callback?: LayerCallback): LayerEventDisposer => {
+    const handler = (message?: unknown) => {
+      callback ? callback(message) : emitter.emit('close')
+    }
+    emitter.on('cancel', handler)
+    return registerDisposer(() => emitter.off('cancel', handler))
   }
 
   /**
@@ -90,45 +103,47 @@ export default () => {
    *
    * @param callback - 回调函数，接收命令标识作为参数 / Callback function that receives command identifier as parameter
    */
-  const onCommand = (callback?: LayerCallback) => {
-    emitter.on('command', (command?: any) => {
-      callback?.(command)
-    })
+  const onCommand = (callback?: LayerCallback): LayerEventDisposer => {
+    const handler = (payload: LayerCommandPayload) => {
+      callback?.(payload.command, payload.message)
+    }
+    emitter.on('command', handler)
+    return registerDisposer(() => emitter.off('command', handler))
   }
 
   // ──── Container 专用：向调用方传递处理结果 / Container Specific: Pass Processing Results to Caller ────
 
   /** 确认处理完成，将结果传递给 openLayer 的 onOk 回调 / Confirm processing complete, pass result to openLayer's onOk callback */
-  const resolveOk = (message?: any) => {
+  const resolveOk = (message?: unknown): void => {
     emitter.emit('afterOk', message)
   }
 
   /** 取消处理完成，将结果传递给 openLayer 的 onCancel 回调 / Cancel processing complete, pass result to openLayer's onCancel callback */
-  const resolveCancel = (message?: any) => {
+  const resolveCancel = (message?: unknown): void => {
     emitter.emit('afterCancel', message)
   }
 
   /** 命令处理完成，将结果传递给 openLayer 的 onCommand 回调 / Command processing complete, pass result to openLayer's onCommand callback */
-  const resolveCommand = (command: string, message?: any) => {
+  const resolveCommand = (command?: unknown, message?: unknown): void => {
     emitter.emit('afterCommand', { command, message })
   }
 
   // ──── Container 专用：Loading 控制 / Container Specific: Loading Control ────
 
   /** 显示弹层加载遮罩 / Show layer loading mask */
-  const startLoading = () => {
+  const startLoading = (): void => {
     emitter.emit('startLoading')
   }
 
   /** 隐藏弹层加载遮罩 / Hide layer loading mask */
-  const stopLoading = () => {
+  const stopLoading = (): void => {
     emitter.emit('stopLoading')
   }
 
   // ──── 通用 / General ────
 
   /** 直接关闭弹层 / Close layer directly */
-  const close = () => {
+  const close = (): void => {
     emitter.emit('close')
   }
 

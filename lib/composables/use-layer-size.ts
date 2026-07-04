@@ -9,6 +9,22 @@ export interface WindowStyle {
   height: string
 }
 
+export type WindowStylePatch = Partial<WindowStyle>
+
+const applyWindowStyle = (
+  windowStyle: WindowStyle,
+  windowEl: HTMLElement | undefined,
+  nextStyle: WindowStylePatch
+): void => {
+  Object.assign(windowStyle, nextStyle)
+  if (!windowEl) return
+
+  if (nextStyle.top != null) windowEl.style.top = nextStyle.top
+  if (nextStyle.left != null) windowEl.style.left = nextStyle.left
+  if (nextStyle.width != null) windowEl.style.width = nextStyle.width
+  if (nextStyle.height != null) windowEl.style.height = nextStyle.height
+}
+
 /**
  * 弹层尺寸与定位 Composable
  * Layer Size and Positioning Composable
@@ -97,19 +113,15 @@ export default (initialSize?: { width?: string; height?: string }) => {
    */
   const maximize = (windowEl: HTMLElement | undefined, onComplete?: () => void) => {
     if (!windowEl) return
-    Object.assign(windowStyle, {
-      top: '0px',
-      left: '0px',
-      width: maximumSize.width + 'px',
-      height: maximumSize.height + 'px'
-    })
     withTransition(
       windowEl,
       () => {
-        windowEl.style.top = '0px'
-        windowEl.style.left = '0px'
-        windowEl.style.width = maximumSize.width + 'px'
-        windowEl.style.height = maximumSize.height + 'px'
+        applyWindowStyle(windowStyle, windowEl, {
+          top: '0px',
+          left: '0px',
+          width: maximumSize.width + 'px',
+          height: maximumSize.height + 'px'
+        })
       },
       onComplete
     )
@@ -140,19 +152,15 @@ export default (initialSize?: { width?: string; height?: string }) => {
     const clampedTop = Math.max(0, Math.min(restoreTop, containerH - defaultSize.height))
     const clampedLeft = Math.max(0, Math.min(restoreLeft, containerW - defaultSize.width))
 
-    Object.assign(windowStyle, {
-      top: clampedTop + 'px',
-      left: clampedLeft + 'px',
-      width: defaultSize.width + 'px',
-      height: defaultSize.height + 'px'
-    })
     withTransition(
       windowEl,
       () => {
-        windowEl.style.top = clampedTop + 'px'
-        windowEl.style.left = clampedLeft + 'px'
-        windowEl.style.width = defaultSize.width + 'px'
-        windowEl.style.height = defaultSize.height + 'px'
+        applyWindowStyle(windowStyle, windowEl, {
+          top: clampedTop + 'px',
+          left: clampedLeft + 'px',
+          width: defaultSize.width + 'px',
+          height: defaultSize.height + 'px'
+        })
       },
       onComplete
     )
@@ -204,7 +212,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
       defaultPosition.left = windowEl.style.left
       currentPosition.top = windowEl.style.top
       currentPosition.left = windowEl.style.left
-      Object.assign(windowStyle, {
+      applyWindowStyle(windowStyle, windowEl, {
         top: windowEl.style.top,
         left: windowEl.style.left,
         width: windowEl.offsetWidth + 'px',
@@ -225,10 +233,13 @@ export default (initialSize?: { width?: string; height?: string }) => {
       defaultPosition.left = windowEl.style.left
       currentPosition.top = windowEl.style.top
       currentPosition.left = windowEl.style.left
-      Object.assign(windowStyle, { top: windowEl.style.top, left: windowEl.style.left })
+      applyWindowStyle(windowStyle, windowEl, {
+        top: windowEl.style.top,
+        left: windowEl.style.left,
+        width: windowEl.offsetWidth + 'px',
+        height: windowEl.offsetHeight + 'px'
+      })
     }
-    windowStyle.width = windowEl.offsetWidth + 'px'
-    windowStyle.height = windowEl.offsetHeight + 'px'
   }
 
   /**
@@ -269,7 +280,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
     })
     // 同步更新 windowStyle，确保 Vue 重渲染时不会覆盖拖拽后的位置
     // Sync windowStyle to ensure Vue re-render doesn't overwrite dragged position
-    Object.assign(windowStyle, {
+    applyWindowStyle(windowStyle, windowEl, {
       top: newTop,
       left: newLeft
     })

@@ -40,7 +40,7 @@ pnpm add vue-lite-layer
 import { createApp } from 'vue'
 import App from './App.vue'
 import VueLiteLayer from 'vue-lite-layer'
-import 'vue-lite-layer/dist/style.css'
+import 'vue-lite-layer/dist/vue-lite-layer.css'
 
 const app = createApp(App)
 app.use(VueLiteLayer)
@@ -57,7 +57,7 @@ const { openLayer } = useLiteLayer()
 
 openLayer({
   title: '你好，世界',
-  content: '这是一个弹层内容。',
+  textContent: '这是一个弹层内容。',
   size: { width: '400px', height: '300px' },
 }, appContext)
 </script>
@@ -168,7 +168,7 @@ pnpm add vue-lite-layer
 import { createApp } from 'vue'
 import App from './App.vue'
 import VueLiteLayer from 'vue-lite-layer'
-import 'vue-lite-layer/dist/style.css'
+import 'vue-lite-layer/dist/vue-lite-layer.css'
 
 const app = createApp(App)
 app.use(VueLiteLayer)
@@ -185,7 +185,7 @@ const { openLayer } = useLiteLayer()
 
 openLayer({
   title: 'Hello World',
-  content: 'This is a layer content.',
+  textContent: 'This is a layer content.',
   size: { width: '400px', height: '300px' },
 }, appContext)
 </script>

@@ -6,7 +6,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
-| `footer` | `boolean \| Component` | `true` | Footer area: `true` shows default buttons, `false` hides, pass a component for custom footer |
+| `footer` | `boolean \| string \| Component` | `true` | Footer area: `true` shows default buttons, `false` hides, pass a string or component for custom footer |
 | `shade` | `boolean` | `true` | Whether to show the shade overlay |
 | `shadeClose` | `boolean` | `true` | Whether clicking the shade closes the layer |
 | `maxWidth` | `string` | `'none'` | Maximum width (CSS value, e.g. `'800px'`, `'90%'`) |
@@ -17,6 +17,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `max` | `boolean` | `true` | Whether to allow maximize |
 | `close` | `boolean` | `true` | Whether to show the close button |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | Internationalization configuration |
+| `banner` | `boolean` | `true` | Whether to print the version banner during plugin installation |
 
 ## LayerConfig
 
@@ -27,11 +28,17 @@ Per-layer configuration passed via `openLayer(config, appContext)`. Inherits all
 | `id` | `string` | Auto-generated | Unique layer identifier, usually no need to set manually |
 | `uniqueGroup` | `string` | — | Unique group identifier; only one layer per group can be open |
 | `title` | `string` | `''` | Layer title |
-| `content` | `Component \| HTMLElement \| string` | — | Layer content: Vue component, HTML element, or string |
+| `content` | `Component \| HTMLElement \| string` | — | Layer content: Vue component, HTMLElement, or trusted HTML string. String content is rendered as HTML, so do not pass unsanitized user input. HTMLElement content is moved into the layer and restored to its original DOM position on content switch or unmount when possible |
+| `textContent` | `string` | — | Safe plain text content. Takes precedence over `content` |
+| `contentType` | `'html' \| 'text'` | `'html'` | Render mode for string `content`; defaults to legacy HTML behavior |
 | `props` | `object \| null` | `null` | Props to pass to the content component |
 | `onOk` | `LayerCallback \| null` | `null` | Confirm callback, receives data from the content component |
 | `onCancel` | `LayerCallback \| null` | `null` | Cancel callback |
 | `onCommand` | `LayerCallback \| null` | `null` | Custom command callback |
+
+::: warning HTML content security
+String `content` is for trusted HTML, and runtime rendering does not sanitize HTML for you. Prefer `textContent` or `contentType: 'text'` for plain text or user input. If you must render rich user content, sanitize it with a trusted sanitizer first.
+::: 
 
 ## Footer Details
 
@@ -169,7 +176,7 @@ interface Position {
 Layer callback function type:
 
 ```typescript
-type LayerCallback = (command?: any, message?: any) => void
+type LayerCallback = (commandOrMessage?: unknown, message?: unknown) => void
 ```
 
 ## Configuration Priority
@@ -193,6 +200,7 @@ Configuration merge priority (from highest to lowest):
   location: 'CC',
   max: true,
   close: true,
-  i18n: { locale: 'zh-CN' }
+  i18n: { locale: 'zh-CN' },
+  banner: true
 }
 ```

@@ -1,4 +1,5 @@
 import { type AppContext, getCurrentInstance, inject } from 'vue'
+import { LayerServiceKey, type LayerService } from '@lib/core/layer-service'
 import type { LayerConfig } from '@lib/types/layer'
 import type { LayerInstance } from '@lib/types/instance'
 
@@ -36,7 +37,7 @@ import type { LayerInstance } from '@lib/types/instance'
  * ```
  */
 export default () => {
-  const $layer = inject<any>('layer')
+  const $layer = inject(LayerServiceKey) ?? inject<LayerService>('layer')
   const instance = getCurrentInstance()
 
   /**

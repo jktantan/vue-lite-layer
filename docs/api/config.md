@@ -6,7 +6,7 @@
 
 | 属性 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `footer` | `boolean \| Component` | `true` | 底部按钮区：`true` 显示默认按钮，`false` 隐藏，传入组件可自定义 |
+| `footer` | `boolean \| string \| Component` | `true` | 底部按钮区：`true` 显示默认按钮，`false` 隐藏，传入字符串或组件可自定义 |
 | `shade` | `boolean` | `true` | 是否显示遮罩层 |
 | `shadeClose` | `boolean` | `true` | 点击遮罩是否关闭弹层 |
 | `maxWidth` | `string` | `'none'` | 弹层最大宽度（CSS 值，如 `'800px'`、`'90%'`） |
@@ -17,6 +17,7 @@
 | `max` | `boolean` | `true` | 是否允许最大化 |
 | `close` | `boolean` | `true` | 是否显示关闭按钮 |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | 国际化配置 |
+| `banner` | `boolean` | `true` | 是否在插件安装时输出版本 banner |
 
 ## LayerConfig
 
@@ -27,11 +28,17 @@
 | `id` | `string` | 自动生成 | 弹层唯一标识，一般无需手动指定 |
 | `uniqueGroup` | `string` | — | 唯一分组标识，同组内只允许打开一个弹层 |
 | `title` | `string` | `''` | 弹层标题 |
-| `content` | `Component \| HTMLElement \| string` | — | 弹层内容：Vue 组件、HTML 元素或字符串 |
+| `content` | `Component \| HTMLElement \| string` | — | 弹层内容：Vue 组件、HTML 元素或 trusted HTML 字符串。字符串会按 HTML 渲染，请勿传入未净化的用户输入；HTMLElement 会被移动到弹层内，并在切换内容或卸载时尽量恢复到原 DOM 位置 |
+| `textContent` | `string` | — | 安全文本内容，按纯文本渲染，优先级高于 `content` |
+| `contentType` | `'html' \| 'text'` | `'html'` | 字符串 `content` 的渲染模式；默认保留历史 HTML 行为 |
 | `props` | `object \| null` | `null` | 传递给内容组件的 props |
 | `onOk` | `LayerCallback \| null` | `null` | 确认回调，接收内容组件传回的数据 |
 | `onCancel` | `LayerCallback \| null` | `null` | 取消回调 |
 | `onCommand` | `LayerCallback \| null` | `null` | 自定义命令回调 |
+
+::: warning HTML 内容安全
+`content` 的字符串模式用于 trusted HTML，运行时不会替你净化 HTML。展示普通文本或用户输入时，请优先使用 `textContent` 或设置 `contentType: 'text'`；确实需要展示富文本用户内容时，必须先使用可信的净化器处理。
+::: 
 
 ## footer 详解
 
@@ -169,7 +176,7 @@ interface Position {
 弹层回调函数类型：
 
 ```typescript
-type LayerCallback = (command?: any, message?: any) => void
+type LayerCallback = (commandOrMessage?: unknown, message?: unknown) => void
 ```
 
 ## 配置优先级
@@ -193,6 +200,7 @@ type LayerCallback = (command?: any, message?: any) => void
   location: 'CC',
   max: true,
   close: true,
-  i18n: { locale: 'zh-CN' }
+  i18n: { locale: 'zh-CN' },
+  banner: true
 }
 ```

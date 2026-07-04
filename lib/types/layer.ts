@@ -1,5 +1,6 @@
 import type { Component, RendererNode } from 'vue'
 import type { LayerCallback } from './callback'
+import type { LocaleMessages } from '@lib/i18n'
 
 /**
  * 弹层遮罩区域样式
@@ -58,6 +59,8 @@ export enum PositionPreset {
   RIGHT_BOTTOM = 'RB'
 }
 
+export type LayerContentType = 'html' | 'text'
+
 /**
  * 全局配置（通过 `app.use(VueLiteLayer, globalConfig)` 传入）
  * Global configuration (passed via `app.use(VueLiteLayer, globalConfig)`)
@@ -66,8 +69,8 @@ export enum PositionPreset {
  * These options will serve as defaults for all layers and can be overridden by individual layer configurations.
  */
 export interface LayerGlobalConfig {
-  /** 底部按钮区：true=默认按钮 | false=隐藏 | Component=自定义组件 / Footer button area: true=default buttons | false=hidden | Component=custom component */
-  footer?: NonNullable<unknown> | string | boolean
+  /** 底部按钮区：true=默认按钮 | false=隐藏 | string/Component=自定义内容 / Footer button area: true=default buttons | false=hidden | string/Component=custom content */
+  footer?: boolean | string | Component
   /** 是否显示遮罩 / Whether to show mask */
   shade?: boolean
   /** 点击遮罩是否关闭弹层 / Whether clicking mask closes layer */
@@ -86,8 +89,10 @@ export interface LayerGlobalConfig {
   max?: boolean
   /** 是否显示关闭按钮 / Whether to show close button */
   close?: boolean
+  /** 是否输出版本 banner；默认 true / Whether to print version banner; defaults to true */
+  banner?: boolean
   /** 国际化配置 / Internationalization configuration */
-  i18n?: { locale?: string; messages?: object }
+  i18n?: { locale?: string; messages?: LocaleMessages }
 }
 
 /**
@@ -104,8 +109,12 @@ export interface LayerConfig extends LayerGlobalConfig {
   uniqueGroup?: string
   /** 弹层标题 / Layer title */
   title?: string
-  /** 弹层内容：Vue 组件、HTML 元素或字符串 / Layer content: Vue component, HTML element, or string */
+  /** 弹层内容：Vue 组件、HTML 元素或 trusted HTML 字符串 / Layer content: Vue component, HTMLElement, or trusted HTML string */
   content?: Component | HTMLElement | string
+  /** 安全文本内容；按纯文本渲染，优先级高于 content / Safe text content rendered as plain text, takes precedence over content */
+  textContent?: string
+  /** 字符串 content 的渲染模式；默认 html 以兼容历史行为 / Render mode for string content; defaults to html for compatibility */
+  contentType?: LayerContentType
   /** 传递给内容组件的 props / Props passed to content component */
   props?: object | null
   /** 取消回调 / Cancel callback */
