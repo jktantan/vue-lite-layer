@@ -8,7 +8,7 @@
  * Drag range is constrained within container element, dragging is disabled when maximized.
  */
 interface DragSizeHelper {
-  setCurrentPosition: (windowEl: HTMLElement | undefined) => void
+  setCurrentPosition: (windowEl: HTMLElement | undefined | null) => void
 }
 
 interface DragBounds {
@@ -54,9 +54,9 @@ export default () => {
    * @param sizeHelper - 尺寸工具对象，用于同步拖拽后的坐标 / Size helper object for syncing coordinates after drag
    */
   const bindDrag = (
-    handleEl: HTMLElement | undefined,
-    windowEl: HTMLElement | undefined,
-    containerEl: HTMLElement | undefined,
+    handleEl: HTMLElement | undefined | null,
+    windowEl: HTMLElement | undefined | null,
+    containerEl: HTMLElement | undefined | null,
     sizeHelper: DragSizeHelper
   ) => {
     if (!handleEl || !windowEl || !containerEl) return

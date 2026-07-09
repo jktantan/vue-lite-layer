@@ -5,13 +5,14 @@
         ref="wrapperRef"
         class="lite-layer__window-wrapper"
         :class="[shadowClass]"
-        @scroll="handleScroll"
+        @scroll.passive="handleScroll"
       >
         <div v-if="textContent != null">{{ textContent }}</div>
         <div v-else-if="isHTMLElementContent" ref="elementHostRef"></div>
         <div v-else-if="content && typeof content === 'string' && normalizedContentType === 'text'">
           {{ content }}
         </div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-else-if="content && typeof content === 'string'" v-html="content"></div>
         <component v-else-if="content" :is="content" v-bind="props" ref="contentRef" />
       </div>
@@ -28,7 +29,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
 import type { LayerContentType } from '@lib/types/layer'
@@ -47,9 +48,9 @@ const layerProps = withDefaults(defineProps<LayerContainerProps>(), {
 })
 
 const shadowClass = ref('')
-const wrapperRef = ref<HTMLElement>()
-const elementHostRef = ref<HTMLElement>()
-const contentRef = ref()
+const wrapperRef = useTemplateRef<HTMLElement>('wrapperRef')
+const elementHostRef = useTemplateRef<HTMLElement>('elementHostRef')
+const contentRef = useTemplateRef('contentRef')
 let scrollFrame = 0
 let mountedElement: HTMLElement | null = null
 let originalParent: ParentNode | null = null

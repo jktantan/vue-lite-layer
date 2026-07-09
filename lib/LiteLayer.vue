@@ -10,7 +10,14 @@
         ...layerStyle
       }"
     >
-      <div v-if="shade" class="lite-layer__shade" @click="handleShadeClick" />
+      <div
+        v-if="shade"
+        class="lite-layer__shade"
+        role="button"
+        aria-label="Close layer"
+        tabindex="-1"
+        @click="handleShadeClick"
+      />
       <div
         v-if="visible"
         ref="windowRef"
@@ -56,7 +63,7 @@
 
 <script lang="ts" setup>
 import { ResizeObserver } from '@juggle/resize-observer'
-import { reactive, ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { reactive, ref, useTemplateRef, onMounted, onUnmounted, nextTick } from 'vue'
 import useDraggable from './composables/use-draggable'
 
 import LayerHeader from '@lib/components/LayerHeader.vue'
@@ -98,9 +105,9 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
 
 // ──── 模板引用 / Template Refs ────
 const { bindDrag, unbindDrag } = useDraggable()
-const windowRef = ref<HTMLElement>()
-const headerRef = ref<any>()
-const layerRef = ref<HTMLElement>()
+const windowRef = useTemplateRef<HTMLElement>('windowRef')
+const headerRef = useTemplateRef<any>('headerRef')
+const layerRef = useTemplateRef<HTMLElement>('layerRef')
 
 // ──── 状态 / State ────
 const visible = ref(true)
@@ -213,9 +220,13 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
       // 最大化状态下仅更新最大尺寸并重新铺满，不要覆盖 defaultSize
       // When maximized, only update maximum size and re-fill, DO NOT overwrite defaultSize
       isResizing.value = true
-      layerSize.maximize(windowRef.value, () => {
-        isResizing.value = false
-      })
+      layerSize.maximize(
+        windowRef.value,
+        () => {
+          isResizing.value = false
+        },
+        { animated: false }
+      )
     }
     // 非最大化时仅更新 maximumSize，不调用 initPosition，否则会覆盖用户拖拽后的位置
     // （ResizeObserver 可能在点击/聚焦等操作时意外触发，导致窗口被重置到中心）

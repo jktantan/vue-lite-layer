@@ -13,7 +13,7 @@ export type WindowStylePatch = Partial<WindowStyle>
 
 const applyWindowStyle = (
   windowStyle: WindowStyle,
-  windowEl: HTMLElement | undefined,
+  windowEl: HTMLElement | undefined | null,
   nextStyle: WindowStylePatch
 ): void => {
   Object.assign(windowStyle, nextStyle)
@@ -108,23 +108,31 @@ export default (initialSize?: { width?: string; height?: string }) => {
   }
 
   /**
-   * 最大化：将窗口铺满容器（带动画）
-   * Maximize: Fill container with window (with animation)
+   * 最大化：将窗口铺满容器
+   * Maximize: Fill container with window
    */
-  const maximize = (windowEl: HTMLElement | undefined, onComplete?: () => void) => {
+  const maximize = (
+    windowEl: HTMLElement | undefined | null,
+    onComplete?: () => void,
+    opts?: { animated?: boolean }
+  ) => {
     if (!windowEl) return
-    withTransition(
-      windowEl,
-      () => {
-        applyWindowStyle(windowStyle, windowEl, {
-          top: '0px',
-          left: '0px',
-          width: maximumSize.width + 'px',
-          height: maximumSize.height + 'px'
-        })
-      },
-      onComplete
-    )
+    const animated = opts?.animated ?? true
+    const applySize = () => {
+      applyWindowStyle(windowStyle, windowEl, {
+        top: '0px',
+        left: '0px',
+        width: maximumSize.width + 'px',
+        height: maximumSize.height + 'px'
+      })
+    }
+
+    if (animated) {
+      withTransition(windowEl, applySize, onComplete)
+    } else {
+      applySize()
+      onComplete?.()
+    }
   }
 
   /**
@@ -139,8 +147,8 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * Instead, pre-calculate valid coordinates from stored currentPosition / defaultSize.
    */
   const restore = (
-    windowEl: HTMLElement | undefined,
-    containerEl: HTMLElement | undefined,
+    windowEl: HTMLElement | undefined | null,
+    containerEl: HTMLElement | undefined | null,
     onComplete?: () => void
   ) => {
     if (!windowEl || !containerEl) return
@@ -197,8 +205,8 @@ export default (initialSize?: { width?: string; height?: string }) => {
    */
   const initPosition = (
     location: Position | PositionPreset,
-    containerEl: HTMLElement | undefined,
-    windowEl: HTMLElement | undefined
+    containerEl: HTMLElement | undefined | null,
+    windowEl: HTMLElement | undefined | null
   ) => {
     if (!windowEl || !containerEl) return
 
@@ -246,7 +254,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * 记录窗口的默认尺寸（用于还原时恢复）
    * Record window default size (for restoration)
    */
-  const setDefaultSize = (windowEl: HTMLElement | undefined) => {
+  const setDefaultSize = (windowEl: HTMLElement | undefined | null) => {
     if (!windowEl) return
     Object.assign(defaultSize, {
       height: windowEl.offsetHeight,
@@ -258,7 +266,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * 记录容器的可用尺寸（用于最大化时填充）
    * Record container available size (for filling when maximizing)
    */
-  const setMaximumSize = (containerEl: HTMLElement | Element | undefined) => {
+  const setMaximumSize = (containerEl: HTMLElement | Element | undefined | null) => {
     if (!containerEl) return
     Object.assign(maximumSize, {
       height: containerEl.clientHeight,
@@ -270,7 +278,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * 更新窗口当前位置（拖拽结束后调用）
    * Update window current position (called after drag ends)
    */
-  const setCurrentPosition = (windowEl: HTMLElement | undefined) => {
+  const setCurrentPosition = (windowEl: HTMLElement | undefined | null) => {
     if (!windowEl) return
     const newTop = windowEl.offsetTop + 'px'
     const newLeft = windowEl.offsetLeft + 'px'
