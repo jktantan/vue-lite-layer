@@ -4,7 +4,7 @@
       ref="layerRef"
       class="lite-layer"
       :style="{
-        position: normalizedTeleport.isBody ? 'fixed' : 'absolute',
+        position: isTeleportToBody ? 'fixed' : 'absolute',
         'z-index': currentZIndex,
         pointerEvents: shade ? 'auto' : 'none',
         ...layerStyle
@@ -73,7 +73,6 @@ import './assets/style/index.scss'
 import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
 import layerManager from './core/layer-manager'
-import { normalizeTeleportTarget } from './core/teleport-target'
 
 import { useLayerEmitter } from './core/layer-emitter'
 import LayerLoading from './components/LayerLoading.vue'
@@ -122,8 +121,10 @@ let closeFallbackTimer: ReturnType<typeof setTimeout> | null = null
 let hasUnmounted = false
 
 // ──── z-index 管理 / Z-index Management ────
-const normalizedTeleport = normalizeTeleportTarget(props.teleport)
-const teleportGroup = props.teleportKey ?? normalizedTeleport.key
+const isTeleportToBody =
+  props.teleport === 'body' ||
+  (typeof document !== 'undefined' && props.teleport === document.body)
+const teleportGroup = props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
 
 // ──── 弹层尺寸与定位 / Layer Size and Positioning ────
@@ -240,7 +241,7 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
 onMounted(() => {
   resizeObserver = new ResizeObserver(handleContainerResize)
 
-  if (!normalizedTeleport.isBody) {
+  if (!isTeleportToBody) {
     const parent = layerRef.value?.parentElement
     const parentPosition = parent ? window.getComputedStyle(parent).position : 'static'
     const isPositionedParent = ['relative', 'absolute', 'fixed', 'sticky'].includes(parentPosition)

@@ -57,9 +57,8 @@ const layerManager = {
       zIndexGroups.set(teleportTarget, new Map())
     }
     const group = zIndexGroups.get(teleportTarget)!
-    
+
     const newZIndex = ++globalZIndex
-    globalZIndex = newZIndex
     group.set(id, newZIndex)
     return newZIndex
   },
@@ -76,10 +75,9 @@ const layerManager = {
     const group = zIndexGroups.get(teleportTarget)
     if (!group) return BASE_Z_INDEX
     const currentZ = group.get(id) ?? BASE_Z_INDEX
-    
+
     if (currentZ >= globalZIndex) return currentZ
     const newZIndex = ++globalZIndex
-    globalZIndex = newZIndex
     group.set(id, newZIndex)
     return newZIndex
   },
@@ -171,9 +169,10 @@ const layerManager = {
    * Close all layers
    */
   closeAll(): void {
-    instances.forEach((instance) => {
+    const snapshot = [...instances.values()]
+    for (const instance of snapshot) {
       instance.close()
-    })
+    }
   }
 }
 

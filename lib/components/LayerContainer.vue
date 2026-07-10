@@ -152,11 +152,17 @@ watch(
     }
     await nextTick()
     renderHTMLElementContent()
-  },
-  { immediate: true }
+  }
 )
 
 onMounted(() => {
+  if (
+    layerProps.textContent == null &&
+    typeof layerProps.content === 'string' &&
+    normalizedContentType.value === 'html'
+  ) {
+    warnIfUnsafeHtml(layerProps.content)
+  }
   renderHTMLElementContent()
   if (!wrapperRef.value) return
   resizeObserver = new ResizeObserver(() => {

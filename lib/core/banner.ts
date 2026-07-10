@@ -1,16 +1,16 @@
 import { encode } from 'js-base64'
 
-/**
- * 在浏览器控制台输出带 SVG Logo 的版本信息
- * Output version info with SVG logo in browser console
- *
- * 仅在客户端环境下执行，SSR 环境自动跳过。
- * Only executes in client environment, automatically skipped in SSR environment.
- *
- * @param version - 当前库版本号 / Current library version number
- */
+let cachedVersion: string | null = null
+let cachedStyle: string | null = null
+let cachedImage: string | null = null
+
 const printVersion = (version: string) => {
   if (typeof window === 'undefined') return
+  if (cachedVersion === version && cachedStyle && cachedImage) {
+    console.log('%c+', cachedStyle)
+    return
+  }
+
   const height = 100
   const width = 580
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -50,11 +50,15 @@ const printVersion = (version: string) => {
     'px; line-height: ' +
     Math.floor(height / 2) +
     'px;'
-  console.log(
-    '%c+',
+  const fullStyle =
     style +
-      `background-image: url(${image64});background-size: ${width}px ${height}px;background-repeat: norepeat; color: transparent;`
-  )
+    `background-image: url(${image64});background-size: ${width}px ${height}px;background-repeat: norepeat; color: transparent;`
+
+  cachedVersion = version
+  cachedStyle = fullStyle
+  cachedImage = image64
+
+  console.log('%c+', fullStyle)
 }
 
 export default printVersion
