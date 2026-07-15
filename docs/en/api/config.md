@@ -13,7 +13,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `maxHeight` | `string` | `'none'` | Maximum height (CSS value) |
 | `size` | `WindowSize` | `{ width: '300px', height: '400px' }` | Default layer size |
 | `location` | `PositionPreset \| Position` | `'CC'` | Layer position, see below |
-| `teleport` | `string \| HTMLElement` | `'body'` | Teleport target, CSS selector or DOM element |
+| `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport target, CSS selector or DOM element |
 | `max` | `boolean` | `true` | Whether to allow maximize |
 | `close` | `boolean` | `true` | Whether to show the close button |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | Internationalization configuration |

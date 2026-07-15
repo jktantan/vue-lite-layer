@@ -56,15 +56,21 @@ let mountedElement: HTMLElement | null = null
 let originalParent: ParentNode | null = null
 let originalNextSibling: ChildNode | null = null
 
+/** 判断 content 是否为 HTMLElement 实例 / Check if content is an HTMLElement instance */
 const isHTMLElementContent = computed(() => {
   return typeof HTMLElement !== 'undefined' && layerProps.content instanceof HTMLElement
 })
 
+/** 归一化 contentType：仅允许 'html' 或 'text' / Normalize contentType: only allow 'html' or 'text' */
 const normalizedContentType = computed<LayerContentType>(() => {
   if (layerProps.contentType === 'html' || layerProps.contentType == null) return 'html'
   return 'text'
 })
 
+/**
+ * 将 HTMLElement 内容恢复到原始 DOM 位置
+ * Restore HTMLElement content to its original DOM position
+ */
 const restoreHTMLElementContent = (): void => {
   if (!mountedElement) return
 
@@ -89,11 +95,16 @@ const restoreHTMLElementContent = (): void => {
   parent.appendChild(element)
 }
 
+/** 清除已挂载的 HTMLElement 内容并恢复原位 / Clear mounted HTMLElement content and restore to original position */
 const clearHTMLElementContent = (): void => {
   restoreHTMLElementContent()
   elementHostRef.value?.replaceChildren()
 }
 
+/**
+ * 将 HTMLElement 类型的 content 挂载到宿主容器中
+ * Mount HTMLElement-type content into the host container
+ */
 const renderHTMLElementContent = (): void => {
   const host = elementHostRef.value
   if (!host) return
@@ -109,12 +120,17 @@ const renderHTMLElementContent = (): void => {
   }
 }
 
+/** 设置滚动阴影 CSS 类（去重更新） / Set scroll shadow CSS class (deduplicated update) */
 const setShadowClass = (nextClass: string): void => {
   if (shadowClass.value !== nextClass) {
     shadowClass.value = nextClass
   }
 }
 
+/**
+ * 根据滚动位置计算并更新内容区域的阴影效果
+ * Calculate and update content area shadow effect based on scroll position
+ */
 const updateShadow = (target: HTMLElement): void => {
   const { scrollTop, clientHeight, scrollHeight } = target
 
@@ -129,6 +145,7 @@ const updateShadow = (target: HTMLElement): void => {
   }
 }
 
+/** 通过 requestAnimationFrame 节流的阴影更新调度 / Throttled shadow update scheduling via requestAnimationFrame */
 const scheduleShadowUpdate = (target: HTMLElement): void => {
   if (scrollFrame) cancelAnimationFrame(scrollFrame)
   scrollFrame = requestAnimationFrame(() => {

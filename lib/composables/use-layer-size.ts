@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { type Position, PositionPreset, type PixelSize } from '../types/layer'
 
-/** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） */
+/** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） / Window style (for template binding, prevents Vue re-render from overwriting maximize/restore direct styles) */
 export interface WindowStyle {
   top: string
   left: string
@@ -44,7 +44,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
   /** 弹层窗口的当前坐标（拖拽后更新） / Current coordinates of layer window (updated after drag) */
   const currentPosition: Position = { top: '', left: '' }
 
-  /** 供模板绑定的响应式窗口样式，避免 Vue :style 覆盖 direct DOM 修改 */
+  /** 供模板绑定的响应式窗口样式，避免 Vue :style 覆盖 direct DOM 修改 / Reactive window style for template binding, prevents Vue :style from overwriting direct DOM modifications */
   const windowStyle = reactive<WindowStyle>({
     top: '',
     left: '',

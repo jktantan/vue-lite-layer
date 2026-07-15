@@ -13,7 +13,7 @@
 | `maxHeight` | `string` | `'none'` | 弹层最大高度（CSS 值） |
 | `size` | `WindowSize` | `{ width: '300px', height: '400px' }` | 弹层默认尺寸 |
 | `location` | `PositionPreset \| Position` | `'CC'` | 弹层定位方式，见下方说明 |
-| `teleport` | `string \| HTMLElement` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
+| `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
 | `max` | `boolean` | `true` | 是否允许最大化 |
 | `close` | `boolean` | `true` | 是否显示关闭按钮 |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | 国际化配置 |

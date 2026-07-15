@@ -30,6 +30,10 @@ onUnmounted(() => {
 </script>
 
 <!--
+  非 scoped 样式块：防止 Vue 对 @keyframes 名称进行哈希处理
+  （Vue 3.3.4+ 会在 <style scoped> 中对 keyframe 名称进行作用域处理，
+  可能导致 animation 属性和 @keyframes 声明引用不同的哈希名称，从而导致动画失效）
+
   Non-scoped style block: prevents Vue from hashing @keyframes name
   (Vue 3.3.4+ scopes keyframe names in <style scoped>, which can cause
   the animation property and @keyframes declaration to reference

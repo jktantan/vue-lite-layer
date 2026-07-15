@@ -68,7 +68,7 @@ closeAllLayer()
 | --- | --- | --- |
 | `emitOk` | `(message?: unknown) => void` | 触发确认事件；默认 Footer 不传 payload，自定义 Footer 可显式传递 |
 | `emitCancel` | `(message?: unknown) => void` | 触发取消事件；默认 Footer 不传 payload，自定义 Footer 可显式传递 |
-| `emitCommand` | `(command: string, message?: unknown) => void` | 触发自定义命令 |
+| `emitCommand` | `(command?: unknown, message?: unknown) => void` | 触发自定义命令 |
 
 #### Container 监听 Footer 事件
 
@@ -84,7 +84,7 @@ closeAllLayer()
 | --- | --- | --- |
 | `resolveOk` | `(message?: unknown) => void` | 确认处理完成，将结果传回给 `onOk` 回调 |
 | `resolveCancel` | `(message?: unknown) => void` | 取消处理完成，将结果传回给 `onCancel` 回调 |
-| `resolveCommand` | `(command: string, message?: unknown) => void` | 命令处理完成，将结果传回给 `onCommand` 回调 |
+| `resolveCommand` | `(command?: unknown, message?: unknown) => void` | 命令处理完成，将结果传回给 `onCommand` 回调 |
 
 #### Loading 控制
 

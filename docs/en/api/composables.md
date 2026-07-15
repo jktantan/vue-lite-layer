@@ -68,7 +68,7 @@ This composable only works inside layer content components, as it depends on the
 | --- | --- | --- |
 | `emitOk` | `(message?: unknown) => void` | Trigger confirm event. The default footer sends no payload; custom footers may pass one explicitly |
 | `emitCancel` | `(message?: unknown) => void` | Trigger cancel event. The default footer sends no payload; custom footers may pass one explicitly |
-| `emitCommand` | `(command: string, message?: unknown) => void` | Trigger custom command |
+| `emitCommand` | `(command?: unknown, message?: unknown) => void` | Trigger custom command |
 
 #### Container: Listen for Footer Events
 
@@ -84,7 +84,7 @@ This composable only works inside layer content components, as it depends on the
 | --- | --- | --- |
 | `resolveOk` | `(message?: unknown) => void` | Confirm complete, pass result to `onOk` callback |
 | `resolveCancel` | `(message?: unknown) => void` | Cancel complete, pass result to `onCancel` callback |
-| `resolveCommand` | `(command: string, message?: unknown) => void` | Command complete, pass result to `onCommand` callback |
+| `resolveCommand` | `(command?: unknown, message?: unknown) => void` | Command complete, pass result to `onCommand` callback |
 
 #### Loading Control
 
