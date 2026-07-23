@@ -147,7 +147,10 @@ const updateShadow = (target: HTMLElement): void => {
 
 /** 通过 requestAnimationFrame 节流的阴影更新调度 / Throttled shadow update scheduling via requestAnimationFrame */
 const scheduleShadowUpdate = (target: HTMLElement): void => {
-  if (scrollFrame) cancelAnimationFrame(scrollFrame)
+  // Scroll events can fire several times before the next paint. One pending
+  // frame already uses the same scroll container, so scheduling another one
+  // only creates needless cancel/requeue work.
+  if (scrollFrame) return
   scrollFrame = requestAnimationFrame(() => {
     scrollFrame = 0
     updateShadow(target)

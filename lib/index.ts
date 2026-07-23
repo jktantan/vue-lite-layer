@@ -109,7 +109,7 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
       // 注意：必须在 mount 之前完成，否则 inject 解析会错过上下文。
       // NOTE: This must be done before mount, otherwise inject resolution misses the context.
       if (appContext) {
-        const layerContext = (layerApp as any)._context
+        const layerContext = layerApp._context
         layerContext.components = appContext.components
         layerContext.directives = appContext.directives
         layerContext.config = cloneAppConfigForLayer(layerContext.config, appContext.config)

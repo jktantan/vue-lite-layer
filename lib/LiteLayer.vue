@@ -63,7 +63,15 @@
 
 <script lang="ts" setup>
 import { ResizeObserver } from '@juggle/resize-observer'
-import { reactive, ref, useTemplateRef, onMounted, onUnmounted, nextTick } from 'vue'
+import {
+  reactive,
+  ref,
+  useTemplateRef,
+  onMounted,
+  onUnmounted,
+  nextTick,
+  type ComponentPublicInstance
+} from 'vue'
 import useDraggable from './composables/use-draggable'
 
 import LayerHeader from '@lib/components/LayerHeader.vue'
@@ -75,6 +83,7 @@ import useLayerSize from './composables/use-layer-size'
 import layerManager from './core/layer-manager'
 
 import { useLayerEmitter } from './core/layer-emitter'
+import type { LayerCommandPayload } from './core/layer-events'
 import LayerLoading from './components/LayerLoading.vue'
 import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
 
@@ -105,7 +114,7 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
 // ──── 模板引用 / Template Refs ────
 const { bindDrag, unbindDrag } = useDraggable()
 const windowRef = useTemplateRef<HTMLElement>('windowRef')
-const headerRef = useTemplateRef<any>('headerRef')
+const headerRef = useTemplateRef<ComponentPublicInstance<{ el: HTMLElement }>>('headerRef')
 const layerRef = useTemplateRef<HTMLElement>('layerRef')
 
 // ──── 状态 / State ────
@@ -202,15 +211,15 @@ const handleWindowMouseDown = () => {
 
 // ──── 回调事件 / Callback Events ────
 
-const handleAfterOk = (message?: any) => {
+const handleAfterOk = (message?: unknown): void => {
   props.onOk?.(message)
 }
 
-const handleAfterCancel = (message?: any) => {
+const handleAfterCancel = (message?: unknown): void => {
   props.onCancel?.(message)
 }
 
-const handleAfterCommand = (eventMessage: any) => {
+const handleAfterCommand = (eventMessage: LayerCommandPayload): void => {
   props.onCommand?.(eventMessage.command, eventMessage.message)
 }
 
