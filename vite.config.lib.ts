@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import dts from 'vite-plugin-dts'
 import { defineConfig } from 'vite'
@@ -6,6 +6,12 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import loadVersion from 'vite-plugin-package-version'
 import { resolve } from 'path'
+
+const sfcTypeResolverFs = {
+  fileExists: existsSync,
+  readFile: (file: string) => readFileSync(file, 'utf-8'),
+  realpath: realpathSync
+}
 
 const copyLegacyStyleEntry = () => ({
   name: 'copy-legacy-style-entry',
@@ -23,7 +29,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      vue(),
+      vue({ script: { fs: sfcTypeResolverFs } }),
       vueJsx(),
       loadVersion(),
       ...(isNuxtBuild ? [] : [copyLegacyStyleEntry()]),
