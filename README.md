@@ -122,6 +122,8 @@ openLayer({
     loadingText: '正在加载编辑器…',
     errorText: '编辑器加载失败',
     retryText: '重新加载',
+    timeout: 10_000,
+    maxRetries: 3,
     onError: console.error
   }
 })
@@ -135,6 +137,118 @@ export default defineNuxtConfig({
   modules: ['vue-lite-layer/nuxt'],
   vueLiteLayer: {
     // 全局配置（可选）
+  }
+})
+```
+
+### 基础配置速查
+
+以下是 NPM 使用时最常用的配置；完整类型和全部选项见 [API 文档](./docs/api/config.md)。
+
+| 配置 | 默认值 | 用途 |
+| --- | --- | --- |
+| `title` | `''` | 窗口标题 |
+| `content` / `textContent` | — | Vue 组件 / trusted HTML / 安全文本内容 |
+| `props` | `null` | 传给内容组件的 props |
+| `footer` | `true` | `true` 默认按钮、`false` 隐藏、组件为自定义 Footer |
+| `shade` / `shadeClose` | `true` / `true` | 遮罩及点击遮罩关闭行为 |
+| `size` | `300px × 400px` | 窗口尺寸 |
+| `teleport` | `'body'` | 挂载目标，支持选择器或 HTMLElement |
+| `uniqueGroup` | — | 同组仅允许一个 Layer |
+| `closeOnEsc` | `true` | 是否允许 `Esc` 请求关闭 |
+| `closeOnOk` | `false` | 默认确认按钮是否自动关闭 |
+
+`content` 的字符串默认按 HTML 渲染，仅可传可信内容。用户输入请使用 `textContent` 或 `contentType: 'text'`。
+
+### 确认、取消与自定义按钮
+
+默认 Footer 点击确认/取消只发送事件，**不会直接关闭 Layer**。内容组件校验、保存成功后，必须显式调用 `close()`：
+
+```vue
+<!-- UserForm.vue -->
+<script setup lang="ts">
+import { useLayerEvent } from 'vue-lite-layer'
+
+const { onOk, onCancel, resolveOk, close } = useLayerEvent()
+
+onOk(async () => {
+  const data = await saveUserForm()
+  resolveOk(data) // 触发 openLayer 的 onOk
+  close()         // 只有这里才关闭 Layer
+})
+
+onCancel(() => {
+  // 可在此提示未保存内容；确认后再 close()
+  close()
+})
+</script>
+```
+
+如需任意数量的业务按钮，传入自定义 Footer 组件并使用 `emitCommand()`：
+
+```vue
+<!-- UserFooter.vue -->
+<script setup lang="ts">
+import { useLayerEvent } from 'vue-lite-layer'
+
+const { emitCommand, close } = useLayerEvent()
+
+const saveDraft = () => emitCommand('save-draft') // 保持打开
+const submit = async () => {
+  await submitForm()
+  close() // 提交成功才关闭
+}
+</script>
+
+<template>
+  <button @click="saveDraft">保存草稿</button>
+  <button @click="submit">提交</button>
+</template>
+```
+
+调用端用 `onCommand(command, data)` 接收自定义命令。简单确认框才建议使用 `closeOnOk: true`。
+
+### 实例控制与关闭结果
+
+```ts
+const instance = openLayer({ title: '编辑用户', content: UserForm })
+
+instance?.update({ title: '编辑用户（未保存）' })
+instance?.maximize()
+
+const result = await instance?.closed
+// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
+```
+
+所有关闭入口（标题栏、遮罩、Esc、Footer、`instance.close()`）都会经过 `beforeClose`：
+
+```ts
+openLayer({
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('确定放弃修改吗？')
+})
+```
+
+### 可访问性与异步内容
+
+Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复。
+
+异步组件支持加载、超时、失败重试：
+
+```ts
+import { defineAsyncComponent } from 'vue'
+
+const AsyncEditor = defineAsyncComponent(() => import('./Editor.vue'))
+
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: '正在加载编辑器…',
+    errorText: '编辑器加载失败',
+    retryText: '重新加载',
+    timeout: 10_000,
+    maxRetries: 3,
+    retryDelay: 500
   }
 })
 ```
@@ -287,6 +401,8 @@ openLayer({
     loadingText: 'Loading editor…',
     errorText: 'Editor failed to load',
     retryText: 'Retry',
+    timeout: 10_000,
+    maxRetries: 3,
     onError: console.error
   }
 })
@@ -300,6 +416,114 @@ export default defineNuxtConfig({
   modules: ['vue-lite-layer/nuxt'],
   vueLiteLayer: {
     // Global config (optional)
+  }
+})
+```
+
+### Essential Configuration
+
+These are the options most NPM users need. See the [full API reference](./docs/en/api/config.md) for all types and options.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `title` | `''` | Window title |
+| `content` / `textContent` | — | Vue component / trusted HTML / safe text |
+| `props` | `null` | Props passed to the content component |
+| `footer` | `true` | `true` default footer, `false` hidden, or a custom Footer component |
+| `shade` / `shadeClose` | `true` / `true` | Overlay and click-to-close behavior |
+| `size` | `300px × 400px` | Window dimensions |
+| `teleport` | `'body'` | Mount target: selector or HTMLElement |
+| `uniqueGroup` | — | Limits a group to one open Layer |
+| `closeOnEsc` | `true` | Whether Escape requests closing |
+| `closeOnOk` | `false` | Whether the default OK button closes automatically |
+
+String `content` is rendered as HTML and must be trusted. Use `textContent` or `contentType: 'text'` for user input.
+
+### OK, Cancel, and Custom Buttons
+
+The default footer only emits OK/Cancel events; it **does not close the Layer directly**. Content must call `close()` after validation or saving succeeds:
+
+```vue
+<!-- UserForm.vue -->
+<script setup lang="ts">
+import { useLayerEvent } from 'vue-lite-layer'
+
+const { onOk, onCancel, resolveOk, close } = useLayerEvent()
+
+onOk(async () => {
+  const data = await saveUserForm()
+  resolveOk(data)
+  close() // Explicitly close only after success
+})
+
+onCancel(() => close())
+</script>
+```
+
+For any number of business-specific buttons, supply a custom Footer component and use `emitCommand()`:
+
+```vue
+<!-- UserFooter.vue -->
+<script setup lang="ts">
+import { useLayerEvent } from 'vue-lite-layer'
+
+const { emitCommand, close } = useLayerEvent()
+const saveDraft = () => emitCommand('save-draft') // Keep the Layer open
+const submit = async () => {
+  await submitForm()
+  close()
+}
+</script>
+
+<template>
+  <button @click="saveDraft">Save draft</button>
+  <button @click="submit">Submit</button>
+</template>
+```
+
+Receive custom commands with `onCommand(command, data)`. Use `closeOnOk: true` only for simple confirmations.
+
+### Instance Control and Close Results
+
+```ts
+const instance = openLayer({ title: 'Edit user', content: UserForm })
+
+instance?.update({ title: 'Edit user (unsaved)' })
+instance?.maximize()
+
+const result = await instance?.closed
+// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
+```
+
+Every close path (header, shade, Escape, footer, `instance.close()`) passes through `beforeClose`:
+
+```ts
+openLayer({
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('Discard unsaved changes?')
+})
+```
+
+### Accessibility and Async Content
+
+Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers.
+
+Async components support loading, timeout, failure, and retry:
+
+```ts
+import { defineAsyncComponent } from 'vue'
+
+const AsyncEditor = defineAsyncComponent(() => import('./Editor.vue'))
+
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: 'Loading editor…',
+    errorText: 'Editor failed to load',
+    retryText: 'Retry',
+    timeout: 10_000,
+    maxRetries: 3,
+    retryDelay: 500
   }
 })
 ```

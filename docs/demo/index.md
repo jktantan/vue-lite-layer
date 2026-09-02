@@ -10,6 +10,8 @@ import ShadeDemo from '../components/ShadeDemo.vue'
 import FooterDemo from '../components/FooterDemo.vue'
 import EventDemo from '../components/EventDemo.vue'
 import LoadingDemo from '../components/LoadingDemo.vue'
+import AsyncContentDemo from '../components/AsyncContentDemo.vue'
+import LifecycleDemo from '../components/LifecycleDemo.vue'
 import MultiLayerDemo from '../components/MultiLayerDemo.vue'
 import InstanceDemo from '../components/InstanceDemo.vue'
 </script>
@@ -137,8 +139,7 @@ const handleSave = () => {
 }
 
 const handleSaveDraft = () => {
-  emitCommand('draft')  // 发送自定义命令
-  close()
+  emitCommand('draft')  // 发送自定义命令，Layer 保持打开
 }
 
 const handleCancel = () => {
@@ -326,6 +327,18 @@ instance.value?.bringToTop() // 置顶
 instance.value?.close()      // 关闭
 ```
 :::
+
+## 关闭拦截、生命周期与动态更新
+
+此演示会在打开后通过 `instance.update()` 更新标题；关闭时会经过 `beforeClose` 确认，并在页面中展示 `closed` Promise 的最终结果。也可以用 `Esc`、遮罩或标题栏关闭按钮验证不同关闭入口。
+
+<LifecycleDemo />
+
+## 异步内容与重试
+
+此演示首次加载会失败。Layer 会展示失败状态和重试按钮；点击重试后异步组件成功渲染。
+
+<AsyncContentDemo />
 
 ## 多弹层管理
 

@@ -31,16 +31,14 @@ Vue Lite Layer 提供两个核心 Composable 函数。
 ```vue
 <script setup>
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 
 // 打开弹层
 const instance = openLayer({
   title: '弹层标题',
   textContent: '内容文本',
-}, appContext)
+})
 
 // 关闭指定弹层
 closeLayer(instance!)
@@ -166,7 +164,7 @@ openLayer({
     console.log('表单数据:', message)
     // { name: 'xxx', email: 'xxx@example.com' }
   }
-}, appContext)
+})
 ```
 
 ### Loading 状态
@@ -237,5 +235,5 @@ openLayer({
         break
     }
   }
-}, appContext)
+})
 ```

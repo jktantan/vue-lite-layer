@@ -49,7 +49,7 @@ interface LayerInstance {
 关闭弹层。触发弹层的离场动画，动画完成后自动销毁弹层实例并清理 DOM。
 
 ```typescript
-const instance = openLayer({ title: '弹层' }, appContext)
+const instance = openLayer({ title: '弹层' })
 
 // 3 秒后自动关闭
 setTimeout(() => {
@@ -104,7 +104,7 @@ instance?.update({
 等待离场动画结束后获得关闭结果，可用于 Promise 风格的确认流程：
 
 ```ts
-const instance = openLayer({ title: '确认操作', closeOnOk: true }, appContext)
+const instance = openLayer({ title: '确认操作', closeOnOk: true })
 const result = await instance?.closed
 
 if (result?.action === 'ok') {
@@ -120,10 +120,8 @@ if (result?.action === 'ok') {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 import MyContent from './MyContent.vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 // 保存弹层实例引用
@@ -134,7 +132,7 @@ const handleOpen = () => {
     title: '可控弹层',
     content: MyContent,
     size: { width: '600px', height: '400px' },
-  }, appContext)
+  })
 }
 
 const handleMaximize = () => {
@@ -169,14 +167,14 @@ const instance1 = openLayer({
   title: '设置',
   content: SettingsPanel,
   uniqueGroup: 'settings',
-}, appContext)
+})
 
 // 第二次调用：返回 null，不会重复打开
 const instance2 = openLayer({
   title: '设置',
   content: SettingsPanel,
   uniqueGroup: 'settings',
-}, appContext)
+})
 
 console.log(instance2) // null
 ```

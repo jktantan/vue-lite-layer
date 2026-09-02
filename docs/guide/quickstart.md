@@ -36,9 +36,7 @@ app.use(VueLiteLayer, {
 ```vue
 <script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 const handleOpen = () => {
@@ -46,7 +44,7 @@ const handleOpen = () => {
     title: '你好，世界',
     textContent: '这是一个简单的弹层内容。',
     size: { width: '400px', height: '300px' },
-  }, appContext)
+  })
 }
 </script>
 
@@ -90,10 +88,8 @@ const handleSubmit = () => {
 ```vue
 <script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 import MyForm from './MyForm.vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 const handleOpen = () => {
@@ -105,7 +101,7 @@ const handleOpen = () => {
     onOk: (message) => {
       console.log('用户提交了:', message)
     }
-  }, appContext)
+  })
 }
 </script>
 ```
@@ -118,7 +114,7 @@ const handleOpen = () => {
 const instance = openLayer({
   title: '可控弹层',
   content: MyComponent,
-}, appContext)
+})
 
 // 手动关闭
 instance?.close()
@@ -139,15 +135,22 @@ instance?.restore()
 const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 
 // 关闭指定弹层
-const instance = openLayer({ title: '弹层' }, appContext)
+const instance = openLayer({ title: '弹层' })
 closeLayer(instance!)
 
 // 关闭所有弹层
 closeAllLayer()
 ```
 
+## 上下文与关闭语义
+
+在组件的 `setup()` 中调用 `useLiteLayer().openLayer()` 时，Layer 会自动继承当前组件树的应用上下文和 `provide`。这包括组件级的 `<ElConfigProvider>` 语言配置，因此通常不需要再传入 `appContext`。只有组件外直接调用服务时，才传入应用的 `appContext`。
+
+默认 Footer 的确认和取消按钮只是向内容组件发送事件，不会替业务直接关闭窗口。内容组件应在校验或请求成功后调用 `resolveOk()` / `resolveCancel()`，并在确实允许关闭时调用 `close()`。简单确认框可设置 `closeOnOk: true`。自定义 Footer 的命令同样只会发送 `emitCommand()`，是否关闭由 Footer 或内容组件显式决定。
+
 ## 下一步
 
 - [配置项参考](../api/config) — 了解所有可用配置
 - [Composables API](../api/composables) — `useLiteLayer` 和 `useLayerEvent` 的完整 API
+- [关闭、生命周期与异步内容](../advanced/lifecycle) — 处理关闭守卫、结果与异步组件
 - [在线演示](../demo/) — 查看交互式示例

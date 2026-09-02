@@ -13,7 +13,6 @@ const handleSave = () => {
 
 const handleSaveDraft = () => {
   emitCommand('draft')
-  close()
 }
 
 const handleCancel = () => {

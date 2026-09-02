@@ -31,16 +31,14 @@ Open a layer and return the layer instance object.
 ```vue
 <script setup>
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 
 // Open a layer
 const instance = openLayer({
   title: 'Layer Title',
   textContent: 'Content text',
-}, appContext)
+})
 
 // Close a specific layer
 closeLayer(instance!)
@@ -166,7 +164,7 @@ openLayer({
     console.log('Form data:', message)
     // { name: 'xxx', email: 'xxx@example.com' }
   }
-}, appContext)
+})
 ```
 
 ### Loading State
@@ -237,5 +235,5 @@ openLayer({
         break
     }
   }
-}, appContext)
+})
 ```

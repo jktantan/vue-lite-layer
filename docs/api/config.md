@@ -79,10 +79,15 @@ openLayer({
     loadingText: '正在加载编辑器…',
     errorText: '编辑器加载失败',
     retryText: '重新加载',
+    timeout: 10_000,
+    maxRetries: 3,
+    retryDelay: 500,
     onError: (error) => reportError(error)
   }
 }, appContext)
 ```
+
+`timeout` 为加载超时毫秒数；省略时不超时。`maxRetries` 限制手动重试次数，省略时不限；`retryDelay` 可避免立即重试。`onTimeout` 和 `onRetry(retryCount)` 可分别记录超时与重试。关闭 Layer 会清理本库创建的超时和重试定时器；异步组件 loader 本身若需要中止，应由业务请求层自行使用 `AbortController`。
 
 ## footer 详解
 
@@ -250,6 +255,10 @@ type LayerCallback = (commandOrMessage?: unknown, message?: unknown) => void
   location: 'CC',
   max: true,
   close: true,
+  closeOnOk: false,
+  closeOnEsc: true,
+  trapFocus: true,
+  restoreFocus: true,
   i18n: { locale: 'zh-CN' },
   banner: true
 }

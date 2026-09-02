@@ -72,10 +72,15 @@ openLayer({
     loadingText: 'Loading editor…',
     errorText: 'Editor failed to load',
     retryText: 'Retry',
+    timeout: 10_000,
+    maxRetries: 3,
+    retryDelay: 500,
     onError: reportError
   }
 }, appContext)
 ```
+
+`timeout` is the loading timeout in milliseconds; omit it to disable timeout. `maxRetries` limits manual retries and `retryDelay` delays a retry. Use `onTimeout` and `onRetry(retryCount)` for observability. Closing a Layer clears library-owned timeout/retry timers; aborting the async loader itself remains the responsibility of the request layer, for example with `AbortController`.
 
 ## Footer Details
 
@@ -239,6 +244,10 @@ Configuration merge priority (from highest to lowest):
   location: 'CC',
   max: true,
   close: true,
+  closeOnOk: false,
+  closeOnEsc: true,
+  trapFocus: true,
+  restoreFocus: true,
   i18n: { locale: 'zh-CN' },
   banner: true
 }

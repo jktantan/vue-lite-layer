@@ -70,6 +70,7 @@ export default defineConfig({
             text: '进阶',
             items: [
               { text: '国际化', link: '/advanced/i18n' },
+              { text: '关闭、生命周期与异步内容', link: '/advanced/lifecycle' },
               { text: 'Teleport 挂载', link: '/advanced/teleport' }
             ]
           }
@@ -143,6 +144,7 @@ export default defineConfig({
             text: 'Advanced',
             items: [
               { text: 'Internationalization', link: '/en/advanced/i18n' },
+              { text: 'Close, Lifecycle, and Async Content', link: '/en/advanced/lifecycle' },
               { text: 'Teleport Mounting', link: '/en/advanced/teleport' }
             ]
           }

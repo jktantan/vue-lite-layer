@@ -10,6 +10,8 @@ import ShadeDemo from '../../components/ShadeDemo.vue'
 import FooterDemo from '../../components/FooterDemo.vue'
 import EventDemo from '../../components/EventDemo.vue'
 import LoadingDemo from '../../components/LoadingDemo.vue'
+import AsyncContentDemo from '../../components/AsyncContentDemo.vue'
+import LifecycleDemo from '../../components/LifecycleDemo.vue'
 import MultiLayerDemo from '../../components/MultiLayerDemo.vue'
 import InstanceDemo from '../../components/InstanceDemo.vue'
 </script>
@@ -137,8 +139,7 @@ const handleSave = () => {
 }
 
 const handleSaveDraft = () => {
-  emitCommand('draft')  // Send custom command
-  close()
+  emitCommand('draft')  // Send custom command; keep the Layer open
 }
 
 const handleCancel = () => {
@@ -326,6 +327,18 @@ instance.value?.bringToTop() // Bring to top
 instance.value?.close()      // Close
 ```
 :::
+
+## Close Guard, Lifecycle, and Dynamic Updates
+
+This demo updates its title through `instance.update()` after opening, prompts through `beforeClose`, and displays the final `closed` Promise result. Try header close, shade click, or Escape to validate the close paths.
+
+<LifecycleDemo />
+
+## Async Content and Retry
+
+This demo intentionally fails its first load. The Layer displays a failure state and retry button; retrying renders the async component successfully.
+
+<AsyncContentDemo />
 
 ## Multi-layer Management
 

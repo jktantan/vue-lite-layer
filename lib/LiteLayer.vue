@@ -136,9 +136,12 @@ const leaveAnim = ref(false)
 const isMaximized = ref(false)
 const isResizing = ref(false)
 const titleId = `lite-layer-title-${props.id}`
+const ENTER_ANIMATION_FALLBACK_MS = 220
 const LEAVE_ANIMATION_FALLBACK_MS = 220
+let enterFallbackTimer: ReturnType<typeof setTimeout> | null = null
 let closeFallbackTimer: ReturnType<typeof setTimeout> | null = null
 let hasUnmounted = false
+let hasOpened = false
 let closePending = false
 let closeContext: LayerCloseContext = { reason: 'programmatic' }
 let previouslyFocused: HTMLElement | null = null
@@ -184,6 +187,17 @@ const beginClose = () => {
   closeFallbackTimer = setTimeout(finalizeClose, LEAVE_ANIMATION_FALLBACK_MS)
 }
 
+const finalizeOpen = (): void => {
+  if (hasOpened || hasUnmounted || leaveAnim.value) return
+  hasOpened = true
+  if (enterFallbackTimer) {
+    clearTimeout(enterFallbackTimer)
+    enterFallbackTimer = null
+  }
+  enterAnim.value = false
+  props.onOpened?.()
+}
+
 const handleCloseRequest = async (context: LayerCloseContext): Promise<void> => {
   if (leaveAnim.value || hasUnmounted || closePending) return
   closePending = true
@@ -215,9 +229,7 @@ const handleAnimationEnd = (e: AnimationEvent) => {
   if (leaveAnim.value) {
     finalizeClose()
   } else if (enterAnim.value) {
-    // 入场动画完毕，移除 class 释放 CSS 引擎对 animation 的追踪 / Remove class after enter animation to release CSS engine tracking
-    enterAnim.value = false
-    props.onOpened?.()
+    finalizeOpen()
   }
 }
 
@@ -377,6 +389,7 @@ onMounted(() => {
     requestAnimationFrame(() => {
       initialHide.value = false
       enterAnim.value = true
+      enterFallbackTimer = setTimeout(finalizeOpen, ENTER_ANIMATION_FALLBACK_MS)
     })
   })
 
@@ -394,6 +407,10 @@ onMounted(() => {
 watch(() => props.shade, syncScrollLock)
 
 onUnmounted(() => {
+  if (enterFallbackTimer) {
+    clearTimeout(enterFallbackTimer)
+    enterFallbackTimer = null
+  }
   if (closeFallbackTimer) {
     clearTimeout(closeFallbackTimer)
     closeFallbackTimer = null

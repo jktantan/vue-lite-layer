@@ -49,7 +49,7 @@ interface LayerInstance {
 Close the layer. Triggers the leave animation; after the animation completes, the layer instance is automatically destroyed and DOM is cleaned up.
 
 ```typescript
-const instance = openLayer({ title: 'Layer' }, appContext)
+const instance = openLayer({ title: 'Layer' })
 
 // Auto-close after 3 seconds
 setTimeout(() => {
@@ -100,7 +100,7 @@ instance?.update({ title: 'Edit user (unsaved)', size: { width: '720px', height:
 Await the completed close result for Promise-style confirmation flows:
 
 ```ts
-const instance = openLayer({ title: 'Confirm', closeOnOk: true }, appContext)
+const instance = openLayer({ title: 'Confirm', closeOnOk: true })
 const result = await instance?.closed
 if (result?.action === 'ok') {
   // confirmed
@@ -115,10 +115,8 @@ if (result?.action === 'ok') {
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 import MyContent from './MyContent.vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 // Save layer instance reference
@@ -129,7 +127,7 @@ const handleOpen = () => {
     title: 'Controllable Layer',
     content: MyContent,
     size: { width: '600px', height: '400px' },
-  }, appContext)
+  })
 }
 
 const handleMaximize = () => {
@@ -164,14 +162,14 @@ const instance1 = openLayer({
   title: 'Settings',
   content: SettingsPanel,
   uniqueGroup: 'settings',
-}, appContext)
+})
 
 // Second call: returns null, won't open a duplicate
 const instance2 = openLayer({
   title: 'Settings',
   content: SettingsPanel,
   uniqueGroup: 'settings',
-}, appContext)
+})
 
 console.log(instance2) // null
 ```

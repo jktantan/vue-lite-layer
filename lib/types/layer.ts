@@ -80,7 +80,15 @@ export interface AsyncContentConfig {
   loadingText?: string
   errorText?: string
   retryText?: string
+  /** Maximum loading duration in milliseconds; omit to disable timeout */
+  timeout?: number
+  /** Maximum manual retries; omit for unlimited retries */
+  maxRetries?: number
+  /** Delay before remounting async content after a retry click, in milliseconds */
+  retryDelay?: number
   onError?: (error: unknown) => void
+  onTimeout?: () => void
+  onRetry?: (retryCount: number) => void
 }
 
 /**

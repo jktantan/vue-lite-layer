@@ -36,9 +36,7 @@ Use the `useLiteLayer` composable in any component to open a layer:
 ```vue
 <script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 const handleOpen = () => {
@@ -46,7 +44,7 @@ const handleOpen = () => {
     title: 'Hello World',
     textContent: 'This is a simple layer content.',
     size: { width: '400px', height: '300px' },
-  }, appContext)
+  })
 }
 </script>
 
@@ -90,10 +88,8 @@ Open the layer from the caller:
 ```vue
 <script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 import MyForm from './MyForm.vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 const handleOpen = () => {
@@ -105,7 +101,7 @@ const handleOpen = () => {
     onOk: (message) => {
       console.log('User submitted:', message)
     }
-  }, appContext)
+  })
 }
 </script>
 ```
@@ -118,7 +114,7 @@ const handleOpen = () => {
 const instance = openLayer({
   title: 'Controllable Layer',
   content: MyComponent,
-}, appContext)
+})
 
 // Close manually
 instance?.close()
@@ -139,15 +135,22 @@ instance?.restore()
 const { openLayer, closeLayer, closeAllLayer } = useLiteLayer()
 
 // Close a specific layer
-const instance = openLayer({ title: 'Layer' }, appContext)
+const instance = openLayer({ title: 'Layer' })
 closeLayer(instance!)
 
 // Close all layers
 closeAllLayer()
 ```
 
+## Context and Close Semantics
+
+When `useLiteLayer().openLayer()` is called from a component's `setup()`, the Layer automatically inherits the current component tree's application context and `provide` values. This includes component-scoped `<ElConfigProvider>` locales, so `appContext` is normally unnecessary. Pass it only when calling the service outside a component.
+
+The default footer's OK and Cancel buttons only send events to the content component; they do not decide business completion or close the Layer. After validation or a request succeeds, the content component should call `resolveOk()` / `resolveCancel()` and call `close()` only when closing is allowed. For a simple confirmation dialog, set `closeOnOk: true`. A custom footer's `emitCommand()` also only emits a command; the footer or content explicitly decides whether to close.
+
 ## Next Steps
 
 - [Configuration Reference](../api/config) — All available options
 - [Composables API](../api/composables) — Full API for `useLiteLayer` and `useLayerEvent`
+- [Close, Lifecycle, and Async Content](../advanced/lifecycle) — Close guards, results, and async components
 - [Live Demo](../demo/) — Interactive examples
