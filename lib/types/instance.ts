@@ -1,3 +1,5 @@
+import type { LayerCloseResult, LayerConfig } from './layer'
+
 /**
  * 弹层实例对外暴露的接口
  * Layer instance exposed interface
@@ -24,4 +26,8 @@ export interface LayerInstance {
   maximize: () => void
   /** 还原弹层 / Restore layer */
   restore: () => void
+  /** 动态更新可变配置；id、uniqueGroup 和 teleport 不能在打开后修改 / Update mutable options */
+  update: (options: Partial<Omit<LayerConfig, 'id' | 'uniqueGroup' | 'teleport'>>) => void
+  /** 弹层完成关闭时 resolve，可用于 await 获取关闭结果 / Resolves when the layer has closed */
+  closed: Promise<LayerCloseResult>
 }

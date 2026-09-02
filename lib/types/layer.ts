@@ -61,6 +61,28 @@ export enum PositionPreset {
 
 export type LayerContentType = 'html' | 'text'
 
+export type LayerCloseReason = 'programmatic' | 'header' | 'shade' | 'escape' | 'cancel' | 'ok'
+
+export interface LayerCloseContext {
+  reason: LayerCloseReason
+}
+
+export interface LayerCloseResult extends LayerCloseContext {
+  action: 'close' | 'ok' | 'cancel'
+  data?: unknown
+}
+
+export type LayerBeforeClose = (context: LayerCloseContext) => boolean | void | Promise<boolean | void>
+export type LayerLifecycleCallback = (context?: LayerCloseContext) => void
+
+/** 异步内容的加载/失败展示配置 / Async content loading and failure presentation */
+export interface AsyncContentConfig {
+  loadingText?: string
+  errorText?: string
+  retryText?: string
+  onError?: (error: unknown) => void
+}
+
 /**
  * 全局配置（通过 `app.use(VueLiteLayer, globalConfig)` 传入）
  * Global configuration (passed via `app.use(VueLiteLayer, globalConfig)`)
@@ -89,10 +111,20 @@ export interface LayerGlobalConfig {
   max?: boolean
   /** 是否显示关闭按钮 / Whether to show close button */
   close?: boolean
+  /** 点击确认后是否默认关闭 / Whether Confirm closes by default */
+  closeOnOk?: boolean
+  /** 按 Escape 是否请求关闭 / Whether Escape requests closing */
+  closeOnEsc?: boolean
+  /** 是否将 Tab 焦点限制在弹层内 / Whether to trap Tab focus in the layer */
+  trapFocus?: boolean
+  /** 关闭后是否恢复打开前的焦点 / Whether to restore focus after closing */
+  restoreFocus?: boolean
   /** 是否输出版本 banner；默认 true / Whether to print version banner; defaults to true */
   banner?: boolean
   /** 国际化配置 / Internationalization configuration */
   i18n?: { locale?: string; messages?: LocaleMessages }
+  /** 异步内容加载及失败状态配置 / Async content state configuration */
+  asyncContent?: AsyncContentConfig
 }
 
 /**
@@ -123,4 +155,11 @@ export interface LayerConfig extends LayerGlobalConfig {
   onOk?: LayerCallback | null
   /** 自定义命令回调 / Custom command callback */
   onCommand?: LayerCallback | null
+  /** 关闭前拦截器；返回 false 可阻止关闭 / Close guard */
+  beforeClose?: LayerBeforeClose | null
+  /** 生命周期回调 / Lifecycle callbacks */
+  onOpen?: LayerLifecycleCallback | null
+  onOpened?: LayerLifecycleCallback | null
+  onClose?: LayerLifecycleCallback | null
+  onClosed?: LayerLifecycleCallback | null
 }

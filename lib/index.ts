@@ -1,6 +1,6 @@
 import mitt from 'mitt'
 import { nanoid } from 'nanoid'
-import { type App, createApp, type Plugin } from 'vue'
+import { type App, createApp, defineComponent, h, type Plugin, shallowReactive } from 'vue'
 import type { AppContext } from 'vue'
 import { defu } from 'defu'
 import i18n from '@lib/i18n'
@@ -9,7 +9,7 @@ import { normalizeTeleportTarget } from '@lib/core/teleport-target'
 import printVersion from '@lib/core/banner'
 import LiteLayer from '@lib/LiteLayer.vue'
 import defaultConfig from '@lib/types/defaults'
-import type { LayerConfig, LayerGlobalConfig } from '@lib/types/layer'
+import type { LayerCloseResult, LayerConfig, LayerGlobalConfig } from '@lib/types/layer'
 import type { LayerEvents } from '@lib/core/layer-events'
 import { createLayerEmitterPlugin } from '@lib/core/layer-emitter'
 import { LayerServiceKey, type LayerService } from '@lib/core/layer-service'
@@ -101,12 +101,21 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
           ? normalizedTeleport.target
           : normalizedTeleport.key
 
-      // 创建弹层 Vue 应用实例 / Create layer Vue app instance
-      const layerApp = createApp(LiteLayer, {
+      // Keep runtime options in a shallow reactive parent. LiteLayer continues
+      // to receive normal props, while instance.update() follows Vue's public
+      // parent-to-child update path instead of mutating private instance.props.
+      const runtimeOptions = shallowReactive({
         ...currentOptions,
         teleport: normalizedTeleport.target,
         teleportKey: normalizedTeleport.key
       })
+      const LayerRoot = defineComponent({
+        name: 'VueLiteLayerRoot',
+        setup: () => () => h(LiteLayer, runtimeOptions)
+      })
+
+      // 创建弹层 Vue 应用实例 / Create layer Vue app instance
+      const layerApp = createApp(LayerRoot)
 
       // 共享宿主应用的 appContext（全局组件、指令、provides 等）
       // Share host app's appContext (global components, directives, provides, etc.)
@@ -135,13 +144,33 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
       layerApp.provide('layerParentTeleport', normalizedTeleport.target)
 
       // 构建对外暴露的弹层实例 / Build exposed layer instance
+      let resolveClosed!: (result: LayerCloseResult) => void
+      const closed = new Promise<LayerCloseResult>((resolve) => {
+        resolveClosed = resolve
+      })
+      let closeResult: LayerCloseResult = { reason: 'programmatic', action: 'close' }
+      emitter.on('ok', (data) => {
+        closeResult = { ...closeResult, action: 'ok', data }
+      })
+      emitter.on('cancel', (data) => {
+        closeResult = { ...closeResult, action: 'cancel', data }
+      })
+      emitter.on('afterOk', (data) => {
+        closeResult = { ...closeResult, action: 'ok', data }
+      })
+      emitter.on('afterCancel', (data) => {
+        closeResult = { ...closeResult, action: 'cancel', data }
+      })
+      emitter.on('closed', (context) => {
+        closeResult = { ...closeResult, reason: context.reason }
+      })
       const instance: LayerInstance = {
         id,
         uniqueGroup: currentOptions.uniqueGroup,
         teleportTarget,
         teleportKey: normalizedTeleport.key,
         close: () => {
-          emitter.emit('close')
+          emitter.emit('requestClose', { reason: 'programmatic' })
           return true
         },
         bringToTop: () => {
@@ -152,7 +181,15 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
         },
         restore: () => {
           emitter.emit('restore')
-        }
+        },
+        update: (nextOptions) => {
+          // Identity and teleport are immutable because manager bookkeeping
+          // depends on them. Ignore them defensively for untyped JS callers.
+          const { id: _id, uniqueGroup: _uniqueGroup, teleport: _teleport, ...mutableOptions } =
+            nextOptions as LayerConfig
+          Object.assign(runtimeOptions, mutableOptions)
+        },
+        closed
       }
 
       // 弹层关闭后卸载应用实例并清理记录 / Unmount app instance and clean up records after layer closes
@@ -163,6 +200,7 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
         try {
           layerApp.unmount()
         } finally {
+          resolveClosed(closeResult)
           layerManager.remove(
             currentOptions.id!,
             currentOptions.uniqueGroup,
@@ -217,6 +255,11 @@ export type {
   LayerArea,
   LayerConfig,
   LayerContentType,
+  LayerCloseContext,
+  LayerCloseReason,
+  LayerCloseResult,
+  LayerBeforeClose,
+  LayerLifecycleCallback,
   LayerGlobalConfig,
   PixelSize,
   Position,

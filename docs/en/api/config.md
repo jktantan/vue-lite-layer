@@ -16,7 +16,12 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport target, CSS selector or DOM element |
 | `max` | `boolean` | `true` | Whether to allow maximize |
 | `close` | `boolean` | `true` | Whether to show the close button |
+| `closeOnOk` | `boolean` | `false` | Whether OK in the default footer closes automatically; keep `false` for async forms |
+| `closeOnEsc` | `boolean` | `true` | Whether `Esc` requests closing the layer |
+| `trapFocus` | `boolean` | `true` | Whether `Tab` focus is kept inside the layer |
+| `restoreFocus` | `boolean` | `true` | Whether to restore focus after the top layer closes |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | Internationalization configuration |
+| `asyncContent` | `AsyncContentConfig` | — | Loading, failure and retry presentation for async content |
 | `banner` | `boolean` | `true` | Whether to print the version banner during plugin installation |
 
 ## LayerConfig
@@ -35,10 +40,42 @@ Per-layer configuration passed via `openLayer(config, appContext)`. Inherits all
 | `onOk` | `LayerCallback \| null` | `null` | Confirm callback, receives data from the content component |
 | `onCancel` | `LayerCallback \| null` | `null` | Cancel callback |
 | `onCommand` | `LayerCallback \| null` | `null` | Custom command callback |
+| `beforeClose` | `(context) => boolean \| Promise<boolean>` | `null` | Close guard; return `false` to keep the layer open |
+| `onOpen` / `onOpened` | `() => void` | `null` | Called on mount / after enter animation |
+| `onClose` / `onClosed` | `(context) => void` | `null` | Called when closing begins / after leave completes |
 
 ::: warning HTML content security
 String `content` is for trusted HTML, and runtime rendering does not sanitize HTML for you. Prefer `textContent` or `contentType: 'text'` for plain text or user input. If you must render rich user content, sanitize it with a trusted sanitizer first.
 ::: 
+
+## Close Control and Accessibility
+
+All close paths (header, shade, `Esc`, footer and instance `close()`) pass through `beforeClose`, including asynchronous guards:
+
+```ts
+openLayer({
+  beforeClose: async ({ reason }) =>
+    reason === 'shade' ? window.confirm('Discard unsaved changes?') : true
+}, appContext)
+```
+
+Layers focus themselves on open, trap `Tab` by default, and restore focus when the active top layer closes. A shaded layer teleported to `body` locks page scroll; nested layers use reference counting and restore page styles after the final close.
+
+## Async Content
+
+`defineAsyncComponent()` content shows a loading state and a retry UI on failure:
+
+```ts
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: 'Loading editor…',
+    errorText: 'Editor failed to load',
+    retryText: 'Retry',
+    onError: reportError
+  }
+}, appContext)
+```
 
 ## Footer Details
 
@@ -47,6 +84,8 @@ The `footer` property controls the layer's bottom button area, supporting three 
 ### Default Buttons (`footer: true`)
 
 Shows the built-in "OK" and "Cancel" buttons. Clicking a button triggers internal `ok` / `cancel` events, which the content component can listen for via `useLayerEvent`'s `onOk` / `onCancel`.
+
+The default footer only emits `ok` / `cancel`; it does not close the Layer directly. Content or a custom footer must call `close()` explicitly. Use `closeOnOk: true` only for simple confirmations.
 
 ```typescript
 openLayer({

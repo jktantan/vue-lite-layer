@@ -77,7 +77,7 @@ export default (providedEmitter?: LayerEmitter) => {
    */
   const onOk = (callback?: LayerCallback): LayerEventDisposer => {
     const handler = (message?: unknown) => {
-      callback ? callback(message) : emitter.emit('close')
+      callback ? callback(message) : emitter.emit('requestClose', { reason: 'programmatic' })
     }
     emitter.on('ok', handler)
     return registerDisposer(() => emitter.off('ok', handler))
@@ -91,7 +91,7 @@ export default (providedEmitter?: LayerEmitter) => {
    */
   const onCancel = (callback?: LayerCallback): LayerEventDisposer => {
     const handler = (message?: unknown) => {
-      callback ? callback(message) : emitter.emit('close')
+      callback ? callback(message) : emitter.emit('requestClose', { reason: 'cancel' })
     }
     emitter.on('cancel', handler)
     return registerDisposer(() => emitter.off('cancel', handler))
@@ -144,7 +144,7 @@ export default (providedEmitter?: LayerEmitter) => {
 
   /** 直接关闭弹层 / Close layer directly */
   const close = (): void => {
-    emitter.emit('close')
+    emitter.emit('requestClose', { reason: 'programmatic' })
   }
 
   return {

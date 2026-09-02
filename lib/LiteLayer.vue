@@ -25,6 +25,7 @@
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
+        tabindex="-1"
         :class="{
           'lite-layer__window--initial': initialHide,
           'lite-layer__window--enter': enterAnim,
@@ -38,6 +39,7 @@
           ...layerSize.windowStyle
         }"
         @mousedown="handleWindowMouseDown"
+        @keydown="handleKeydown"
         @animationend="handleAnimationEnd"
       >
         <layer-header
@@ -52,6 +54,7 @@
           :text-content="textContent"
           :content-type="contentType"
           :props="props.props"
+          :async-content="asyncContent"
         />
         <layer-footer v-if="footer && typeof footer === 'boolean'" />
         <component :is="footer" v-else-if="!!footer" />
@@ -70,6 +73,7 @@ import {
   onMounted,
   onUnmounted,
   nextTick,
+  watch,
   type ComponentPublicInstance
 } from 'vue'
 import useDraggable from './composables/use-draggable'
@@ -78,9 +82,10 @@ import LayerHeader from '@lib/components/LayerHeader.vue'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
-import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
+import { type LayerArea, type LayerCloseContext, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
 import layerManager from './core/layer-manager'
+import { lockBodyScroll, unlockBodyScroll } from './core/scroll-lock'
 
 import { useLayerEmitter } from './core/layer-emitter'
 import type { LayerCommandPayload } from './core/layer-events'
@@ -105,9 +110,15 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
   props: null,
   max: true,
   close: true,
+  closeOnOk: false,
   onCancel: null,
   onOk: null,
   onCommand: null,
+  beforeClose: null,
+  onOpen: null,
+  onOpened: null,
+  onClose: null,
+  onClosed: null,
   i18n: () => ({ locale: 'zh-CN', messages: {} })
 })
 
@@ -128,6 +139,10 @@ const titleId = `lite-layer-title-${props.id}`
 const LEAVE_ANIMATION_FALLBACK_MS = 220
 let closeFallbackTimer: ReturnType<typeof setTimeout> | null = null
 let hasUnmounted = false
+let closePending = false
+let closeContext: LayerCloseContext = { reason: 'programmatic' }
+let previouslyFocused: HTMLElement | null = null
+let hasScrollLock = false
 
 // ──── z-index 管理 / Z-index Management ────
 const isTeleportToBody =
@@ -157,14 +172,40 @@ const finalizeClose = (): void => {
     closeFallbackTimer = null
   }
   visible.value = false
+  props.onClosed?.(closeContext)
+  emitter.emit('closed', closeContext)
   emitter.emit('unmount')
 }
 
-const handleClose = () => {
+const beginClose = () => {
   if (leaveAnim.value || hasUnmounted) return
   leaveAnim.value = true
   enterAnim.value = false
   closeFallbackTimer = setTimeout(finalizeClose, LEAVE_ANIMATION_FALLBACK_MS)
+}
+
+const handleCloseRequest = async (context: LayerCloseContext): Promise<void> => {
+  if (leaveAnim.value || hasUnmounted || closePending) return
+  closePending = true
+  try {
+    const allowed = await props.beforeClose?.(context)
+    if (allowed === false) return
+    closeContext = context
+    props.onClose?.(context)
+    beginClose()
+  } catch (error) {
+    // A rejected guard is treated as a cancelled close. This prevents an
+    // asynchronous confirmation failure from producing an unhandled promise.
+    console.error('[vue-lite-layer] beforeClose rejected', error)
+  } finally {
+    closePending = false
+  }
+}
+
+// Keep the internal `close` emitter event working for integrations built
+// against earlier versions, while routing it through the new close guard.
+const handleLegacyClose = (): void => {
+  void handleCloseRequest({ reason: 'programmatic' })
 }
 
 const handleAnimationEnd = (e: AnimationEvent) => {
@@ -176,12 +217,46 @@ const handleAnimationEnd = (e: AnimationEvent) => {
   } else if (enterAnim.value) {
     // 入场动画完毕，移除 class 释放 CSS 引擎对 animation 的追踪 / Remove class after enter animation to release CSS engine tracking
     enterAnim.value = false
+    props.onOpened?.()
   }
 }
 
 const handleShadeClick = () => {
   if (props.shadeClose && props.shade) {
-    handleClose()
+    void handleCloseRequest({ reason: 'shade' })
+  }
+}
+
+const getFocusableElements = (): HTMLElement[] => {
+  if (!windowRef.value) return []
+  return Array.from(
+    windowRef.value.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => element.getAttribute('aria-hidden') !== 'true')
+}
+
+const handleKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape' && props.closeOnEsc) {
+    event.preventDefault()
+    void handleCloseRequest({ reason: 'escape' })
+    return
+  }
+  if (event.key !== 'Tab' || !props.trapFocus) return
+  const focusable = getFocusableElements()
+  if (focusable.length === 0) {
+    event.preventDefault()
+    windowRef.value?.focus()
+    return
+  }
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
   }
 }
 
@@ -223,6 +298,23 @@ const handleAfterCommand = (eventMessage: LayerCommandPayload): void => {
   props.onCommand?.(eventMessage.command, eventMessage.message)
 }
 
+const syncScrollLock = (): void => {
+  const shouldLock = isTeleportToBody && props.shade
+  if (shouldLock && !hasScrollLock) {
+    lockBodyScroll()
+    hasScrollLock = true
+  } else if (!shouldLock && hasScrollLock) {
+    unlockBodyScroll()
+    hasScrollLock = false
+  }
+}
+
+const handleOk = (): void => {
+  if (props.closeOnOk) {
+    void handleCloseRequest({ reason: 'ok' })
+  }
+}
+
 const handleContainerResize = (entries: ResizeObserverEntry[]) => {
   if (windowRef.value && entries[0]) {
     layerSize.setMaximumSize(entries[0].target as HTMLElement)
@@ -248,7 +340,10 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
 // ──── 生命周期 / Lifecycle ────
 
 onMounted(() => {
+  previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  props.onOpen?.()
   resizeObserver = new ResizeObserver(handleContainerResize)
+  syncScrollLock()
 
   if (!isTeleportToBody) {
     const parent = layerRef.value?.parentElement
@@ -277,6 +372,7 @@ onMounted(() => {
     layerSize.setMaximumSize(layerRef.value)
     layerSize.initPosition(props.location, layerRef.value, windowRef.value)
     bindDrag(headerRef.value?.el, windowRef.value, layerRef.value, layerSize)
+    windowRef.value?.focus()
     // 定位完成后：移除初始隐藏 → 触发入场动画 / After positioning: remove initial hide → trigger enter animation
     requestAnimationFrame(() => {
       initialHide.value = false
@@ -286,12 +382,16 @@ onMounted(() => {
 
   emitter.on('maximum', handleMaximize)
   emitter.on('restore', handleRestore)
-  emitter.on('close', handleClose)
+  emitter.on('requestClose', handleCloseRequest)
+  emitter.on('close', handleLegacyClose)
   emitter.on('top', handleBringToTop)
   emitter.on('afterOk', handleAfterOk)
   emitter.on('afterCancel', handleAfterCancel)
   emitter.on('afterCommand', handleAfterCommand)
+  emitter.on('ok', handleOk)
 })
+
+watch(() => props.shade, syncScrollLock)
 
 onUnmounted(() => {
   if (closeFallbackTimer) {
@@ -301,19 +401,32 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
   unbindDrag()
+  if (hasScrollLock) {
+    unlockBodyScroll()
+    hasScrollLock = false
+  }
+  if (
+    props.restoreFocus &&
+    windowRef.value?.contains(document.activeElement) &&
+    previouslyFocused?.isConnected
+  ) {
+    previouslyFocused.focus()
+  }
 
   emitter.off('maximum', handleMaximize)
   emitter.off('restore', handleRestore)
-  emitter.off('close', handleClose)
+  emitter.off('requestClose', handleCloseRequest)
+  emitter.off('close', handleLegacyClose)
   emitter.off('top', handleBringToTop)
   emitter.off('afterOk', handleAfterOk)
   emitter.off('afterCancel', handleAfterCancel)
   emitter.off('afterCommand', handleAfterCommand)
+  emitter.off('ok', handleOk)
 })
 
 defineExpose({
   id: props.id,
-  close: handleClose,
+  close: () => void handleCloseRequest({ reason: 'programmatic' }),
   bringToTop: handleBringToTop,
   maximize: handleMaximize,
   restore: handleRestore

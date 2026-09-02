@@ -20,12 +20,12 @@ Vue Lite Layer 提供两个核心 Composable 函数。
 
 **参数：**
 - `options` — 弹层配置项，详见 [配置项](./config)
-- `appContext` — 宿主应用上下文，用于共享全局注册的组件、指令等
+- `appContext` — 可选的宿主应用上下文
 
 **返回值：** `LayerInstance | null` — 成功返回弹层实例，失败返回 `null`（SSR 环境或唯一分组冲突时）
 
-::: warning 关于 appContext
-`appContext` 参数用于让弹层内的组件能够访问宿主应用注册的全局组件和插件。如果弹层内容中需要使用全局组件（如 UI 库组件），请务必传入此参数。
+::: tip 关于 appContext
+在组件 `setup()` 中调用 `useLiteLayer().openLayer()` 时，会自动继承当前组件的 app context 和组件级 `provide`（包括祖先 `ElConfigProvider`），通常无需手动传入 `appContext`。仅在组件外直接调用服务时，才需要显式传入。
 :::
 
 ```vue

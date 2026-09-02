@@ -80,7 +80,7 @@ const handleMaximize = () => {
 }
 
 const handleClose = () => {
-  emitter.emit('close')
+  emitter.emit('requestClose', { reason: 'header' })
 }
 
 const handleRestore = () => {

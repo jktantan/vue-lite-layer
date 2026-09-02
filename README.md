@@ -19,6 +19,11 @@
 - **遮罩层配置** — 支持有/无遮罩，点击遮罩关闭或不关闭
 - **自定义 Footer** — 底部按钮区支持默认/隐藏/自定义组件三种模式
 - **Loading 状态** — 弹层内容组件可控制加载遮罩的显示和隐藏
+- **异步内容重试** — `defineAsyncComponent` 加载失败时提供可配置的错误提示与重试入口
+- **关闭控制** — 支持 `beforeClose` 异步拦截、关闭原因和完整生命周期回调
+- **可访问性** — 自动聚焦、Tab 焦点锁定、Esc 关闭和关闭后焦点恢复
+- **实例能力** — 通过 `update()` 动态更新配置，或等待 `closed` Promise 获取关闭结果
+- **滚动锁定** — body 遮罩弹层自动锁定页面滚动，多个弹层安全叠加
 - **事件通信** — Footer → Container → 调用方的完整事件链路
 - **国际化** — 内置中文/英文，支持自定义语言包
 - **Nuxt 支持** — 提供 Nuxt 模块，自动注册插件和 composables
@@ -50,18 +55,18 @@ app.mount('#app')
 ```vue
 <script setup>
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 openLayer({
   title: '你好，世界',
   textContent: '这是一个弹层内容。',
   size: { width: '400px', height: '300px' },
-}, appContext)
+})
 </script>
 ```
+
+在组件中通过 `useLiteLayer()` 调用时，会自动继承当前应用上下文和组件级 `provide`，通常不需要手动传 `appContext`。
 
 ### 使用 Vue 组件作为内容
 
@@ -88,7 +93,38 @@ openLayer({
   onOk: (message) => {
     console.log('表单数据:', message)
   },
-}, appContext)
+})
+```
+
+### 关闭控制与实例结果
+
+所有关闭入口都会经过 `beforeClose`。默认 Footer 只发送确认/取消事件；内容组件完成校验或保存后必须自行调用 `close()`。简单确认框可设置 `closeOnOk: true`。
+
+```ts
+const instance = openLayer({
+  title: '编辑资料',
+  closeOnOk: true,
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('确定放弃未保存修改吗？')
+})
+
+instance?.update({ title: '编辑资料（未保存）' })
+const result = await instance?.closed
+console.log(result?.action, result?.reason)
+```
+
+### 异步内容
+
+```ts
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: '正在加载编辑器…',
+    errorText: '编辑器加载失败',
+    retryText: '重新加载',
+    onError: console.error
+  }
+})
 ```
 
 ### Nuxt 集成
@@ -105,7 +141,7 @@ export default defineNuxtConfig({
 
 ### 文档
 
-完整文档请查看 [在线文档站点](https://github.com/user/vue-lite-layer)。
+完整文档请查看 [docs](./docs) 或 [GitHub 文档目录](https://github.com/jktantan/vue-lite-layer/tree/main/docs)。
 
 ### 第三方 UI 组件（Element Plus）
 
@@ -148,6 +184,11 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Shade Configuration** — Support for shade on/off, click-to-close or not
 - **Custom Footer** — Footer supports default/hidden/custom component modes
 - **Loading State** — Layer content components can control loading overlay visibility
+- **Async Content Retry** — Configurable error state and retry UI for failed `defineAsyncComponent` loads
+- **Close Control** — Async `beforeClose` guard, close reasons, and lifecycle callbacks
+- **Accessibility** — Auto-focus, Tab focus trapping, Escape closing, and focus restoration
+- **Instance Controls** — Update options with `update()` or await `closed` for the final result
+- **Scroll Lock** — Shaded body layers safely lock page scrolling, including stacked layers
 - **Event Communication** — Complete event chain from Footer → Container → Caller
 - **i18n** — Built-in Chinese/English, supports custom language packs
 - **Nuxt Support** — Nuxt module for automatic plugin and composable registration
@@ -179,18 +220,18 @@ app.mount('#app')
 ```vue
 <script setup>
 import { useLiteLayer } from 'vue-lite-layer'
-import { getCurrentInstance } from 'vue'
 
-const { appContext } = getCurrentInstance()!
 const { openLayer } = useLiteLayer()
 
 openLayer({
   title: 'Hello World',
   textContent: 'This is a layer content.',
   size: { width: '400px', height: '300px' },
-}, appContext)
+})
 </script>
 ```
+
+When called through `useLiteLayer()` in a component, the current app context and component-scoped provides are inherited automatically. You normally do not need to pass `appContext` manually.
 
 ### Using Vue Components as Content
 
@@ -217,7 +258,38 @@ openLayer({
   onOk: (message) => {
     console.log('Form data:', message)
   },
-}, appContext)
+})
+```
+
+### Close Control and Instance Results
+
+Every close path passes through `beforeClose`. The default footer only emits OK/Cancel events; content must call `close()` after validation or saving. Use `closeOnOk: true` for simple confirmations.
+
+```ts
+const instance = openLayer({
+  title: 'Edit profile',
+  closeOnOk: true,
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('Discard unsaved changes?')
+})
+
+instance?.update({ title: 'Edit profile (unsaved)' })
+const result = await instance?.closed
+console.log(result?.action, result?.reason)
+```
+
+### Async Content
+
+```ts
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: 'Loading editor…',
+    errorText: 'Editor failed to load',
+    retryText: 'Retry',
+    onError: console.error
+  }
+})
 ```
 
 ### Nuxt Integration
@@ -234,7 +306,7 @@ export default defineNuxtConfig({
 
 ### Documentation
 
-See the full documentation at the [online docs site](https://github.com/user/vue-lite-layer).
+See the full documentation in [docs](./docs) or the [GitHub docs directory](https://github.com/jktantan/vue-lite-layer/tree/main/docs).
 
 ### Third-party UI Components (Element Plus)
 

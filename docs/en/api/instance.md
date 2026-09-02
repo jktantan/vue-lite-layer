@@ -29,6 +29,12 @@ interface LayerInstance {
 
   /** Restore the layer size */
   restore: () => void
+
+  /** Update mutable options through normal Vue props */
+  update: (options: Partial<LayerConfig>) => void
+
+  /** Resolves with the close result after the leave animation */
+  closed: Promise<LayerCloseResult>
 }
 ```
 
@@ -80,6 +86,28 @@ Restore the layer from maximized state to its default size and position.
 ```typescript
 instance?.restore()
 ```
+
+### update()
+
+Update mutable options through Vue's normal parent-to-child props path. `id`, `uniqueGroup`, and `teleport` are immutable after opening.
+
+```ts
+instance?.update({ title: 'Edit user (unsaved)', size: { width: '720px', height: '520px' } })
+```
+
+### closed
+
+Await the completed close result for Promise-style confirmation flows:
+
+```ts
+const instance = openLayer({ title: 'Confirm', closeOnOk: true }, appContext)
+const result = await instance?.closed
+if (result?.action === 'ok') {
+  // confirmed
+}
+```
+
+`action` is `close`, `ok`, or `cancel`; `reason` identifies `header`, `shade`, `escape`, `ok`, `cancel`, or `programmatic`.
 
 ## Usage Example
 

@@ -16,7 +16,12 @@
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
 | `max` | `boolean` | `true` | 是否允许最大化 |
 | `close` | `boolean` | `true` | 是否显示关闭按钮 |
+| `closeOnOk` | `boolean` | `false` | 点击默认 Footer 的确认按钮后是否自动关闭；表单异步场景建议保持 `false` |
+| `closeOnEsc` | `boolean` | `true` | 按 `Esc` 是否请求关闭弹层 |
+| `trapFocus` | `boolean` | `true` | 是否将 `Tab` 键焦点限制在弹层内 |
+| `restoreFocus` | `boolean` | `true` | 关闭顶层弹层后是否恢复打开前的焦点 |
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | 国际化配置 |
+| `asyncContent` | `AsyncContentConfig` | — | 异步内容的加载、失败和重试展示配置 |
 | `banner` | `boolean` | `true` | 是否在插件安装时输出版本 banner |
 
 ## LayerConfig
@@ -35,10 +40,49 @@
 | `onOk` | `LayerCallback \| null` | `null` | 确认回调，接收内容组件传回的数据 |
 | `onCancel` | `LayerCallback \| null` | `null` | 取消回调 |
 | `onCommand` | `LayerCallback \| null` | `null` | 自定义命令回调 |
+| `beforeClose` | `(context) => boolean \| Promise<boolean>` | `null` | 关闭前拦截器；返回 `false` 时保持打开 |
+| `onOpen` | `() => void` | `null` | Layer 挂载时调用 |
+| `onOpened` | `() => void` | `null` | 入场动画完成时调用 |
+| `onClose` | `(context) => void` | `null` | 通过关闭校验、开始离场时调用 |
+| `onClosed` | `(context) => void` | `null` | 离场完成、卸载前调用 |
 
 ::: warning HTML 内容安全
 `content` 的字符串模式用于 trusted HTML，运行时不会替你净化 HTML。展示普通文本或用户输入时，请优先使用 `textContent` 或设置 `contentType: 'text'`；确实需要展示富文本用户内容时，必须先使用可信的净化器处理。
 ::: 
+
+## 关闭控制与无障碍
+
+所有关闭入口（标题栏、遮罩、`Esc`、Footer、实例 `close()`）都会经过 `beforeClose`。它支持异步确认：
+
+```ts
+openLayer({
+  title: '编辑资料',
+  beforeClose: async ({ reason }) => {
+    if (reason === 'shade' || reason === 'escape') {
+      return window.confirm('未保存的修改将丢失，仍要关闭吗？')
+    }
+    return true
+  }
+}, appContext)
+```
+
+默认情况下，弹层会自动聚焦、锁定 `Tab` 焦点，并在关闭当前顶层弹层时恢复原焦点。Teleport 到 `body` 且带遮罩的弹层会锁定页面滚动；多个弹层同时打开时，最后一个关闭才恢复页面样式。
+
+## 异步内容
+
+传入 `defineAsyncComponent()` 后，Layer 会显示加载态；加载失败时提供重试按钮。可通过 `asyncContent` 自定义文案和记录错误：
+
+```ts
+openLayer({
+  content: AsyncEditor,
+  asyncContent: {
+    loadingText: '正在加载编辑器…',
+    errorText: '编辑器加载失败',
+    retryText: '重新加载',
+    onError: (error) => reportError(error)
+  }
+}, appContext)
+```
 
 ## footer 详解
 
@@ -47,6 +91,12 @@
 ### 默认按钮 (`footer: true`)
 
 显示内置的「确认」和「取消」按钮。点击按钮后触发弹层内部的 `ok` / `cancel` 事件，内容组件可通过 `useLayerEvent` 的 `onOk` / `onCancel` 进行监听。
+
+默认 Footer 只发出 `ok` / `cancel` 事件，并不直接关闭 Layer；内容组件或自定义 Footer 必须显式调用 `close()`。确认也可显式设置 `closeOnOk: true`，用于简单确认框：
+
+```ts
+openLayer({ textContent: '确定删除？', closeOnOk: true }, appContext)
+```
 
 ```typescript
 openLayer({

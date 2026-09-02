@@ -21,6 +21,10 @@ const defaultConfig: LayerGlobalConfig = {
   location: PositionPreset.CENTER_CENTER,
   max: true,
   close: true,
+  closeOnOk: false,
+  closeOnEsc: true,
+  trapFocus: true,
+  restoreFocus: true,
   banner: true,
   i18n: { locale: 'zh-CN' }
 }

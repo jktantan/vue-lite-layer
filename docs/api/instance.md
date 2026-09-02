@@ -29,6 +29,12 @@ interface LayerInstance {
 
   /** 还原弹层尺寸 */
   restore: () => void
+
+  /** 更新打开后的可变配置 */
+  update: (options: Partial<LayerConfig>) => void
+
+  /** 离场完成后 resolve 关闭结果 */
+  closed: Promise<LayerCloseResult>
 }
 ```
 
@@ -80,6 +86,33 @@ instance?.maximize()
 ```typescript
 instance?.restore()
 ```
+
+### update()
+
+通过标准 Vue 父子 props 更新链路修改已打开 Layer 的可变配置。`id`、`uniqueGroup` 和 `teleport` 用于实例管理，打开后不会被修改。
+
+```ts
+instance?.update({
+  title: '编辑用户（未保存）',
+  props: { userId: '42', readonly: false },
+  size: { width: '720px', height: '520px' }
+})
+```
+
+### closed
+
+等待离场动画结束后获得关闭结果，可用于 Promise 风格的确认流程：
+
+```ts
+const instance = openLayer({ title: '确认操作', closeOnOk: true }, appContext)
+const result = await instance?.closed
+
+if (result?.action === 'ok') {
+  // 用户确认
+}
+```
+
+`action` 为 `close`、`ok` 或 `cancel`；`reason` 会标记 `header`、`shade`、`escape`、`ok`、`cancel` 或 `programmatic`。
 
 ## 使用示例
 

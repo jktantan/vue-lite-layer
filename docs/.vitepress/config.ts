@@ -1,8 +1,18 @@
 import { defineConfig } from 'vitepress'
 import { fileURLToPath, URL } from 'node:url'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
+
+const sfcTypeResolverFs = {
+  fileExists: existsSync,
+  readFile: (file: string) => readFileSync(file, 'utf-8'),
+  realpath: realpathSync
+}
 
 export default defineConfig({
   ignoreDeadLinks: [/^http:\/\/localhost:5174\/?$/],
+  vue: {
+    script: { fs: sfcTypeResolverFs }
+  },
   vite: {
     css: {
       preprocessorOptions: {

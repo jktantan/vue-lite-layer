@@ -1,4 +1,5 @@
 import type { EventType } from 'mitt'
+import type { LayerCloseContext } from '@lib/types/layer'
 
 export interface LayerCommandPayload {
   command?: unknown
@@ -12,6 +13,8 @@ export type LayerEvents = Record<EventType, unknown> & {
   afterOk: unknown
   afterCancel: unknown
   afterCommand: LayerCommandPayload
+  requestClose: LayerCloseContext
+  closed: LayerCloseContext
   close: void
   top: void
   maximum: void

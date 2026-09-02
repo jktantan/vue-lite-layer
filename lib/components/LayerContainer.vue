@@ -1,5 +1,13 @@
 <template>
-  <suspense>
+  <div v-if="contentError" class="lite-layer__window-container">
+    <div class="lite-layer__window-wrapper lite-layer__content-error" role="alert">
+      <p>{{ asyncContent?.errorText ?? '内容加载失败。' }}</p>
+      <button type="button" class="lite-layer__button primary" @click="retryContent">
+        {{ asyncContent?.retryText ?? '重试' }}
+      </button>
+    </div>
+  </div>
+  <suspense v-else>
     <div class="lite-layer__window-container">
       <div
         ref="wrapperRef"
@@ -14,7 +22,7 @@
         </div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-else-if="content && typeof content === 'string'" v-html="content"></div>
-        <component v-else-if="content" :is="content" v-bind="props" ref="contentRef" />
+        <component v-else-if="content" :is="content" :key="contentKey" v-bind="props" ref="contentRef" />
       </div>
     </div>
     <template #fallback>
@@ -23,16 +31,26 @@
         style="display: flex; align-items: center; justify-content: center"
       >
         <div class="vll-loading-spinner" />
+        <span v-if="asyncContent?.loadingText" style="margin-left: 10px">{{ asyncContent.loadingText }}</span>
       </div>
     </template>
   </suspense>
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onErrorCaptured,
+  onMounted,
+  onUnmounted,
+  ref,
+  useTemplateRef,
+  watch
+} from 'vue'
 import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
-import type { LayerContentType } from '@lib/types/layer'
+import type { AsyncContentConfig, LayerContentType } from '@lib/types/layer'
 import { warnIfUnsafeHtml } from '@lib/core/html-safety'
 
 interface LayerContainerProps {
@@ -40,6 +58,7 @@ interface LayerContainerProps {
   textContent?: string
   contentType?: LayerContentType
   props?: object | null
+  asyncContent?: AsyncContentConfig
 }
 
 const layerProps = withDefaults(defineProps<LayerContainerProps>(), {
@@ -51,6 +70,8 @@ const shadowClass = ref('')
 const wrapperRef = useTemplateRef<HTMLElement>('wrapperRef')
 const elementHostRef = useTemplateRef<HTMLElement>('elementHostRef')
 const contentRef = useTemplateRef('contentRef')
+const contentError = ref<unknown>(null)
+const contentKey = ref(0)
 let scrollFrame = 0
 let mountedElement: HTMLElement | null = null
 let originalParent: ParentNode | null = null
@@ -65,6 +86,19 @@ const isHTMLElementContent = computed(() => {
 const normalizedContentType = computed<LayerContentType>(() => {
   if (layerProps.contentType === 'html' || layerProps.contentType == null) return 'html'
   return 'text'
+})
+
+const retryContent = (): void => {
+  contentError.value = null
+  contentKey.value += 1
+}
+
+onErrorCaptured((error) => {
+  contentError.value = error
+  layerProps.asyncContent?.onError?.(error)
+  // The error is represented by the retry UI; do not also surface it as an
+  // uncaught application error.
+  return false
 })
 
 /**
@@ -166,6 +200,7 @@ let resizeObserver: ResizeObserver | null = null
 watch(
   () => [layerProps.content, layerProps.textContent, normalizedContentType.value] as const,
   async ([content, textContent, contentType]) => {
+    contentError.value = null
     clearHTMLElementContent()
     if (textContent == null && typeof content === 'string' && contentType === 'html') {
       warnIfUnsafeHtml(content)

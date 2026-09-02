@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, ref, defineComponent, h } from 'vue'
+import { computed, defineAsyncComponent, getCurrentInstance, ref, defineComponent, h } from 'vue'
 import useLiteLayer from '../lib/composables/use-lite-layer'
 import useLayerEvent from '../lib/composables/use-layer-event'
 import {
@@ -266,6 +266,36 @@ const testContainerNested = () => {
   )
 }
 
+// ---------- Test 7: Async content failure and retry ----------
+const testAsyncContent = () => {
+  let attempts = 0
+  const AsyncContent = defineAsyncComponent({
+    loader: async () => {
+      attempts += 1
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      if (attempts === 1) throw new Error('Intentional first-load failure')
+      return defineComponent({
+        setup: () => () => h('div', { style: 'padding: 20px' }, '重试成功：异步内容已加载。')
+      })
+    }
+  })
+
+  openLayer(
+    {
+      title: '异步内容失败与重试',
+      content: AsyncContent,
+      size: { width: '440px', height: '240px' },
+      asyncContent: {
+        loadingText: '正在加载异步内容…',
+        errorText: '首次加载被模拟为失败，请点击重试。',
+        retryText: '重新加载',
+        onError: (error) => addLog(`异步内容加载失败：${String(error)}`)
+      }
+    },
+    appContext
+  )
+}
+
 // ---------- Test 7: Element Plus locale inherited from component tree ----------
 const ElementPlusLocaleContent = defineComponent({
   name: 'ElementPlusLocaleContent',
@@ -366,6 +396,7 @@ const ElementPlusLocaleTest = defineComponent({
       <div style="display: flex; flex-wrap: wrap; gap: 10px">
         <button class="test-btn purple" @click="testNested">5. 嵌套弹层（多层级）</button>
         <button class="test-btn teal" @click="testContainerNested">6. 容器内嵌套（teleport 继承）</button>
+        <button class="test-btn orange" @click="testAsyncContent">7. 异步内容失败/重试</button>
         <ElementPlusLocaleTest />
         <button class="test-btn red-outline" @click="closeAllLayer">关闭所有</button>
       </div>

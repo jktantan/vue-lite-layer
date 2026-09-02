@@ -20,12 +20,12 @@ Open a layer and return the layer instance object.
 
 **Parameters:**
 - `options` — Layer configuration, see [Configuration](./config)
-- `appContext` — Host application context, used to share globally registered components, directives, etc.
+- `appContext` — Optional host application context
 
 **Returns:** `LayerInstance | null` — Returns a layer instance on success, `null` on failure (SSR environment or unique group conflict)
 
-::: warning About appContext
-The `appContext` parameter allows components inside the layer to access globally registered components and plugins. If the layer content needs global components (such as UI library components), make sure to pass this parameter.
+::: tip About appContext
+`useLiteLayer().openLayer()` called from component setup automatically inherits the current app context and component-scoped provides, including an ancestor `ElConfigProvider`. In normal component code, `appContext` does not need to be passed manually; provide it only for service calls outside a component.
 :::
 
 ```vue
