@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { getCurrentInstance, ref, defineComponent, h } from 'vue'
+import { computed, getCurrentInstance, ref, defineComponent, h } from 'vue'
 import useLiteLayer from '../lib/composables/use-lite-layer'
 import useLayerEvent from '../lib/composables/use-layer-event'
+import {
+  ElButton,
+  ElConfigProvider,
+  ElDatePicker,
+  ElInput,
+  ElOption,
+  ElPagination,
+  ElSelect
+} from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en'
+import 'element-plus/dist/index.css'
 
 const { appContext } = getCurrentInstance()!
 const { openLayer, closeAllLayer } = useLiteLayer()
+const currentLanguage = ref<'zh-CN' | 'en'>('zh-CN')
+const currentLocale = computed(() => (currentLanguage.value === 'zh-CN' ? zhCn : en))
 
 const log = ref<string[]>([])
 const addLog = (msg: string) => {
@@ -251,14 +265,89 @@ const testContainerNested = () => {
     appContext
   )
 }
+
+// ---------- Test 7: Element Plus locale inherited from component tree ----------
+const ElementPlusLocaleContent = defineComponent({
+  name: 'ElementPlusLocaleContent',
+  setup() {
+    const text = ref('')
+    const selection = ref('')
+    const date = ref('')
+
+    return () =>
+      h('div', { style: 'padding: 16px; display: grid; gap: 12px;' }, [
+        h(
+          'p',
+          { style: 'margin: 0; color: #606266; line-height: 1.6' },
+          '此组件没有包裹 ElConfigProvider，也没有手工指定 Select / DatePicker 的 placeholder。'
+        ),
+        h(ElInput, {
+          modelValue: text.value,
+          'onUpdate:modelValue': (value: string) => (text.value = value)
+        }),
+        h(
+          ElSelect,
+          {
+            modelValue: selection.value,
+            'onUpdate:modelValue': (value: string) => (selection.value = value),
+            style: 'width: 240px'
+          },
+          () => [
+            h(ElOption, { label: 'Option A', value: 'A' }),
+            h(ElOption, { label: 'Option B', value: 'B' })
+          ]
+        ),
+        h(ElDatePicker, {
+          modelValue: date.value,
+          'onUpdate:modelValue': (value: string) => (date.value = value),
+          type: 'date',
+          style: 'width: 240px'
+        }),
+        h(ElPagination, {
+          total: 120,
+          pageSize: 10,
+          currentPage: 1,
+          layout: 'total, prev, pager, next, jumper'
+        }),
+        h(ElButton, { type: 'primary' }, { default: () => 'Element Plus Button' })
+      ])
+  }
+})
+
+// This component is rendered beneath ElConfigProvider. Its useLiteLayer()
+// call verifies that component-scoped provides are passed into a Layer.
+const ElementPlusLocaleTest = defineComponent({
+  name: 'ElementPlusLocaleTest',
+  setup() {
+    const { openLayer: openLocaleLayer } = useLiteLayer()
+    const open = () => {
+      openLocaleLayer({
+        title: 'Element Plus locale inheritance',
+        content: ElementPlusLocaleContent,
+        size: { width: '640px', height: '420px' }
+      })
+    }
+
+    return () =>
+      h('button', { class: 'test-btn indigo', onClick: open }, '7. Element Plus 国际化继承')
+  }
+})
 </script>
 
 <template>
+  <ElConfigProvider :locale="currentLocale">
   <div style="max-width: 900px; margin: 40px auto; font-family: system-ui, sans-serif">
     <h1 style="margin-bottom: 8px">Vue Lite Layer — 功能测试</h1>
     <p style="color: #666; margin-bottom: 24px">
       纯 Vite 测试页面，覆盖动画、嵌套弹层、容器继承等核心功能。
     </p>
+
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px">
+      <span style="font-size: 14px; color: #606266">主系统 Element Plus 语言：</span>
+      <button class="test-btn blue" @click="currentLanguage = 'zh-CN'">中文</button>
+      <button class="test-btn blue" @click="currentLanguage = 'en'">English</button>
+      <span style="font-size: 13px; color: #909399">打开国际化弹窗后，可直接切换语言验证同步效果。</span>
+    </div>
 
     <!-- 基础测试区 -->
     <div style="margin-bottom: 20px">
@@ -277,6 +366,7 @@ const testContainerNested = () => {
       <div style="display: flex; flex-wrap: wrap; gap: 10px">
         <button class="test-btn purple" @click="testNested">5. 嵌套弹层（多层级）</button>
         <button class="test-btn teal" @click="testContainerNested">6. 容器内嵌套（teleport 继承）</button>
+        <ElementPlusLocaleTest />
         <button class="test-btn red-outline" @click="closeAllLayer">关闭所有</button>
       </div>
     </div>
@@ -300,6 +390,7 @@ const testContainerNested = () => {
       <div v-if="!log.length" style="color: #c0c4cc; font-size: 13px">点击上方按钮开始测试...</div>
     </div>
   </div>
+  </ElConfigProvider>
 </template>
 
 <style>
@@ -320,6 +411,7 @@ const testContainerNested = () => {
 .test-btn.gray { background: #909399; }
 .test-btn.purple { background: #7c3aed; }
 .test-btn.teal { background: #0d9488; }
+.test-btn.indigo { background: #4f46e5; }
 .test-btn.red-outline {
   background: #fff;
   color: #f56c6c;

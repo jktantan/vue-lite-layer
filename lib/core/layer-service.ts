@@ -3,7 +3,16 @@ import type { LayerConfig } from '@lib/types/layer'
 import type { LayerInstance } from '@lib/types/instance'
 
 export interface LayerService {
-  open: (options?: LayerConfig, appContext?: AppContext) => LayerInstance | null
+  /**
+   * `sourceProvides` is supplied by useLiteLayer for component-tree scoped
+   * injections (for example Element Plus ElConfigProvider). It is optional so
+   * the public `$layer.open(options, appContext)` API remains unchanged.
+   */
+  open: (
+    options?: LayerConfig,
+    appContext?: AppContext,
+    sourceProvides?: AppContext['provides']
+  ) => LayerInstance | null
   close: (instance: LayerInstance | null) => void
   closeAll: () => void
 }

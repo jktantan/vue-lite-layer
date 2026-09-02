@@ -70,7 +70,10 @@ export default () => {
     }
 
     const effectiveAppContext = appContext ?? instance?.appContext
-    return $layer?.open(finalOptions, effectiveAppContext) ?? null
+    // appContext only contains application-level provides. Keep the caller's
+    // component provides as well, so values supplied by a parent component
+    // (such as ElConfigProvider's locale) are available to layer content.
+    return $layer?.open(finalOptions, effectiveAppContext, instance?.provides) ?? null
   }
 
   /**

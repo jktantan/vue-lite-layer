@@ -107,11 +107,12 @@ export default defineNuxtConfig({
 
 完整文档请查看 [在线文档站点](https://github.com/user/vue-lite-layer)。
 
-### 第三方 UI 组件透传边界（Element Plus 说明）
+### 第三方 UI 组件（Element Plus）
 
-- `openLayer(..., appContext)` 可透传宿主 `provide/inject`、全局组件与全局指令。
-- 对于 Element Plus `DatePicker` 这类依赖较多内部上下文的复杂组件，位于 Layer（独立 app）时不保证完全继承宿主 `ElConfigProvider` 的全部行为。
-- 推荐在 Layer 内容组件内显式包裹 `ElConfigProvider`，并按需同步日期库语言（如 `dayjs.locale(...)`）。
+- 通过 `useLiteLayer().openLayer()` 打开时，Layer 会自动继承调用组件所在树的 `provide`；因此位于祖先 `<ElConfigProvider :locale="...">` 的调用点，Layer 内的 Element Plus 组件会默认使用同一份 locale，并跟随其响应式变化。
+- 无需为 lite-layer 单独传入 Element Plus 的语言配置。
+- 直接调用 `$layer.open()` 时只能继承传入 `appContext` 的应用级 `provide`；若语言配置来自组件级 `ElConfigProvider`，请在该组件树内改用 `useLiteLayer().openLayer()`。
+- 如业务代码单独设置了 Day.js 的全局语言，仍应自行同步 `dayjs.locale(...)`。
 
 ```vue
 <script setup lang="ts">
@@ -235,11 +236,12 @@ export default defineNuxtConfig({
 
 See the full documentation at the [online docs site](https://github.com/user/vue-lite-layer).
 
-### Third-party UI Context Boundary (Element Plus)
+### Third-party UI Components (Element Plus)
 
-- `openLayer(..., appContext)` propagates host `provide/inject`, global components, and global directives.
-- For complex components like Element Plus `DatePicker`, a Layer (separate app instance) may not fully inherit all behaviors from the host `ElConfigProvider`.
-- Recommended: wrap `ElConfigProvider` explicitly inside the Layer content and synchronize date-locale (e.g. `dayjs.locale(...)`) when needed.
+- When opened through `useLiteLayer().openLayer()`, a Layer inherits the caller component tree's `provide` values. Element Plus components therefore use, and react to changes in, an ancestor `<ElConfigProvider :locale="...">` by default.
+- No separate Element Plus locale needs to be configured for lite-layer.
+- Direct `$layer.open()` calls only inherit application-level provides from the supplied `appContext`. For a component-scoped `ElConfigProvider`, call `useLiteLayer().openLayer()` from within that component tree.
+- If application code configures Day.js globally, synchronize `dayjs.locale(...)` separately.
 
 ```vue
 <script setup lang="ts">

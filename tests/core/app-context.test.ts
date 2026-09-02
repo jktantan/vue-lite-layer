@@ -1,6 +1,18 @@
-import { createApp, defineComponent, getCurrentInstance, h, nextTick } from 'vue'
+import {
+  createApp,
+  defineComponent,
+  getCurrentInstance,
+  h,
+  inject,
+  nextTick,
+  provide,
+  ref,
+  watchEffect
+} from 'vue'
 import { describe, expect, test } from 'vitest'
 import VueLiteLayer from '@lib/index'
+import useLiteLayer from '@lib/composables/use-lite-layer'
+import type { LayerInstance } from '@lib/types/instance'
 
 describe('layer app context isolation', () => {
   test('layer-local plugins do not mutate host app globalProperties', async () => {
@@ -42,5 +54,53 @@ describe('layer app context isolation', () => {
     expect(hostApp.config.globalProperties.$t).toBeUndefined()
     instance?.close()
     await new Promise((resolve) => setTimeout(resolve, 250))
+  })
+
+  test('useLiteLayer inherits component-scoped provides and their reactive updates', async () => {
+    const locale = ref('zh-CN')
+    let renderedLocale = ''
+    let layerInstance: LayerInstance | null = null
+
+    const Content = defineComponent({
+      setup() {
+        const injectedLocale = inject<typeof locale>('element-plus-config')!
+        watchEffect(() => {
+          renderedLocale = injectedLocale.value
+        })
+        return () => h('div', renderedLocale)
+      }
+    })
+
+    const Caller = defineComponent({
+      setup() {
+        provide('element-plus-config', locale)
+        const { openLayer } = useLiteLayer()
+        return () =>
+          h('button', {
+            onClick: () => {
+              layerInstance = openLayer({ content: Content, i18n: { locale: 'en' } })
+            }
+          })
+      }
+    })
+
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const hostApp = createApp(Caller)
+    hostApp.use(VueLiteLayer, { banner: false })
+    hostApp.mount(host)
+
+    ;(host.querySelector('button') as HTMLButtonElement).click()
+    await nextTick()
+    expect(renderedLocale).toBe('zh-CN')
+
+    locale.value = 'en'
+    await nextTick()
+    expect(renderedLocale).toBe('en')
+
+    layerInstance?.close()
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    hostApp.unmount()
+    host.remove()
   })
 })

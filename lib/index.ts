@@ -77,7 +77,11 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
      * @param appContext - 宿主应用上下文，用于共享全局组件、指令等 / Host app context for sharing global components, directives, etc.
      * @returns 弹层实例对象；若打开失败（SSR / 唯一分组冲突）返回 null / Layer instance object; returns null if opening fails (SSR / unique group conflict)
      */
-    open: (options?: LayerConfig, appContext?: AppContext): LayerInstance | null => {
+    open: (
+      options?: LayerConfig,
+      appContext?: AppContext,
+      sourceProvides?: AppContext['provides']
+    ): LayerInstance | null => {
       // SSR 环境下不执行 DOM 操作 / Do not perform DOM operations in SSR environment
       if (typeof document === 'undefined') return null
 
@@ -108,13 +112,18 @@ LiteLayer.install = (app: App, globalOptions?: LayerGlobalConfig) => {
       // Share host app's appContext (global components, directives, provides, etc.)
       // 注意：必须在 mount 之前完成，否则 inject 解析会错过上下文。
       // NOTE: This must be done before mount, otherwise inject resolution misses the context.
-      if (appContext) {
+      if (appContext || sourceProvides) {
         const layerContext = layerApp._context
-        layerContext.components = appContext.components
-        layerContext.directives = appContext.directives
-        layerContext.config = cloneAppConfigForLayer(layerContext.config, appContext.config)
-        // Use prototype chain so layer-level provide can shadow host values.
-        layerContext.provides = Object.create(appContext.provides || null)
+        if (appContext) {
+          layerContext.components = appContext.components
+          layerContext.directives = appContext.directives
+          layerContext.config = cloneAppConfigForLayer(layerContext.config, appContext.config)
+        }
+        // `appContext.provides` only holds application-level values. When a
+        // layer is opened through useLiteLayer(), sourceProvides additionally
+        // carries component-tree scoped provides, e.g. ElConfigProvider.
+        // Use a prototype chain so layer-level provides can still shadow them.
+        layerContext.provides = Object.create(sourceProvides ?? appContext?.provides ?? null)
       }
 
       layerApp.use(createLayerEmitterPlugin(emitter)).use(i18n().getI18n(currentOptions.i18n))
