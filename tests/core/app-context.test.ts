@@ -13,8 +13,37 @@ import { describe, expect, test } from 'vitest'
 import VueLiteLayer from '@lib/index'
 import useLiteLayer from '@lib/composables/use-lite-layer'
 import type { LayerInstance } from '@lib/types/instance'
+import layerManager from '@lib/core/layer-manager'
 
 describe('layer app context isolation', () => {
+  test('cleans Teleport DOM and manager state when mounting a layer fails', () => {
+    layerManager.resetForTest()
+    const target = document.createElement('section')
+    document.body.append(target)
+    const hostApp = createApp({ render: () => null })
+    hostApp.config.errorHandler = (error) => {
+      throw error
+    }
+    hostApp.use(VueLiteLayer, { banner: false })
+
+    expect(() =>
+      hostApp.config.globalProperties.$layer.open(
+        {
+          teleport: target,
+          uniqueGroup: 'mount-failure',
+          onOpen: () => {
+            throw new Error('mount failed')
+          }
+        },
+        hostApp._context
+      )
+    ).toThrow('mount failed')
+
+    expect(target.querySelector('[role="dialog"]')).toBeNull()
+    expect(layerManager.has('mount-failure')).toBe(false)
+    hostApp.unmount()
+  })
+
   test('layer-local plugins do not mutate host app globalProperties', async () => {
     const hostApp = createApp({ render: () => null })
     hostApp.config.globalProperties.$t = 'host translator'

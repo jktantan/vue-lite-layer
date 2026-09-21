@@ -51,6 +51,29 @@ describe('LiteLayer', () => {
     vi.useRealTimers()
   })
 
+  test('keeps the layer open when beforeClose rejects a close request', async () => {
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'guarded-layer',
+        title: 'Guarded Layer',
+        teleport: 'body',
+        content: 'content',
+        beforeClose: () => false
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+
+    emitter.emit('requestClose', { reason: 'programmatic' })
+    await Promise.resolve()
+
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+    wrapper.unmount()
+  })
+
   test('footer buttons are non-submit buttons', async () => {
     const { wrapper } = mountLayer()
     await wrapper.vm.$nextTick()

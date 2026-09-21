@@ -7,6 +7,8 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import loadVersion from 'vite-plugin-package-version'
 import { resolve } from 'path'
 
+const projectRoot = fileURLToPath(new URL('.', import.meta.url))
+
 const sfcTypeResolverFs = {
   fileExists: existsSync,
   readFile: (file: string) => readFileSync(file, 'utf-8'),
@@ -16,8 +18,8 @@ const sfcTypeResolverFs = {
 const copyLegacyStyleEntry = () => ({
   name: 'copy-legacy-style-entry',
   closeBundle() {
-    const source = resolve(__dirname, 'dist/vue-lite-layer.css')
-    const target = resolve(__dirname, 'dist/style.css')
+    const source = resolve(projectRoot, 'dist/vue-lite-layer.css')
+    const target = resolve(projectRoot, 'dist/style.css')
     if (existsSync(source)) {
       copyFileSync(source, target)
     }
@@ -52,8 +54,8 @@ export default defineConfig(({ mode }) => {
       ? {
           lib: {
             entry: {
-              module: resolve(__dirname, 'lib/nuxt/module.ts'),
-              'runtime/plugin': resolve(__dirname, 'lib/nuxt/runtime/plugin.ts')
+              module: resolve(projectRoot, 'lib/nuxt/module.ts'),
+              'runtime/plugin': resolve(projectRoot, 'lib/nuxt/runtime/plugin.ts')
             },
             formats: ['es'],
             fileName: (_format, entryName) => `nuxt/${entryName}.mjs`
@@ -65,7 +67,7 @@ export default defineConfig(({ mode }) => {
         }
       : {
           lib: {
-            entry: resolve(__dirname, 'lib/index.ts'),
+            entry: resolve(projectRoot, 'lib/index.ts'),
             name: 'vue-lite-layer',
             fileName: (format) => `vue-lite-layer.${format}.js`
           },

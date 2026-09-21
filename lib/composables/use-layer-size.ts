@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { type Position, PositionPreset, type PixelSize } from '../types/layer'
+import { clampPosition, getPresetPosition } from '@lib/core/layer-geometry'
 
 /** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） / Window style (for template binding, prevents Vue re-render from overwriting maximize/restore direct styles) */
 export interface WindowStyle {
@@ -39,8 +40,6 @@ export default (initialSize?: { width?: string; height?: string }) => {
   const defaultSize: PixelSize = { height: 0, width: 0 }
   /** 容器（最大化时）的可用尺寸 / Available size of container (when maximized) */
   const maximumSize: PixelSize = { height: 0, width: 0 }
-  /** 弹层窗口的初始默认坐标 / Initial default coordinates of layer window */
-  const defaultPosition: Position = { top: '', left: '' }
   /** 弹层窗口的当前坐标（拖拽后更新） / Current coordinates of layer window (updated after drag) */
   const currentPosition: Position = { top: '', left: '' }
 
@@ -68,13 +67,10 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * @param containerEl - 约束容器元素 / Constraint container element
    */
   const clampToContainer = (windowEl: HTMLElement, containerEl: HTMLElement) => {
-    const top = Math.max(
-      0,
-      Math.min(windowEl.offsetTop, containerEl.offsetHeight - windowEl.offsetHeight)
-    )
-    const left = Math.max(
-      0,
-      Math.min(windowEl.offsetLeft, containerEl.offsetWidth - windowEl.offsetWidth)
+    const { top, left } = clampPosition(
+      { top: windowEl.offsetTop, left: windowEl.offsetLeft },
+      { height: windowEl.offsetHeight, width: windowEl.offsetWidth },
+      { height: containerEl.offsetHeight, width: containerEl.offsetWidth }
     )
     windowEl.style.top = top + 'px'
     windowEl.style.left = left + 'px'
@@ -91,20 +87,28 @@ export default (initialSize?: { width?: string; height?: string }) => {
    */
   const transitionDuration = 200
   const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+  const transitionCleanups = new Set<() => void>()
 
   const withTransition = (el: HTMLElement, callback: () => void, onComplete?: () => void) => {
     el.style.transition = transitionValue
     callback()
     let cleaned = false
+    let timeout: ReturnType<typeof setTimeout> | null = null
     const cleanup = () => {
       if (cleaned) return
       cleaned = true
       el.style.transition = ''
-      el.removeEventListener('transitionend', cleanup)
+      el.removeEventListener('transitionend', onTransitionEnd)
+      if (timeout) clearTimeout(timeout)
+      transitionCleanups.delete(cleanup)
       onComplete?.()
     }
-    el.addEventListener('transitionend', cleanup)
-    setTimeout(cleanup, transitionDuration + 50)
+    const onTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === el) cleanup()
+    }
+    transitionCleanups.add(cleanup)
+    el.addEventListener('transitionend', onTransitionEnd)
+    timeout = setTimeout(cleanup, transitionDuration + 50)
   }
 
   /**
@@ -157,8 +161,11 @@ export default (initialSize?: { width?: string; height?: string }) => {
     const restoreLeft = parseFloat(currentPosition.left) || 0
     const containerH = containerEl.offsetHeight || containerEl.clientHeight
     const containerW = containerEl.offsetWidth || containerEl.clientWidth
-    const clampedTop = Math.max(0, Math.min(restoreTop, containerH - defaultSize.height))
-    const clampedLeft = Math.max(0, Math.min(restoreLeft, containerW - defaultSize.width))
+    const { top: clampedTop, left: clampedLeft } = clampPosition(
+      { top: restoreTop, left: restoreLeft },
+      defaultSize,
+      { height: containerH, width: containerW }
+    )
 
     withTransition(
       windowEl,
@@ -172,27 +179,6 @@ export default (initialSize?: { width?: string; height?: string }) => {
       },
       onComplete
     )
-  }
-
-  /**
-   * 预设定位 → [行方向计算, 列方向计算] 的查找表
-   * Preset positioning → lookup table for [row calculation, column calculation]
-   */
-  type PosFn = (gap: number, center: number, far: number) => number
-  const posGap: PosFn = (gap) => gap
-  const posCenter: PosFn = (_gap, center) => center
-  const posFar: PosFn = (_gap, _center, far) => far
-
-  const positionPresetMap: Record<PositionPreset, [PosFn, PosFn]> = {
-    [PositionPreset.LEFT_TOP]: [posGap, posGap],
-    [PositionPreset.LEFT_CENTER]: [posCenter, posGap],
-    [PositionPreset.LEFT_BOTTOM]: [posFar, posGap],
-    [PositionPreset.CENTER_TOP]: [posGap, posCenter],
-    [PositionPreset.CENTER_CENTER]: [posCenter, posCenter],
-    [PositionPreset.CENTER_BOTTOM]: [posFar, posCenter],
-    [PositionPreset.RIGHT_TOP]: [posGap, posFar],
-    [PositionPreset.RIGHT_CENTER]: [posCenter, posFar],
-    [PositionPreset.RIGHT_BOTTOM]: [posFar, posFar]
   }
 
   /**
@@ -214,10 +200,6 @@ export default (initialSize?: { width?: string; height?: string }) => {
       windowEl.style.top = location.top
       windowEl.style.left = location.left
       clampToContainer(windowEl, containerEl)
-      // 保存自定义坐标到 defaultPosition / currentPosition，供还原时使用
-      // Save custom coordinates to defaultPosition / currentPosition for restore
-      defaultPosition.top = windowEl.style.top
-      defaultPosition.left = windowEl.style.left
       currentPosition.top = windowEl.style.top
       currentPosition.left = windowEl.style.left
       applyWindowStyle(windowStyle, windowEl, {
@@ -227,18 +209,13 @@ export default (initialSize?: { width?: string; height?: string }) => {
         height: windowEl.offsetHeight + 'px'
       })
     } else {
-      const gap = 25
-      const rowCenter = containerEl.offsetHeight / 2 - defaultSize.height / 2
-      const rowBottom = containerEl.offsetHeight - defaultSize.height - gap
-      const colCenter = containerEl.offsetWidth / 2 - defaultSize.width / 2
-      const colRight = containerEl.offsetWidth - defaultSize.width - gap
+      const { top, left } = getPresetPosition(location, defaultSize, {
+        height: containerEl.offsetHeight,
+        width: containerEl.offsetWidth
+      })
+      windowEl.style.top = top + 'px'
+      windowEl.style.left = left + 'px'
 
-      const [rowFn, colFn] = positionPresetMap[location]
-      windowEl.style.top = rowFn(gap, rowCenter, rowBottom) + 'px'
-      windowEl.style.left = colFn(gap, colCenter, colRight) + 'px'
-
-      defaultPosition.top = windowEl.style.top
-      defaultPosition.left = windowEl.style.left
       currentPosition.top = windowEl.style.top
       currentPosition.left = windowEl.style.left
       applyWindowStyle(windowStyle, windowEl, {
@@ -294,6 +271,11 @@ export default (initialSize?: { width?: string; height?: string }) => {
     })
   }
 
+  /** Clear pending transition timers/listeners when the owning layer unmounts. */
+  const dispose = (): void => {
+    for (const cleanup of transitionCleanups) cleanup()
+  }
+
   return {
     windowStyle,
     maximize,
@@ -301,6 +283,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
     setDefaultSize,
     setMaximumSize,
     initPosition,
-    setCurrentPosition
+    setCurrentPosition,
+    dispose
   }
 }

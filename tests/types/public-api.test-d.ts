@@ -74,7 +74,9 @@ const instance: LayerInstance = {
   close: () => true,
   bringToTop: () => {},
   maximize: () => {},
-  restore: () => {}
+  restore: () => {},
+  update: (_options) => {},
+  closed: Promise.resolve({ reason: 'programmatic', action: 'close' })
 }
 
 const _area: LayerArea = { top: '0', left: '0', width: '1px', height: '1px' }

@@ -143,7 +143,7 @@ describe('useLayerEvent', () => {
     api?.closeAllLayer()
     app.unmount()
 
-    expect(service.open).toHaveBeenCalledWith({ title: 'legacy' }, expect.any(Object))
+    expect(service.open).toHaveBeenCalledWith({ title: 'legacy' }, expect.any(Object), expect.any(Object))
     expect(service.closeAll).toHaveBeenCalledTimes(1)
   })
 })
