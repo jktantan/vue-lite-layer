@@ -151,6 +151,7 @@ const openLayer = (
     },
     bringToTop: () => emitter.emit('top'),
     maximize: () => emitter.emit('maximum'),
+    minimize: () => emitter.emit('minimize'),
     restore: () => emitter.emit('restore'),
     update: (nextOptions) => {
       // Identity and teleport are immutable because manager bookkeeping uses them.

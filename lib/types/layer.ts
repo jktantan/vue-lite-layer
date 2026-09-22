@@ -117,6 +117,8 @@ export interface LayerGlobalConfig {
   teleport?: string | HTMLElement | RendererNode
   /** 是否允许最大化 / Whether maximization is allowed */
   max?: boolean
+  /** 是否允许最小化到窗口停靠栏 / Whether minimization to the window dock is allowed */
+  min?: boolean
   /** 是否显示关闭按钮 / Whether to show close button */
   close?: boolean
   /** 点击确认后是否默认关闭 / Whether Confirm closes by default */

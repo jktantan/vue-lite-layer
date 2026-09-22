@@ -15,6 +15,7 @@
 | `location` | `PositionPreset \| Position` | `'CC'` | 弹层定位方式，见下方说明 |
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
 | `max` | `boolean` | `true` | 是否允许最大化 |
+| `min` | `boolean` | `false` | 是否允许最小化到 Teleport 容器底部的停靠栏 |
 | `close` | `boolean` | `true` | 是否显示关闭按钮 |
 | `closeOnOk` | `boolean` | `false` | 点击默认 Footer 的确认按钮后是否自动关闭；表单异步场景建议保持 `false` |
 | `closeOnEsc` | `boolean` | `true` | 按 `Esc` 是否请求关闭弹层 |
@@ -67,6 +68,8 @@ openLayer({
 ```
 
 默认情况下，弹层会自动聚焦、锁定 `Tab` 焦点，并在关闭当前顶层弹层时恢复原焦点。Teleport 到 `body` 且带遮罩的弹层会锁定页面滚动；多个弹层同时打开时，最后一个关闭才恢复页面样式。
+
+启用 `min: true` 后，标题栏会出现最小化按钮。最小化窗口会进入同一 Teleport 容器底部的停靠栏；它不会保留遮罩、滚动锁或焦点陷阱。点击停靠项可恢复窗口并置顶，恢复时会保留最小化前的普通或最大化状态。
 
 ## 异步内容
 

@@ -6,13 +6,13 @@
       :data-layer-id="id"
       :style="{
         position: isTeleportToBody ? 'fixed' : 'absolute',
-        'z-index': currentZIndex,
-        pointerEvents: shade ? 'auto' : 'none',
+        'z-index': isMinimized ? MINIMIZED_DOCK_Z_INDEX : currentZIndex,
+        pointerEvents: shade && !isMinimized ? 'auto' : 'none',
         ...layerStyle
       }"
     >
       <div
-        v-if="shade"
+        v-if="shade && !isMinimized"
         class="lite-layer__shade"
         role="button"
         aria-label="Close layer"
@@ -31,7 +31,8 @@
           'lite-layer__window--initial': initialHide,
           'lite-layer__window--enter': enterAnim,
           'lite-layer__window--leave': leaveAnim,
-          'lite-layer__window--resizing': isResizing
+          'lite-layer__window--resizing': isResizing,
+          'lite-layer__window--minimized': isMinimized
         }"
         :style="{
           maxWidth: maxWidth,
@@ -47,6 +48,9 @@
           ref="headerRef"
           :title-id="titleId"
           :max="max"
+          :min="min"
+          :is-maximized="isMaximized"
+          :is-minimized="isMinimized"
           :close="close"
           :title="title"
         />
@@ -61,6 +65,37 @@
         <component :is="footer" v-else-if="!!footer" />
         <layer-loading />
       </div>
+      <div
+        v-if="visible && isMinimized"
+        ref="dockRef"
+        class="lite-layer__window-header lite-layer__dock-item"
+        :style="{
+          position: isTeleportToBody ? 'fixed' : 'absolute',
+          left: dockPosition.left || `${12 + minimizedIndex * 232}px`,
+          top: dockPosition.top,
+          bottom: dockPosition.bottom
+        }"
+        @mousedown="handleDockMouseDown"
+      >
+        <div class="lite-layer__window-header-title" :title="title">{{ title || t('VueLiteLayer.restore') }}</div>
+        <div class="lite-layer__window-header-operator" @mousedown.stop>
+          <button
+            type="button"
+            class="lite-layer__mask-button lite-layer__icon-restore"
+            :title="t('VueLiteLayer.restore')"
+            :aria-label="t('VueLiteLayer.restore')"
+            @click="handleRestore"
+          />
+          <button
+            v-if="close"
+            type="button"
+            class="lite-layer__mask-button lite-layer__icon-close"
+            :title="t('VueLiteLayer.close')"
+            :aria-label="t('VueLiteLayer.close')"
+            @click="handleLegacyClose"
+          />
+        </div>
+      </div>
     </div>
   </Teleport>
 </template>
@@ -74,6 +109,7 @@ import {
   onMounted,
   onUnmounted,
   nextTick,
+  computed,
   watch,
   type ComponentPublicInstance
 } from 'vue'
@@ -91,6 +127,7 @@ import layerManager from './core/layer-manager'
 import { lockBodyScroll, unlockBodyScroll } from './core/scroll-lock'
 
 import { useLayerEmitter } from './core/layer-emitter'
+import { useI18n } from 'vue-i18n-lite'
 import type { LayerCommandPayload } from './core/layer-events'
 import LayerLoading from './components/LayerLoading.vue'
 import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
@@ -112,6 +149,7 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
   teleport: 'body',
   props: null,
   max: true,
+  min: false,
   close: true,
   closeOnOk: false,
   onCancel: null,
@@ -130,12 +168,18 @@ const { bindDrag, unbindDrag } = useDraggable()
 const windowRef = useTemplateRef<HTMLElement>('windowRef')
 const headerRef = useTemplateRef<ComponentPublicInstance<{ el: HTMLElement }>>('headerRef')
 const layerRef = useTemplateRef<HTMLElement>('layerRef')
+const dockRef = useTemplateRef<HTMLElement>('dockRef')
 
 // ──── 状态 / State ────
 const initialHide = ref(true) // 初始隐藏，等定位完成后移除 / Initially hidden, removed after positioning completes
 const enterAnim = ref(false)
 const isMaximized = ref(false)
+const isMinimized = ref(false)
+const maximizedBeforeMinimize = ref(false)
 const isResizing = ref(false)
+const MINIMIZED_DOCK_Z_INDEX = 2_147_483_647
+const dockPosition = reactive({ left: '', top: '', bottom: '12px' })
+let stopDockDrag: (() => void) | null = null
 const titleId = `lite-layer-title-${props.id}`
 const ENTER_ANIMATION_FALLBACK_MS = 220
 let enterFallbackTimer: ReturnType<typeof setTimeout> | null = null
@@ -148,6 +192,7 @@ const isTeleportToBody =
   (typeof document !== 'undefined' && props.teleport === document.body)
 const teleportGroup = props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
+const minimizedIndex = computed(() => layerManager.getMinimizedIndex(props.id!, teleportGroup))
 
 // ──── 弹层尺寸与定位 / Layer Size and Positioning ────
 const layerStyle = reactive<LayerArea>({
@@ -157,6 +202,8 @@ const layerStyle = reactive<LayerArea>({
   height: '100vh'
 })
 const emitter = useLayerEmitter()
+const i18n = useI18n()
+const t = i18n?.t ?? ((key: string) => key)
 const layerSize = useLayerSize(props.size)
 let resizeObserver: ResizeObserver | null = null
 const closeState = useLayerClose(props, emitter, () => {
@@ -208,6 +255,17 @@ const handleShadeClick = () => {
 }
 
 const handleRestore = () => {
+  if (isMinimized.value) {
+    isMinimized.value = false
+    isMaximized.value = maximizedBeforeMinimize.value
+    layerManager.restoreMinimized(props.id!, teleportGroup)
+    syncScrollLock()
+    nextTick(() => {
+      handleBringToTop()
+      focusWindow()
+    })
+    return
+  }
   isMaximized.value = false
   isResizing.value = true
   layerSize.restore(windowRef.value, layerRef.value, () => {
@@ -216,11 +274,57 @@ const handleRestore = () => {
 }
 
 const handleMaximize = () => {
+  if (isMinimized.value) {
+    isMinimized.value = false
+    layerManager.restoreMinimized(props.id!, teleportGroup)
+    syncScrollLock()
+    handleBringToTop()
+  }
   isMaximized.value = true
   isResizing.value = true
   layerSize.maximize(windowRef.value, () => {
     isResizing.value = false
   })
+}
+
+const handleMinimize = () => {
+  if (!props.min || isMinimized.value) return
+  maximizedBeforeMinimize.value = isMaximized.value
+  isMinimized.value = true
+  layerManager.minimize(props.id!, teleportGroup)
+  syncScrollLock()
+}
+
+/** Drag the minimized title bar without changing the restored window position. */
+const handleDockMouseDown = (event: MouseEvent) => {
+  if (event.button !== 0 || (event.target as HTMLElement).closest('button')) return
+  const dockEl = dockRef.value
+  if (!dockEl) return
+
+  stopDockDrag?.()
+  const dockRect = dockEl.getBoundingClientRect()
+  const containerRect = isTeleportToBody
+    ? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }
+    : layerRef.value?.getBoundingClientRect()
+  if (!containerRect) return
+  const offsetX = event.clientX - dockRect.left
+  const offsetY = event.clientY - dockRect.top
+
+  const handleMouseMove = (moveEvent: MouseEvent) => {
+    const maxLeft = Math.max(0, containerRect.width - dockRect.width)
+    const maxTop = Math.max(0, containerRect.height - dockRect.height)
+    dockPosition.left = `${Math.min(Math.max(0, moveEvent.clientX - containerRect.left - offsetX), maxLeft)}px`
+    dockPosition.top = `${Math.min(Math.max(0, moveEvent.clientY - containerRect.top - offsetY), maxTop)}px`
+    dockPosition.bottom = 'auto'
+  }
+  const handleMouseUp = () => stopDockDrag?.()
+  stopDockDrag = () => {
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    stopDockDrag = null
+  }
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
 }
 
 const handleBringToTop = () => {
@@ -246,7 +350,7 @@ const handleAfterCommand = (eventMessage: LayerCommandPayload): void => {
 }
 
 const syncScrollLock = (): void => {
-  const shouldLock = isTeleportToBody && props.shade
+  const shouldLock = isTeleportToBody && props.shade && !isMinimized.value
   if (shouldLock && !hasScrollLock) {
     lockBodyScroll()
     hasScrollLock = true
@@ -329,6 +433,7 @@ onMounted(() => {
   })
 
   emitter.on('maximum', handleMaximize)
+  emitter.on('minimize', handleMinimize)
   emitter.on('restore', handleRestore)
   emitter.on('requestClose', requestClose)
   emitter.on('close', handleLegacyClose)
@@ -339,7 +444,7 @@ onMounted(() => {
   emitter.on('ok', handleOk)
 })
 
-watch(() => props.shade, syncScrollLock)
+watch([() => props.shade, isMinimized], syncScrollLock)
 
 onUnmounted(() => {
   if (enterFallbackTimer) {
@@ -350,6 +455,7 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
   layerSize.dispose()
+  stopDockDrag?.()
   unbindDrag()
   if (hasScrollLock) {
     unlockBodyScroll()
@@ -358,6 +464,7 @@ onUnmounted(() => {
   restorePreviousFocus()
 
   emitter.off('maximum', handleMaximize)
+  emitter.off('minimize', handleMinimize)
   emitter.off('restore', handleRestore)
   emitter.off('requestClose', requestClose)
   emitter.off('close', handleLegacyClose)
@@ -373,6 +480,7 @@ defineExpose({
   close: () => void requestClose({ reason: 'programmatic' }),
   bringToTop: handleBringToTop,
   maximize: handleMaximize,
+  minimize: handleMinimize,
   restore: handleRestore
 })
 </script>

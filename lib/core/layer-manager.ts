@@ -1,10 +1,14 @@
 import type { LayerInstance } from '@lib/types/instance'
+import { reactive } from 'vue'
 
 /** 唯一分组集合（防止同组重复打开） / Unique group set (prevent duplicate opens within same group) */
 const uniqueGroups = new Set<string>()
 
 /** 所有弹层实例 Map（id → instance） / All layer instances Map (id → instance) */
 const instances = new Map<string, LayerInstance>()
+
+/** 最小化窗口按 Teleport 目标分组，Map 的插入顺序即停靠栏顺序。 */
+const minimizedGroups = reactive(new Map<string, Map<string, true>>())
 
 /**
  * 按 Teleport 目标（父容器）分组的 z-index 记录
@@ -90,6 +94,25 @@ const layerManager = {
     return zIndexGroups.get(teleportTarget)?.get(id) ?? BASE_Z_INDEX
   },
 
+  /** Mark a layer as minimized so its dock item can be positioned among siblings. */
+  minimize(id: string, teleportTarget: string): void {
+    if (!minimizedGroups.has(teleportTarget)) minimizedGroups.set(teleportTarget, new Map())
+    minimizedGroups.get(teleportTarget)!.set(id, true)
+  },
+
+  /** Remove a layer from its Teleport target's dock. */
+  restoreMinimized(id: string, teleportTarget: string): void {
+    const group = minimizedGroups.get(teleportTarget)
+    if (!group) return
+    group.delete(id)
+    if (group.size === 0) minimizedGroups.delete(teleportTarget)
+  },
+
+  /** Get the reactive dock position for one minimized layer. */
+  getMinimizedIndex(id: string, teleportTarget: string): number {
+    return [...(minimizedGroups.get(teleportTarget)?.keys() ?? [])].indexOf(id)
+  },
+
   /**
    * 注册一个新的弹层实例
    * Register a new layer instance
@@ -143,6 +166,7 @@ const layerManager = {
       uniqueGroups.delete(unique)
     }
     if (teleportTarget) {
+      this.restoreMinimized(id, teleportTarget)
       const group = zIndexGroups.get(teleportTarget)
       if (group) {
         group.delete(id)
@@ -161,6 +185,7 @@ const layerManager = {
     uniqueGroups.clear()
     instances.clear()
     zIndexGroups.clear()
+    minimizedGroups.clear()
     globalZIndex = BASE_Z_INDEX
   },
 

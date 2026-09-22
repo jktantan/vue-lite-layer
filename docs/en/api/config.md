@@ -15,6 +15,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `location` | `PositionPreset \| Position` | `'CC'` | Layer position, see below |
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport target, CSS selector or DOM element |
 | `max` | `boolean` | `true` | Whether to allow maximize |
+| `min` | `boolean` | `false` | Whether to allow minimization to the Teleport target's bottom dock |
 | `close` | `boolean` | `true` | Whether to show the close button |
 | `closeOnOk` | `boolean` | `false` | Whether OK in the default footer closes automatically; keep `false` for async forms |
 | `closeOnEsc` | `boolean` | `true` | Whether `Esc` requests closing the layer |
@@ -60,6 +61,8 @@ openLayer({
 ```
 
 Layers focus themselves on open, trap `Tab` by default, and restore focus when the active top layer closes. A shaded layer teleported to `body` locks page scroll; nested layers use reference counting and restore page styles after the final close.
+
+With `min: true`, the header shows a minimize button. A minimized window appears in a dock at the bottom of its Teleport target and no longer retains its shade, scroll lock, or focus trap. Clicking its dock item restores and brings it to the front, preserving its previous normal or maximized state.
 
 ## Async Content
 

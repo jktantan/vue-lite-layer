@@ -27,6 +27,9 @@ interface LayerInstance {
   /** Maximize the layer */
   maximize: () => void
 
+  /** Minimize the layer to the dock */
+  minimize: () => void
+
   /** Restore the layer size */
   restore: () => void
 
@@ -81,10 +84,20 @@ instance?.maximize()
 
 ### restore()
 
-Restore the layer from maximized state to its default size and position.
+Restore the layer from maximized state to its default size and position. If the layer is minimized, it restores the state it had before minimization.
 
 ```typescript
 instance?.restore()
+```
+
+### minimize()
+
+Minimize a layer that allows minimization (`min: true`) to the bottom dock of its Teleport target. The window stays mounted and can be restored with `restore()` or its dock item.
+
+```typescript
+const instance = openLayer({ title: 'Edit order', min: true })
+
+instance?.minimize()
 ```
 
 ### update()

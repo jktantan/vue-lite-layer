@@ -18,6 +18,7 @@ export type LayerEvents = Record<EventType, unknown> & {
   close: void
   top: void
   maximum: void
+  minimize: void
   restore: void
   startLoading: void
   stopLoading: void

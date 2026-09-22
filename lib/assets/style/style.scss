@@ -54,6 +54,10 @@
     display: flex;
     flex-direction: column;
 
+    &--minimized {
+      display: none;
+    }
+
     &-header {
       padding: 0 8px;
       height: 40px;
@@ -122,6 +126,18 @@
       padding: 8px;
       border-top: 1px solid #f0f0f0;
     }
+  }
+
+  &__dock-item {
+    position: fixed;
+    bottom: 12px;
+    z-index: 1;
+    width: 220px;
+    pointer-events: auto;
+    background-color: $lite-layer__color-white;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
   }
 
   &__button {

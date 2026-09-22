@@ -27,6 +27,9 @@ interface LayerInstance {
   /** 最大化弹层 */
   maximize: () => void
 
+  /** 最小化弹层到停靠栏 */
+  minimize: () => void
+
   /** 还原弹层尺寸 */
   restore: () => void
 
@@ -81,10 +84,20 @@ instance?.maximize()
 
 ### restore()
 
-将弹层从最大化状态还原到默认尺寸和位置。
+将弹层从最大化状态还原到默认尺寸和位置；若窗口已最小化，则恢复到最小化前的状态。
 
 ```typescript
 instance?.restore()
+```
+
+### minimize()
+
+将允许最小化（`min: true`）的弹层收起到同一 Teleport 容器底部的停靠栏。窗口仍然保持挂载，因此可通过 `restore()` 或点击停靠项继续操作。
+
+```typescript
+const instance = openLayer({ title: '编辑订单', min: true })
+
+instance?.minimize()
 ```
 
 ### update()

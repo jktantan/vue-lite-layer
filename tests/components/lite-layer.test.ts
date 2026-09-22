@@ -84,6 +84,69 @@ describe('LiteLayer', () => {
     expect(buttons.every((button) => button.getAttribute('type') === 'button')).toBe(true)
   })
 
+  test('minimizes to a dock item and restores the window', async () => {
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'minimizable-layer',
+        title: 'Minimizable layer',
+        teleport: 'body',
+        content: 'content',
+        min: true
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+
+    emitter.emit('minimize')
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('.lite-layer__shade')).toBeNull()
+    expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(true)
+    const dockItem = document.body.querySelector<HTMLElement>('.lite-layer__dock-item')
+    expect(dockItem?.textContent).toContain('Minimizable layer')
+    expect(dockItem?.style.left).toBe('12px')
+    const restoreButton = dockItem?.querySelector<HTMLButtonElement>('.lite-layer__icon-restore')
+    expect(restoreButton?.getAttribute('aria-label')).toBe('VueLiteLayer.restore')
+    expect(dockItem?.querySelector('.lite-layer__icon-close')).not.toBeNull()
+
+    restoreButton?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+    expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(false)
+  })
+
+  test('restores a maximized layer from the dock as maximized', async () => {
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'maximized-minimizable-layer',
+        title: 'Maximized minimizable layer',
+        teleport: 'body',
+        content: 'content',
+        min: true
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+
+    emitter.emit('maximum')
+    emitter.emit('minimize')
+    await wrapper.vm.$nextTick()
+    document.body.querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')).not.toBeNull()
+    expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-maximum')).toBeNull()
+  })
+
   test('default footer buttons emit empty payloads instead of native click events', async () => {
     const { wrapper, emitter } = mountLayer()
     const cancel = vi.fn()

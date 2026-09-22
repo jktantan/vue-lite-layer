@@ -20,6 +20,7 @@ const defaultConfig: LayerGlobalConfig = {
   maxHeight: 'none',
   location: PositionPreset.CENTER_CENTER,
   max: true,
+  min: false,
   close: true,
   closeOnOk: false,
   closeOnEsc: true,

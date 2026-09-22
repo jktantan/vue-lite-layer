@@ -6,8 +6,8 @@ import type { LayerCloseResult, LayerConfig } from './layer'
  *
  * 每次调用 `$layer.open()` 后返回此对象，
  * Returns this object after each call to `$layer.open()`,
- * 调用方可通过它控制弹层的关闭、置顶、最大化、还原等操作。
- * caller can use it to control layer operations like close, bring to top, maximize, restore, etc.
+ * 调用方可通过它控制弹层的关闭、置顶、最大化、最小化、还原等操作。
+ * caller can use it to control layer operations like close, bring to top, maximize, minimize, restore, etc.
  */
 export interface LayerInstance {
   /** 弹层唯一标识 / Layer unique identifier */
@@ -24,6 +24,8 @@ export interface LayerInstance {
   bringToTop: () => void
   /** 最大化弹层 / Maximize layer */
   maximize: () => void
+  /** 最小化弹层到停靠栏 / Minimize layer to the dock */
+  minimize: () => void
   /** 还原弹层 / Restore layer */
   restore: () => void
   /** 动态更新可变配置；id、uniqueGroup 和 teleport 不能在打开后修改 / Update mutable options */
