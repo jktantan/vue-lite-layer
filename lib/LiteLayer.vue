@@ -323,6 +323,9 @@ const handleRestore = () => {
     return
   }
   isMaximized.value = false
+  // 还原会解除最大化时取得的滚动锁，可视区随之变化
+  // Restoring releases the scroll lock taken while maximized.
+  syncScrollLock()
   isResizing.value = true
   layerSize.restore(windowRef.value, layerRef.value, () => {
     isResizing.value = false
@@ -337,6 +340,12 @@ const handleMaximize = () => {
     handleBringToTop()
   }
   isMaximized.value = true
+  // 最大化会锁滚动并隐藏根滚动条，可视区因此变宽，可用尺寸需要重算，
+  // 否则最大化窗口会留下一条与滚动条等宽的空隙。
+  // Maximizing locks scrolling and hides the root scrollbar, which widens the
+  // visible area; re-measure so the window does not leave a scrollbar-wide gap.
+  syncScrollLock()
+  layerSize.setMaximumSize(layerRef.value)
   isResizing.value = true
   layerSize.maximize(windowRef.value, () => {
     isResizing.value = false
@@ -423,7 +432,12 @@ const handleAfterCommand = (eventMessage: LayerCommandPayload): void => {
 }
 
 const syncScrollLock = (): void => {
-  const shouldLock = isTeleportToBody && props.shade && !isMinimized.value
+  // 遮罩弹层本身就锁滚动；最大化弹层同样占满可视区，也必须锁滚动，
+  // 否则根滚动条会留在最大化窗口旁边（即“最大化没有隐藏滚动条”）。
+  // A shaded layer already locks scrolling; a maximized layer fills the
+  // visible area too, so it must lock as well — otherwise the root scrollbar
+  // stays visible beside the maximized window.
+  const shouldLock = isTeleportToBody && (props.shade || isMaximized.value) && !isMinimized.value
   if (shouldLock && !hasScrollLock) {
     lockBodyScroll()
     hasScrollLock = true
@@ -519,7 +533,7 @@ onMounted(() => {
   emitter.on('ok', handleOk)
 })
 
-watch([() => props.shade, isMinimized], syncScrollLock)
+watch([() => props.shade, isMinimized, isMaximized], syncScrollLock)
 
 onUnmounted(() => {
   if (enterFallbackTimer) {

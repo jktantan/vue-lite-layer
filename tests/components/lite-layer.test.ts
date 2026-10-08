@@ -7,6 +7,7 @@ import VueLiteLayer from '@lib/index'
 import layerManager from '@lib/core/layer-manager'
 import { createLayerEmitterPlugin } from '@lib/core/layer-emitter'
 import type { LayerEvents } from '@lib/core/layer-events'
+import { resetScrollLockForTest } from '@lib/core/scroll-lock'
 import dockMetrics from '@lib/assets/style/metrics.module.scss'
 
 const DOCK_WIDTH = parseFloat(dockMetrics.dockItemWidth)
@@ -245,6 +246,45 @@ describe('LiteLayer', () => {
     } finally {
       restoreViewport()
       layerManager.resetForTest()
+    }
+  })
+
+  test('locks body scroll while maximized and releases it after restore', async () => {
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'maximize-scroll-layer',
+        title: 'Maximize scroll layer',
+        teleport: 'body',
+        content: 'content',
+        // 无遮罩弹层本身不锁滚动，只有最大化才应锁
+        // An unshaded layer does not lock scrolling by itself; only maximizing should
+        shade: false
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+
+    try {
+      expect(document.body.style.overflow).toBe('')
+
+      emitter.emit('maximum')
+      await wrapper.vm.$nextTick()
+
+      // 最大化占满可视区，根滚动条必须隐藏 / Maximizing fills the viewport, so the root scrollbar must be hidden
+      expect(document.body.style.overflow).toBe('hidden')
+
+      emitter.emit('restore')
+      await wrapper.vm.$nextTick()
+
+      expect(document.body.style.overflow).toBe('')
+    } finally {
+      document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
+      resetScrollLockForTest()
     }
   })
 
