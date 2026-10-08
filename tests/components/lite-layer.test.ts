@@ -7,6 +7,49 @@ import VueLiteLayer from '@lib/index'
 import layerManager from '@lib/core/layer-manager'
 import { createLayerEmitterPlugin } from '@lib/core/layer-emitter'
 import type { LayerEvents } from '@lib/core/layer-events'
+import dockMetrics from '@lib/assets/style/metrics.module.scss'
+
+const DOCK_WIDTH = parseFloat(dockMetrics.dockItemWidth)
+const DOCK_HEIGHT = parseFloat(dockMetrics.dockItemHeight)
+const DOCK_GAP = parseFloat(dockMetrics.dockItemGap)
+const DOCK_INSET = parseFloat(dockMetrics.dockInset)
+
+/**
+ * 固定 documentElement.clientWidth（jsdom 默认为 0），返回恢复函数。
+ * Pin documentElement.clientWidth (jsdom reports 0), returns a restore fn.
+ */
+const mockViewportWidth = (width: number) => {
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    configurable: true,
+    get: () => width
+  })
+  return () => {
+    delete (document.documentElement as unknown as { clientWidth?: number }).clientWidth
+  }
+}
+
+const mountMinimizableLayer = async (id: string, title: string) => {
+  const emitter = mitt<LayerEvents>()
+  const wrapper = mount(LiteLayer, {
+    attachTo: document.body,
+    props: {
+      id,
+      title,
+      teleport: 'body',
+      content: 'content',
+      min: true
+    },
+    global: {
+      plugins: [createLayerEmitterPlugin(emitter)]
+    }
+  })
+  await wrapper.vm.$nextTick()
+
+  return { wrapper, emitter }
+}
+
+const minimizedDockItems = () =>
+  [...document.body.querySelectorAll<HTMLElement>('.lite-layer__dock-item')]
 
 const mountLayer = () => {
   const emitter = mitt<LayerEvents>()
@@ -145,6 +188,64 @@ describe('LiteLayer', () => {
 
     expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')).not.toBeNull()
     expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-maximum')).toBeNull()
+  })
+
+  test('lays minimized dock items in one row using the stylesheet geometry', async () => {
+    const restoreViewport = mockViewportWidth(DOCK_INSET + (DOCK_WIDTH + DOCK_GAP) * 3)
+
+    try {
+      const first = await mountMinimizableLayer('dock-row-a', 'Dock A')
+      const second = await mountMinimizableLayer('dock-row-b', 'Dock B')
+
+      first.emitter.emit('minimize')
+      second.emitter.emit('minimize')
+      await first.wrapper.vm.$nextTick()
+      await second.wrapper.vm.$nextTick()
+
+      const items = minimizedDockItems()
+
+      expect(items).toHaveLength(2)
+      // 停靠几何来自 style.scss（经 metrics.module.scss 导出），脚本不再硬编码
+      // Dock geometry comes from style.scss (via the metrics.module.scss export)
+      expect(items[0].style.left).toBe(`${DOCK_INSET}px`)
+      expect(items[0].style.bottom).toBe(`${DOCK_INSET}px`)
+      expect(items[1].style.left).toBe(`${DOCK_INSET + DOCK_WIDTH + DOCK_GAP}px`)
+      expect(items[1].style.bottom).toBe(`${DOCK_INSET}px`)
+    } finally {
+      restoreViewport()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('wraps minimized dock items instead of letting them overflow the container', async () => {
+    // 容器宽度只够放一个停靠项 / Container fits exactly one dock item
+    const viewportWidth = DOCK_INSET + DOCK_WIDTH
+    const restoreViewport = mockViewportWidth(viewportWidth)
+
+    try {
+      const first = await mountMinimizableLayer('dock-wrap-a', 'Wrap A')
+      const second = await mountMinimizableLayer('dock-wrap-b', 'Wrap B')
+
+      first.emitter.emit('minimize')
+      second.emitter.emit('minimize')
+      await first.wrapper.vm.$nextTick()
+      await second.wrapper.vm.$nextTick()
+
+      const items = minimizedDockItems()
+
+      expect(items).toHaveLength(2)
+      // 第二项换到上一行，而不是继续右移到可视范围之外
+      // The second item wraps onto the row above instead of spilling right
+      expect(items[1].style.left).toBe(`${DOCK_INSET}px`)
+      expect(items[1].style.bottom).toBe(`${DOCK_INSET + DOCK_HEIGHT + DOCK_GAP}px`)
+
+      for (const item of items) {
+        expect(parseFloat(item.style.left) + DOCK_WIDTH).toBeLessThanOrEqual(viewportWidth)
+      }
+    } finally {
+      restoreViewport()
+      layerManager.resetForTest()
+    }
   })
 
   test('default footer buttons emit empty payloads instead of native click events', async () => {

@@ -1,0 +1,21 @@
+@use 'common/var' as *;
+
+/**
+ * 样式真源 → 脚本的桥 / Stylesheet source of truth → script bridge
+ *
+ * 把停靠栏的几何尺寸从 SCSS 导出给 TypeScript，使 style.scss 与
+ * LiteLayer.vue 共用同一份定义，避免两处硬编码导致不一致
+ * （历史上的停靠项重叠问题正是由此产生）。
+ * Exports the dock geometry from SCSS to TypeScript so style.scss and
+ * LiteLayer.vue share one definition instead of two hard-coded copies
+ * (drift between those copies is what caused dock items to overlap).
+ *
+ * 导出值是带单位的字符串（如 "220px"），消费方用 parseFloat 取值。
+ * Exported values carry units (e.g. "220px"); consumers use parseFloat.
+ */
+:export {
+  dockItemWidth: $lite-layer__dock-item-width;
+  dockItemHeight: $lite-layer__dock-item-height;
+  dockItemGap: $lite-layer__dock-item-gap;
+  dockInset: $lite-layer__dock-inset;
+}

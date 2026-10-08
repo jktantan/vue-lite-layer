@@ -71,9 +71,9 @@
         class="lite-layer__window-header lite-layer__dock-item"
         :style="{
           position: isTeleportToBody ? 'fixed' : 'absolute',
-          left: dockPosition.left || `${12 + minimizedIndex * 232}px`,
+          left: dockPosition.left || `${dockLayout.left}px`,
           top: dockPosition.top,
-          bottom: dockPosition.bottom
+          bottom: dockPosition.left ? 'auto' : `${dockLayout.bottom}px`
         }"
         @mousedown="handleDockMouseDown"
       >
@@ -119,6 +119,7 @@ import LayerHeader from '@lib/components/LayerHeader.vue'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
+import dockMetrics from './assets/style/metrics.module.scss'
 import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
 import { useLayerClose } from './composables/use-layer-close'
@@ -178,7 +179,17 @@ const isMinimized = ref(false)
 const maximizedBeforeMinimize = ref(false)
 const isResizing = ref(false)
 const MINIMIZED_DOCK_Z_INDEX = 2_147_483_647
-const dockPosition = reactive({ left: '', top: '', bottom: '12px' })
+/**
+ * 停靠栏几何尺寸的唯一来源是 SCSS（metrics.module.scss 的 :export）。
+ * 脚本不再自行硬编码这些值，避免与 style.scss 失去同步。
+ * The single source of dock geometry is SCSS (metrics.module.scss :export);
+ * the script no longer hard-codes these values, so it cannot drift from style.scss.
+ */
+const DOCK_ITEM_WIDTH = parseFloat(dockMetrics.dockItemWidth)
+const DOCK_ITEM_HEIGHT = parseFloat(dockMetrics.dockItemHeight)
+const DOCK_ITEM_GAP = parseFloat(dockMetrics.dockItemGap)
+const DOCK_INSET = parseFloat(dockMetrics.dockInset)
+const dockPosition = reactive({ left: '', top: '' })
 let stopDockDrag: (() => void) | null = null
 const titleId = `lite-layer-title-${props.id}`
 const ENTER_ANIMATION_FALLBACK_MS = 220
@@ -194,12 +205,57 @@ const teleportGroup = props.teleportKey ?? (typeof props.teleport === 'string' ?
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
 const minimizedIndex = computed(() => layerManager.getMinimizedIndex(props.id!, teleportGroup))
 
+/** 停靠栏可用区域的响应式尺寸（已排除滚动条） / Reactive size of the dock area (scrollbars excluded) */
+const dockBounds = reactive({ width: 0, height: 0 })
+
+/** 重新测量停靠栏可用区域（视口或 teleport 容器） / Re-measure the dock area (viewport or teleport container) */
+const syncDockBounds = (): void => {
+  if (isTeleportToBody) {
+    dockBounds.width = document.documentElement.clientWidth
+    dockBounds.height = document.documentElement.clientHeight
+    return
+  }
+  const containerEl = layerRef.value
+  if (!containerEl) return
+  dockBounds.width = containerEl.clientWidth
+  dockBounds.height = containerEl.clientHeight
+}
+
+/**
+ * 停靠项在可视范围内的排布
+ * Placement of dock items inside the visible area
+ *
+ * 一行放不下时换行并向上堆叠，使停靠项不会沿水平方向跑出可视区
+ * （此前一直向右单行排列、被视口右侧裁掉）。
+ * 注意：当项数超过可视高度能容纳的行数时，仍会向视口顶部溢出。
+ * Wraps to a new row (stacked upward) once a row is full, so items never run
+ * off the right edge horizontally (as single-row placement used to). Note that
+ * once there are more items than the viewport height can hold, the stack still
+ * overflows the top edge.
+ */
+const dockLayout = computed(() => {
+  const index = Math.max(0, minimizedIndex.value)
+  const stepX = DOCK_ITEM_WIDTH + DOCK_ITEM_GAP
+  const stepY = DOCK_ITEM_HEIGHT + DOCK_ITEM_GAP
+  const perRow = Math.max(1, Math.floor((dockBounds.width - DOCK_INSET + DOCK_ITEM_GAP) / stepX))
+  const row = Math.floor(index / perRow)
+  const col = index % perRow
+  return { left: DOCK_INSET + col * stepX, bottom: DOCK_INSET + row * stepY }
+})
+
 // ──── 弹层尺寸与定位 / Layer Size and Positioning ────
 const layerStyle = reactive<LayerArea>({
   top: '0px',
   left: '0px',
-  width: '100vw',
-  height: '100vh'
+  // 100% 而非 100vw/100vh：固定定位下百分比相对初始包含块，
+  // 会排除滚动条，而 100vw/100vh 包含滚动条，出现滚动条时会让容器
+  // 比可视区更宽，窗口限位也随之失效。
+  // 100% instead of 100vw/100vh: for a fixed element the percentage resolves
+  // against the initial containing block, which excludes scrollbars, whereas
+  // 100vw/100vh include them and would make the container wider than the
+  // visible area, breaking window clamping when a scrollbar is present.
+  width: '100%',
+  height: '100%'
 })
 const emitter = useLayerEmitter()
 const i18n = useI18n()
@@ -303,9 +359,27 @@ const handleDockMouseDown = (event: MouseEvent) => {
 
   stopDockDrag?.()
   const dockRect = dockEl.getBoundingClientRect()
-  const containerRect = isTeleportToBody
-    ? { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }
-    : layerRef.value?.getBoundingClientRect()
+  // 用 clientWidth/clientHeight（排除滚动条）作为拖拽边界，
+  // 否则停靠项可以被拖到滚动条下方。
+  // Use clientWidth/clientHeight (scrollbars excluded) as the drag bounds,
+  // otherwise a dock item can be dragged underneath the scrollbar.
+  let containerRect: { left: number; top: number; width: number; height: number } | null = null
+  if (isTeleportToBody) {
+    containerRect = {
+      left: 0,
+      top: 0,
+      width: document.documentElement.clientWidth,
+      height: document.documentElement.clientHeight
+    }
+  } else if (layerRef.value) {
+    const layerRect = layerRef.value.getBoundingClientRect()
+    containerRect = {
+      left: layerRect.left,
+      top: layerRect.top,
+      width: layerRef.value.clientWidth,
+      height: layerRef.value.clientHeight
+    }
+  }
   if (!containerRect) return
   const offsetX = event.clientX - dockRect.left
   const offsetY = event.clientY - dockRect.top
@@ -315,7 +389,6 @@ const handleDockMouseDown = (event: MouseEvent) => {
     const maxTop = Math.max(0, containerRect.height - dockRect.height)
     dockPosition.left = `${Math.min(Math.max(0, moveEvent.clientX - containerRect.left - offsetX), maxLeft)}px`
     dockPosition.top = `${Math.min(Math.max(0, moveEvent.clientY - containerRect.top - offsetY), maxTop)}px`
-    dockPosition.bottom = 'auto'
   }
   const handleMouseUp = () => stopDockDrag?.()
   stopDockDrag = () => {
@@ -367,6 +440,7 @@ const handleOk = (): void => {
 }
 
 const handleContainerResize = (entries: ResizeObserverEntry[]) => {
+  syncDockBounds()
   if (windowRef.value && entries[0]) {
     layerSize.setMaximumSize(entries[0].target as HTMLElement)
     if (isMaximized.value) {
@@ -421,6 +495,7 @@ onMounted(() => {
   nextTick(() => {
     layerSize.setDefaultSize(windowRef.value)
     layerSize.setMaximumSize(layerRef.value)
+    syncDockBounds()
     layerSize.initPosition(props.location, layerRef.value, windowRef.value)
     bindDrag(headerRef.value?.el, windowRef.value, layerRef.value, layerSize)
     focusWindow()

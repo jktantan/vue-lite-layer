@@ -12,6 +12,23 @@ export interface WindowStyle {
 
 export type WindowStylePatch = Partial<WindowStyle>
 
+/**
+ * 容器可用于放置窗口的尺寸
+ * Size of the container available for placing windows
+ *
+ * 使用 clientWidth/clientHeight 而非 offsetWidth/offsetHeight：
+ * 前者不含滚动条与边框，才是窗口真正能落地的区域。
+ * 出现滚动条时若按 offset 计算，窗口会被允许压到滚动条下方。
+ * Uses clientWidth/clientHeight instead of offsetWidth/offsetHeight: the
+ * former excludes scrollbars and borders, which is the area a window can
+ * actually occupy. Measuring with offset* lets a window slide under the
+ * scrollbar when one is present.
+ */
+const getContainerSize = (el: HTMLElement): PixelSize => ({
+  height: el.clientHeight || el.offsetHeight,
+  width: el.clientWidth || el.offsetWidth
+})
+
 const applyWindowStyle = (
   windowStyle: WindowStyle,
   windowEl: HTMLElement | undefined | null,
@@ -67,10 +84,11 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * @param containerEl - 约束容器元素 / Constraint container element
    */
   const clampToContainer = (windowEl: HTMLElement, containerEl: HTMLElement) => {
+    const containerSize = getContainerSize(containerEl)
     const { top, left } = clampPosition(
       { top: windowEl.offsetTop, left: windowEl.offsetLeft },
       { height: windowEl.offsetHeight, width: windowEl.offsetWidth },
-      { height: containerEl.offsetHeight, width: containerEl.offsetWidth }
+      containerSize
     )
     windowEl.style.top = top + 'px'
     windowEl.style.left = left + 'px'
@@ -159,12 +177,10 @@ export default (initialSize?: { width?: string; height?: string }) => {
 
     const restoreTop = parseFloat(currentPosition.top) || 0
     const restoreLeft = parseFloat(currentPosition.left) || 0
-    const containerH = containerEl.offsetHeight || containerEl.clientHeight
-    const containerW = containerEl.offsetWidth || containerEl.clientWidth
     const { top: clampedTop, left: clampedLeft } = clampPosition(
       { top: restoreTop, left: restoreLeft },
       defaultSize,
-      { height: containerH, width: containerW }
+      getContainerSize(containerEl)
     )
 
     withTransition(
@@ -209,10 +225,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
         height: windowEl.offsetHeight + 'px'
       })
     } else {
-      const { top, left } = getPresetPosition(location, defaultSize, {
-        height: containerEl.offsetHeight,
-        width: containerEl.offsetWidth
-      })
+      const { top, left } = getPresetPosition(location, defaultSize, getContainerSize(containerEl))
       windowEl.style.top = top + 'px'
       windowEl.style.left = left + 'px'
 

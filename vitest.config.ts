@@ -23,6 +23,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.ts'],
+    css: {
+      include: /\.module\.scss$/
+    },
     coverage: {
       reporter: ['text', 'html'],
       include: ['lib/**/*.{ts,vue}'],

@@ -62,17 +62,20 @@ export default () => {
     if (!handleEl || !windowEl || !containerEl) return
 
     onMouseDown = (e: MouseEvent) => {
-      // 最大化状态下（窗口与容器同尺寸）不允许拖拽 / Dragging not allowed when maximized (window same size as container)
-      if (
-        windowEl.offsetWidth === containerEl.offsetWidth &&
-        windowEl.offsetHeight === containerEl.offsetHeight
-      ) {
+      const containerSize = {
+        height: containerEl.clientHeight || containerEl.offsetHeight,
+        width: containerEl.clientWidth || containerEl.offsetWidth
+      }
+
+      // 最大化状态下（窗口与容器可用区同尺寸）不允许拖拽
+      // Dragging not allowed when maximized (window fills the container's usable area)
+      if (windowEl.offsetWidth === containerSize.width && windowEl.offsetHeight === containerSize.height) {
         return
       }
 
       const bounds: DragBounds = {
-        maxX: containerEl.offsetWidth - windowEl.offsetWidth,
-        maxY: containerEl.offsetHeight - windowEl.offsetHeight,
+        maxX: containerSize.width - windowEl.offsetWidth,
+        maxY: containerSize.height - windowEl.offsetHeight,
         offsetX: e.clientX - windowEl.offsetLeft,
         offsetY: e.clientY - windowEl.offsetTop
       }

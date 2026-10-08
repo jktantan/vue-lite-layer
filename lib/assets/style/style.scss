@@ -60,8 +60,8 @@
 
     &-header {
       padding: 0 8px;
-      height: 40px;
-      line-height: 40px;
+      height: $lite-layer__header-height;
+      line-height: $lite-layer__header-height;
       display: flex;
       align-items: center;
       border-bottom: 1px solid #f0f0f0;
@@ -130,9 +130,15 @@
 
   &__dock-item {
     position: fixed;
-    bottom: 12px;
+    bottom: $lite-layer__dock-inset;
     z-index: 1;
-    width: 220px;
+    width: $lite-layer__dock-item-width;
+    // 必须与 .lite-layer__window-header 的 padding、边框一起参与尺寸计算，
+    // 否则实际宽度会超出停靠步进，导致相邻停靠项重叠。
+    // Must include the .lite-layer__window-header padding/border in the size
+    // calculation, otherwise the real width exceeds the dock step and
+    // neighbouring dock items overlap.
+    box-sizing: border-box;
     pointer-events: auto;
     background-color: $lite-layer__color-white;
     border: 1px solid #dcdfe6;
