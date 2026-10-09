@@ -18,8 +18,8 @@ export interface LayerInstance {
   teleportTarget: string
   /** 归一化 Teleport key，用于内部 z-index 分组和清理 / Normalized Teleport key for internal z-index grouping and cleanup */
   teleportKey: string
-  /** 关闭弹层 / Close layer */
-  close: () => boolean
+  /** 关闭弹层（仅发起关闭请求，能否关闭取决于 beforeClose） / Close layer (only requests closing; beforeClose decides) */
+  close: () => void
   /** 将弹层置顶 / Bring layer to top */
   bringToTop: () => void
   /** 最大化弹层 / Maximize layer */

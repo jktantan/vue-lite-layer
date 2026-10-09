@@ -215,29 +215,26 @@ export default (initialSize?: { width?: string; height?: string }) => {
     if (isCustomPosition(location)) {
       windowEl.style.top = location.top
       windowEl.style.left = location.left
-      clampToContainer(windowEl, containerEl)
-      currentPosition.top = windowEl.style.top
-      currentPosition.left = windowEl.style.left
-      applyWindowStyle(windowStyle, windowEl, {
-        top: windowEl.style.top,
-        left: windowEl.style.left,
-        width: windowEl.offsetWidth + 'px',
-        height: windowEl.offsetHeight + 'px'
-      })
     } else {
       const { top, left } = getPresetPosition(location, defaultSize, getContainerSize(containerEl))
       windowEl.style.top = top + 'px'
       windowEl.style.left = left + 'px'
-
-      currentPosition.top = windowEl.style.top
-      currentPosition.left = windowEl.style.left
-      applyWindowStyle(windowStyle, windowEl, {
-        top: windowEl.style.top,
-        left: windowEl.style.left,
-        width: windowEl.offsetWidth + 'px',
-        height: windowEl.offsetHeight + 'px'
-      })
     }
+
+    // Both branches clamp against the live DOM: presets can also compute
+    // negative coordinates (e.g. center when the window is larger than the
+    // container), and the custom branch is not guaranteed to be in-bounds.
+    // 两个分支都基于实际 DOM 做 clamp：预设同样可能算出负坐标（例如窗口
+    // 大于容器时的居中），自定义坐标也不保证在边界内。
+    clampToContainer(windowEl, containerEl)
+    currentPosition.top = windowEl.style.top
+    currentPosition.left = windowEl.style.left
+    applyWindowStyle(windowStyle, windowEl, {
+      top: windowEl.style.top,
+      left: windowEl.style.left,
+      width: windowEl.offsetWidth + 'px',
+      height: windowEl.offsetHeight + 'px'
+    })
   }
 
   /**

@@ -147,7 +147,6 @@ const openLayer = (
     teleportKey: normalizedTeleport.key,
     close: () => {
       emitter.emit('requestClose', { reason: 'programmatic' })
-      return true
     },
     bringToTop: () => emitter.emit('top'),
     maximize: () => emitter.emit('maximum'),

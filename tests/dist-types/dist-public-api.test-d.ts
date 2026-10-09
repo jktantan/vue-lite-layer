@@ -48,7 +48,7 @@ const instance: LayerInstance = {
   id: 'a',
   teleportTarget: 'body',
   teleportKey: 'body',
-  close: () => true,
+  close: () => {},
   bringToTop: () => {},
   maximize: () => {},
   minimize: () => {},

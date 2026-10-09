@@ -103,16 +103,17 @@
 <script lang="ts" setup>
 import { ResizeObserver } from '@juggle/resize-observer'
 import {
+  computed,
   reactive,
   ref,
   useTemplateRef,
   onMounted,
   onUnmounted,
   nextTick,
-  computed,
   watch,
   type ComponentPublicInstance
 } from 'vue'
+import { nanoid } from 'nanoid'
 import useDraggable from './composables/use-draggable'
 
 import LayerHeader from '@lib/components/LayerHeader.vue'
@@ -191,7 +192,7 @@ const DOCK_ITEM_GAP = parseFloat(dockMetrics.dockItemGap)
 const DOCK_INSET = parseFloat(dockMetrics.dockInset)
 const dockPosition = reactive({ left: '', top: '' })
 let stopDockDrag: (() => void) | null = null
-const titleId = `lite-layer-title-${props.id}`
+const titleId = `lite-layer-title-${props.id ?? nanoid()}`
 const ENTER_ANIMATION_FALLBACK_MS = 220
 let enterFallbackTimer: ReturnType<typeof setTimeout> | null = null
 let hasOpened = false
