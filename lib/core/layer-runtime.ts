@@ -200,8 +200,7 @@ const openLayer = (
 
 /** Creates the per-host service exposed as `$layer` and through injection. */
 export const createLayerService = (globalOptions?: LayerGlobalConfig): LayerService => {
-  let service!: LayerService
-  service = {
+  const service: LayerService = {
     open: (options, appContext, sourceProvides) =>
       openLayer(service, globalOptions, options, appContext, sourceProvides),
     close: (instance) => {

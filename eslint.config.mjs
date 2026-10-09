@@ -20,6 +20,9 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
+      // Allow intentionally-omitted rest siblings (e.g. stripping immutable
+      // fields before Object.assign) while keeping real unused-var errors.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
     },
   },
 ]

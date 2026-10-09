@@ -52,7 +52,7 @@ const printVersion = (version: string) => {
     'px;'
   const fullStyle =
     style +
-    `background-image: url(${image64});background-size: ${width}px ${height}px;background-repeat: norepeat; color: transparent;`
+    `background-image: url(${image64});background-size: ${width}px ${height}px;background-repeat: no-repeat; color: transparent;`
 
   cachedVersion = version
   cachedStyle = fullStyle
