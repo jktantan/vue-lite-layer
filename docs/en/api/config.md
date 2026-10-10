@@ -51,7 +51,7 @@ String `content` is for trusted HTML, and runtime rendering does not sanitize HT
 
 ## Close Control and Accessibility
 
-All close paths (header, shade, `Esc`, footer and instance `close()`) pass through `beforeClose`, including asynchronous guards:
+All close paths (header, shade, `Esc`, footer and instance `close()`) pass through `beforeClose`, including synchronous and asynchronous guards:
 
 ```ts
 openLayer({
@@ -60,7 +60,9 @@ openLayer({
 }, appContext)
 ```
 
-Layers focus themselves on open, trap `Tab` by default, and restore focus when the active top layer closes. A shaded layer teleported to `body` locks page scroll; nested layers use reference counting and restore page styles after the final close.
+While `beforeClose` is awaiting, additional close requests on the same Layer are **coalesced into the most recent intent** and processed serially through the guard — concurrent requests cannot race ahead. The first guard that returns `false` keeps the Layer open; the first that returns a truthy value starts the leave animation.
+
+Layers focus themselves on open, trap `Tab` by default, and restore focus when the active top layer closes. A shaded layer teleported to `body` locks page scroll; nested layers use reference counting and restore page styles after the final close. SSR or hosts that lack `document.body` do not throw. The focus trap skips elements hidden by CSS or ARIA (`display: none`, `visibility: hidden`, `aria-hidden="true"`, hidden ancestors, etc.) so the Tab order never lands on an unreachable control.
 
 With `min: true`, the header shows a minimize button. A minimized window appears in a dock at the bottom of its Teleport target and no longer retains its shade, scroll lock, or focus trap. Clicking its dock item restores and brings it to the front, preserving its previous normal or maximized state.
 
@@ -84,6 +86,10 @@ openLayer({
 ```
 
 `timeout` is the loading timeout in milliseconds; omit it to disable timeout. `maxRetries` limits manual retries and `retryDelay` delays a retry. Use `onTimeout` and `onRetry(retryCount)` for observability. Closing a Layer clears library-owned timeout/retry timers; aborting the async loader itself remains the responsibility of the request layer, for example with `AbortController`.
+
+::: tip Error callback dedup and propagation
+`onError` fires **at most once** for the same error across the timeout and synchronous child-render paths — duplicates are deduped so a single error never produces two alerts. Render errors are **not swallowed**: they continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` for unified observability. The library's `onError` only mirrors the error into the retry UI.
+:::
 
 ## Footer Details
 

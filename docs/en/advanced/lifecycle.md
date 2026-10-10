@@ -23,6 +23,10 @@ const result = await instance?.closed
 
 `closed` resolves after the leave animation, so the caller can safely continue its flow. `reason` identifies the close entry point: `header`, `shade`, `escape`, `ok`, `cancel`, or `programmatic`.
 
+### Coalescing concurrent close requests
+
+When `beforeClose` is asynchronous and additional close requests arrive while the guard is awaiting, they are **coalesced into the most recent intent** and processed serially — concurrent requests cannot race ahead. Only one close action actually runs; its `reason` reflects the latest request. Any guard that returns `false` keeps the Layer open; the first guard that returns a truthy value starts the leave animation. This behavior is centralized in `useLayerClose` and is identical across every close path (header, shade, `Esc`, footer, instance `close()`).
+
 ## Footer and Business Completion
 
 Default Footer buttons only notify the content component: OK triggers `onOk()` and Cancel triggers `onCancel()`. They do not close on behalf of business logic, so a window cannot disappear before validation or an async save finishes.
@@ -91,6 +95,8 @@ openLayer({
 ```
 
 Omit `maxRetries` for unlimited manual retries; omit `retryDelay` to retry immediately. Closing a Layer clears timers created by Layer for timeout and retry. If the async component loader's own network request must be cancelled, handle it in the request layer with `AbortController` or a comparable mechanism.
+
+`onError` fires **at most once** for the same error across the timeout path and the synchronous child-render path — duplicates are deduped so a single error never produces two alerts. Render errors are **not swallowed**: they continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` for unified observability. The library's `onError` only mirrors the error into the retry UI.
 
 ## Default Accessibility Behavior
 

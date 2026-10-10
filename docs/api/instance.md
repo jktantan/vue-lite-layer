@@ -12,14 +12,20 @@ interface LayerInstance {
   /** 唯一分组标识；未配置 uniqueGroup 时为空 */
   uniqueGroup?: string
 
-  /** Teleport 目标选择器；为兼容旧版保留 */
+  /**
+   * Teleport 目标的 CSS 选择器或 `'body'`；
+   * 当 teleport 是 HTMLElement / RendererNode 时为空字符串，请改用 teleportKey。
+   */
   teleportTarget: string
 
-  /** 归一化 Teleport key，用于内部分组和清理 */
+  /**
+   * 归一化 Teleport key，对所有 teleport 类型（CSS 选择器、HTMLElement 等）
+   * 都是稳定的字符串，用于内部分组和清理。
+   */
   teleportKey: string
 
-  /** 关闭弹层 */
-  close: () => boolean
+  /** 关闭弹层（仅发起关闭请求，能否关闭取决于 beforeClose） */
+  close: () => void
 
   /** 将弹层置顶 */
   bringToTop: () => void
@@ -34,7 +40,7 @@ interface LayerInstance {
   restore: () => void
 
   /** 更新打开后的可变配置 */
-  update: (options: Partial<LayerConfig>) => void
+  update: (options: Partial<Omit<LayerConfig, 'id' | 'uniqueGroup' | 'teleport'>>) => void
 
   /** 离场完成后 resolve 关闭结果 */
   closed: Promise<LayerCloseResult>
@@ -42,7 +48,7 @@ interface LayerInstance {
 ```
 
 ::: tip Teleport 元数据
-`teleportTarget` 保留用于兼容旧版实例字段；新代码如需区分 `HTMLElement` Teleport 分组，应读取稳定的 `teleportKey`。未传入 `uniqueGroup` 时，`uniqueGroup` 为 `undefined`。
+`teleportTarget` 是面向用户的字段：当 `teleport` 是 CSS 选择器或 `body` 时它是有意义的字符串；当 `teleport` 是 `HTMLElement` / `RendererNode` 时它为**空字符串**，因为 DOM 元素无法表示为稳定的字符串。**区分 Teleport 分组、追踪实例归属时，请读取稳定的 `teleportKey`**——它对所有 teleport 类型都是稳定字符串。未传入 `uniqueGroup` 时，`uniqueGroup` 为 `undefined`。
 :::
 
 ## 方法说明
@@ -60,7 +66,7 @@ setTimeout(() => {
 }, 3000)
 ```
 
-**返回值：** `boolean` — 始终返回 `true`
+**返回值：** `void` — 该方法不返回任何值。等待关闭完成请使用 `instance.closed` Promise。
 
 ### bringToTop()
 

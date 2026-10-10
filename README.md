@@ -27,7 +27,7 @@
 - **事件通信** — Footer → Container → 调用方的完整事件链路
 - **国际化** — 内置中文/英文，支持自定义语言包
 - **Nuxt 支持** — 提供 Nuxt 模块，自动注册插件和 composables
-- **Teleport** — 支持挂载到 `body` 或任意 DOM 容器
+- **Teleport** — 支持挂载到 `body` 或任意 DOM 容器；HTMLElement 目标在实例上通过稳定的 `teleportKey` 标识
 - **TypeScript** — 完整的类型定义
 
 ### 安装
@@ -99,6 +99,8 @@ openLayer({
 ### 关闭控制与实例结果
 
 所有关闭入口都会经过 `beforeClose`。默认 Footer 只发送确认/取消事件；内容组件完成校验或保存后必须自行调用 `close()`。简单确认框可设置 `closeOnOk: true`。
+
+`beforeClose` 可以是异步函数。同一 Layer 在守卫等待期间收到多次关闭请求时，后续请求会合并为**最近一次**的关闭意图并按顺序经过守卫，避免并发抢占；任意一次守卫通过都会触发离场动画。
 
 ```ts
 const instance = openLayer({
@@ -231,9 +233,11 @@ openLayer({
 
 ### 可访问性与异步内容
 
-Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复。
+Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复，SSR 与缺少 `document.body` 的宿主下不会抛错。
 
-异步组件支持加载、超时、失败重试：
+焦点锁定会跳过被 CSS 或 ARIA 隐藏的元素（`display: none`、`visibility: hidden`、`aria-hidden="true"`、祖先链上的隐藏状态等），避免 Tab 顺序错乱。
+
+异步组件支持加载、超时、失败重试。同一错误的 `onError` 回调只会触发一次（避免 timeout 路径与同步渲染错误重复触发），渲染错误会继续向上传播给祖先 `errorCaptured` 与 app-level `errorHandler`，不会被吞掉：
 
 ```ts
 import { defineAsyncComponent } from 'vue'
@@ -306,7 +310,7 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Event Communication** — Complete event chain from Footer → Container → Caller
 - **i18n** — Built-in Chinese/English, supports custom language packs
 - **Nuxt Support** — Nuxt module for automatic plugin and composable registration
-- **Teleport** — Mount to `body` or any DOM container
+- **Teleport** — Mount to `body` or any DOM container; HTMLElement targets are identified on the instance via the stable `teleportKey`
 - **TypeScript** — Full type definitions
 
 ### Installation
@@ -378,6 +382,8 @@ openLayer({
 ### Close Control and Instance Results
 
 Every close path passes through `beforeClose`. The default footer only emits OK/Cancel events; content must call `close()` after validation or saving. Use `closeOnOk: true` for simple confirmations.
+
+`beforeClose` may be asynchronous. While the guard is awaiting, additional close requests on the same Layer are coalesced into the **most recent** intent and processed serially through the guard, so concurrent clicks cannot race ahead. The first guard that passes starts the leave animation.
 
 ```ts
 const instance = openLayer({
@@ -506,9 +512,11 @@ openLayer({
 
 ### Accessibility and Async Content
 
-Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers.
+Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers, and do not throw under SSR or hosts that lack `document.body`.
 
-Async components support loading, timeout, failure, and retry:
+Focus trapping skips elements hidden by CSS or ARIA (`display: none`, `visibility: hidden`, `aria-hidden="true"`, hidden ancestors, etc.) so the Tab order never lands on an unreachable control.
+
+Async components support loading, timeout, failure, and retry. The same error fires `onError` only once — duplicates between the timeout path and the synchronous render-error path are deduped — and render errors continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` rather than being swallowed:
 
 ```ts
 import { defineAsyncComponent } from 'vue'

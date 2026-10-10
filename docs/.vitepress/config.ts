@@ -25,6 +25,14 @@ export default defineConfig({
       alias: {
         '@lib': fileURLToPath(new URL('../../lib', import.meta.url))
       }
+    },
+    build: {
+      // Disable esbuild CSS minify for the docs site. esbuild emits two
+      // harmless `[css-syntax-error] Unexpected "}"` warnings on VitePress's
+      // own default-theme CSS (around the `--vp-c-green-*` variable block);
+      // our `lib/assets/style/*.scss` compiles and minifies cleanly on its
+      // own. The lib build still uses esbuild minify independently.
+      cssMinify: false
     }
   },
   title: 'Vue Lite Layer',
