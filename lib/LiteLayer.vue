@@ -186,10 +186,18 @@ const MINIMIZED_DOCK_Z_INDEX = 2_147_483_647
  * The single source of dock geometry is SCSS (metrics.module.scss :export);
  * the script no longer hard-codes these values, so it cannot drift from style.scss.
  */
-const DOCK_ITEM_WIDTH = parseFloat(dockMetrics.dockItemWidth)
-const DOCK_ITEM_HEIGHT = parseFloat(dockMetrics.dockItemHeight)
-const DOCK_ITEM_GAP = parseFloat(dockMetrics.dockItemGap)
-const DOCK_INSET = parseFloat(dockMetrics.dockInset)
+const parseMetric = (raw: unknown, fallback: number): number => {
+  // SCSS `:export` values usually come back as "220px" or numeric strings, but
+  // some build pipelines strip the unit or return raw numbers. Match the first
+  // numeric token so we accept all of these forms without producing NaN.
+  const match = String(raw ?? '').match(/-?\d+(?:\.\d+)?/)
+  const value = match ? Number.parseFloat(match[0]) : Number.NaN
+  return Number.isFinite(value) ? value : fallback
+}
+const DOCK_ITEM_WIDTH = parseMetric(dockMetrics.dockItemWidth, 220)
+const DOCK_ITEM_HEIGHT = parseMetric(dockMetrics.dockItemHeight, 40)
+const DOCK_ITEM_GAP = parseMetric(dockMetrics.dockItemGap, 12)
+const DOCK_INSET = parseMetric(dockMetrics.dockInset, 12)
 const dockPosition = reactive({ left: '', top: '' })
 let stopDockDrag: (() => void) | null = null
 const titleId = `lite-layer-title-${props.id ?? nanoid()}`
@@ -238,7 +246,13 @@ const dockLayout = computed(() => {
   const index = Math.max(0, minimizedIndex.value)
   const stepX = DOCK_ITEM_WIDTH + DOCK_ITEM_GAP
   const stepY = DOCK_ITEM_HEIGHT + DOCK_ITEM_GAP
-  const perRow = Math.max(1, Math.floor((dockBounds.width - DOCK_INSET + DOCK_ITEM_GAP) / stepX))
+  // Guard against negative/NaN container dimensions. `dockBounds.width` can be
+  // 0 before the layout settles, and a missing clientHeight during SSR or in
+  // hidden iframes can yield NaN through `Math.floor(NaN)`. Clamp to a safe
+  // single-column layout so dock coordinates never go negative.
+  const usableWidth = Math.max(0, dockBounds.width) - DOCK_INSET + DOCK_ITEM_GAP
+  const perRowRaw = Number.isFinite(usableWidth) && stepX > 0 ? Math.floor(usableWidth / stepX) : 1
+  const perRow = Math.max(1, perRowRaw)
   const row = Math.floor(index / perRow)
   const col = index % perRow
   return { left: DOCK_INSET + col * stepX, bottom: DOCK_INSET + row * stepY }

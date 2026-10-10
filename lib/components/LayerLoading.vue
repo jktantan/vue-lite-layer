@@ -38,9 +38,14 @@ onUnmounted(() => {
   (Vue 3.3.4+ scopes keyframe names in <style scoped>, which can cause
   the animation property and @keyframes declaration to reference
   different hashed names, breaking the animation)
+
+  Keyframe 名称加了项目命名空间前缀以避免与宿主或第三方库同名 keyframe
+  在全局样式表里发生冲突 / The keyframe name carries a project namespace
+  prefix to avoid collisions in the global stylesheet with host or
+  third-party libraries that may use the same identifier.
 -->
 <style>
-@keyframes vll-loading-rotate {
+@keyframes vue-lite-layer-loading-rotate {
   from {
     transform: rotate(0deg);
   }
@@ -68,6 +73,6 @@ onUnmounted(() => {
   border: 3px solid #e5e6eb;
   border-top-color: #409eff;
   border-radius: 50%;
-  animation: vll-loading-rotate 0.8s linear infinite;
+  animation: vue-lite-layer-loading-rotate 0.8s linear infinite;
 }
 </style>

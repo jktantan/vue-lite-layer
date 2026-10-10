@@ -11,6 +11,17 @@ const instances = new Map<string, LayerInstance>()
 const minimizedGroups = reactive(new Map<string, Map<string, true>>())
 
 /**
+ * 反向索引：从弹层 id 查其在分组中的位置。
+ * `getMinimizedIndex` 之前用 `[...keys()].indexOf(id)` 在 dock 重排时反复
+ * 做 O(n) 扫描；这里在 `minimize/restoreMinimized` 时同步维护，使得查询 O(1)。
+ * Reverse index: id -> position within its teleport group.
+ * Previously `getMinimizedIndex` rebuilt the keys array on every dock layout
+ * computation (O(n)). This map is kept in sync with `minimizedGroups` so the
+ * lookup is O(1).
+ */
+const minimizedIndex = new Map<string, number>()
+
+/**
  * 按 Teleport 目标（父容器）分组的 z-index 记录
  * z-index records grouped by Teleport target (parent container)
  *
@@ -97,20 +108,33 @@ const layerManager = {
   /** Mark a layer as minimized so its dock item can be positioned among siblings. */
   minimize(id: string, teleportTarget: string): void {
     if (!minimizedGroups.has(teleportTarget)) minimizedGroups.set(teleportTarget, new Map())
-    minimizedGroups.get(teleportTarget)!.set(id, true)
+    const group = minimizedGroups.get(teleportTarget)!
+    // Skip if already present so the reverse index stays at its existing slot.
+    if (group.has(id)) return
+    const nextIndex = group.size
+    group.set(id, true)
+    minimizedIndex.set(id, nextIndex)
   },
 
   /** Remove a layer from its Teleport target's dock. */
   restoreMinimized(id: string, teleportTarget: string): void {
     const group = minimizedGroups.get(teleportTarget)
     if (!group) return
-    group.delete(id)
+    if (!group.delete(id)) return
+    minimizedIndex.delete(id)
+    // Rebuild the reverse index for the remaining siblings so positions stay
+    // contiguous. This is O(n) but only on minimize/restore, not on every
+    // dock layout computation.
+    let i = 0
+    for (const sibling of group.keys()) {
+      minimizedIndex.set(sibling, i++)
+    }
     if (group.size === 0) minimizedGroups.delete(teleportTarget)
   },
 
-  /** Get the reactive dock position for one minimized layer. */
-  getMinimizedIndex(id: string, teleportTarget: string): number {
-    return [...(minimizedGroups.get(teleportTarget)?.keys() ?? [])].indexOf(id)
+  /** Get the reactive dock position for one minimized layer (O(1) lookup). */
+  getMinimizedIndex(id: string, _teleportTarget: string): number {
+    return minimizedIndex.get(id) ?? -1
   },
 
   /**
@@ -186,6 +210,7 @@ const layerManager = {
     instances.clear()
     zIndexGroups.clear()
     minimizedGroups.clear()
+    minimizedIndex.clear()
     globalZIndex = BASE_Z_INDEX
   },
 

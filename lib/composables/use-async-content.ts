@@ -26,6 +26,32 @@ export const useAsyncContent = (getConfig: () => AsyncContentConfig | undefined)
     loadingTimeout = null
   }
 
+  // Track whether the current error has already been surfaced through any
+  // path so we don't double-fire onError when the same error instance arrives
+  // from multiple sources (e.g. timeout fires first, then a render error
+  // bubbling into onErrorCaptured for the same error).
+  let lastReportedError: unknown
+  const markReported = (error: unknown): void => {
+    lastReportedError = error
+  }
+  const clearReportedError = (): void => {
+    lastReportedError = undefined
+  }
+  const isSameError = (error: unknown): boolean => {
+    if (error === lastReportedError) return true
+    if (error instanceof Error && lastReportedError instanceof Error) {
+      return error.message === lastReportedError.message && error.name === lastReportedError.name
+    }
+    return false
+  }
+  const reportError = (error: unknown): void => {
+    if (isSameError(error)) return
+    clearLoadingTimeout()
+    contentError.value = error
+    getConfig()?.onError?.(error)
+    markReported(error)
+  }
+
   const handlePending = (): void => {
     clearLoadingTimeout()
     const config = getConfig()
@@ -35,9 +61,10 @@ export const useAsyncContent = (getConfig: () => AsyncContentConfig | undefined)
     loadingTimeout = setTimeout(() => {
       loadingTimeout = null
       const error = new Error(`Async layer content timed out after ${timeout}ms`)
-      contentError.value = error
       config?.onTimeout?.()
-      config?.onError?.(error)
+      // Go through reportError so the timeout and a downstream onErrorCaptured
+      // for the same error instance don't both fire onError.
+      reportError(error)
     }, timeout)
   }
 
@@ -51,6 +78,8 @@ export const useAsyncContent = (getConfig: () => AsyncContentConfig | undefined)
     const retry = () => {
       retryTimer = null
       contentError.value = null
+      // Clear the dedup state so a new failure after retry can be reported.
+      clearReportedError()
       contentKey.value += 1
       isRetrying.value = false
     }
@@ -71,15 +100,16 @@ export const useAsyncContent = (getConfig: () => AsyncContentConfig | undefined)
     contentError.value = null
     retryCount.value = 0
     isRetrying.value = false
+    clearReportedError()
   }
 
   onErrorCaptured((error) => {
-    clearLoadingTimeout()
-    contentError.value = error
-    getConfig()?.onError?.(error)
-    // The error is represented by the retry UI; do not also surface it as an
-    // uncaught application error.
-    return false
+    // Surface the error to the retry UI but do NOT swallow it: returning
+    // `false` here would mask errors from ancestor errorCaptured handlers and
+    // from app-level errorHandler. Use deduplication so the same error
+    // instance (e.g. fired by handlePending's timeout and then by a render
+    // path) only surfaces the retry UI and onError once.
+    reportError(error)
   })
 
   return {

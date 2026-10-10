@@ -11,6 +11,29 @@ interface LayerFocusOptions {
   requestClose: (context: LayerCloseContext) => Promise<void>
 }
 
+/**
+ * Check whether an element is currently visible to keyboard users.
+ *
+ * Browsers honor `aria-hidden="true"` on the element itself and CSS hiding via
+ * `display: none` / `visibility: hidden`, but they do not all treat every
+ * ancestor combination the same way. We mirror the WAI-ARIA Authoring
+ * Practices check: skip elements that are hidden by themselves, by an ancestor
+ * with `aria-hidden="true"`, or that have zero rendered size from CSS hiding.
+ */
+const isElementVisible = (element: HTMLElement): boolean => {
+  if (element.getAttribute('aria-hidden') === 'true') return false
+  if (element.hasAttribute('hidden')) return false
+  // Walk up so a hidden ancestor also disqualifies the descendant.
+  let current: HTMLElement | null = element
+  while (current) {
+    if (current.getAttribute('aria-hidden') === 'true') return false
+    const style = window.getComputedStyle(current)
+    if (style.display === 'none' || style.visibility === 'hidden') return false
+    current = current.parentElement
+  }
+  return true
+}
+
 /** Owns keyboard focus capture, trapping and restoration for one dialog. */
 export const useLayerFocus = ({
   getWindow,
@@ -33,7 +56,7 @@ export const useLayerFocus = ({
     const windowEl = getWindow()
     if (!windowEl) return []
     return Array.from(windowEl.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-      (element) => element.getAttribute('aria-hidden') !== 'true'
+      isElementVisible
     )
   }
 
