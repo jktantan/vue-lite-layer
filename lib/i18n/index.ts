@@ -82,13 +82,6 @@ function getBuiltInMessages(): LocaleMessages {
 }
 
 /**
- * 用户消息合并缓存（按 locale 缓存），避免每次 openLayer 都重复合并。
- * Cache merged-per-locale user messages so repeated `openLayer` calls don't
- * re-clone the same override payload.
- */
-const mergedUserMessagesCache = new Map<string, LocaleMessage>()
-
-/**
  * 创建 i18n 工具对象
  * Create i18n utility object
  */
@@ -109,11 +102,16 @@ export default () => {
         if (!isSafeMessageKey(locale)) continue
 
         const override = localeI18n.messages[locale]
-        let mergedOverride = mergedUserMessagesCache.get(locale)
-        if (!mergedOverride) {
-          mergedOverride = mergeMessages({}, override)
-          mergedUserMessagesCache.set(locale, mergedOverride)
-        }
+        // 不缓存合并结果：不同 openLayer 调用可能传不同的 override，
+        // 按 locale 缓存会让后调用的 layer 复用前一次的 payload，
+        // 出现"用户传入被忽略"或"层间互相污染"的 bug（参见 i18n.test.ts
+        // ignores prototype pollution 用例）。
+        // Don't cache the merged payload: different `openLayer` calls may
+        // pass different overrides, and caching by locale lets later calls
+        // reuse an earlier layer's payload, dropping the user's current
+        // override or crossing-pollinating layers (see the i18n.test.ts
+        // "ignores prototype pollution" cases).
+        const mergedOverride = mergeMessages({}, override)
 
         combinedMessages[locale] = mergeMessages(combinedMessages[locale], mergedOverride)
       }
