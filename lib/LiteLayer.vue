@@ -236,7 +236,17 @@ const isTeleportToBody =
   (typeof document !== 'undefined' && props.teleport === document.body)
 const teleportGroup = props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
-const minimizedIndex = computed(() => layerManager.getMinimizedIndex(props.id!, teleportGroup))
+const minimizedIndex = computed(() => {
+  // 显式读 `minimizedGroups` 触发 reactive 订阅，
+  // 否则 layerManager 的 Map.set 不会让 dock 几何重算，
+  // 同组多 dock-item 时第二项会贴在第一项上。
+  // Read `minimizedGroups` (reactive) to register a dep, so layerManager's
+  // Map.set on the (non-reactive) minimizedIndex invalidates this computed.
+  const groups = layerManager.getMinimizedGroups()
+  // touch for reactivity
+  void (groups.size >= 0)
+  return layerManager.getMinimizedIndex(props.id!, teleportGroup)
+})
 
 /** 停靠栏可用区域的响应式尺寸（已排除滚动条） / Reactive size of the dock area (scrollbars excluded) */
 const dockBounds = reactive({ width: 0, height: 0 })
@@ -358,8 +368,6 @@ const handleRestore = () => {
     isMaximized.value = maximizedBeforeMinimize.value
     const windowEl = windowRef.value
     const containerEl = layerRef.value
-    // eslint-disable-next-line no-console
-    console.log('DEBUG handleRestore: windowEl=', !!windowEl, 'containerEl=', !!containerEl)
     if (!windowEl || !containerEl) {
       isRestoringFromMin.value = false
       layerManager.restoreMinimized(props.id!, teleportGroup)
@@ -385,8 +393,6 @@ const handleRestore = () => {
     windowEl.style.left = dockLeft + 'px'
     windowEl.style.width = dockW + 'px'
     windowEl.style.height = dockH + 'px'
-    // eslint-disable-next-line no-console
-    console.log('DEBUG handleRestore: before withTransition, transition=', JSON.stringify(windowEl.style.transition))
     withTransition(
       windowEl,
       () => {
@@ -403,8 +409,6 @@ const handleRestore = () => {
         focusWindow()
       }
     )
-    // eslint-disable-next-line no-console
-    console.log('DEBUG handleRestore: after withTransition, transition=', JSON.stringify(windowEl.style.transition))
     return
   }
   isMaximized.value = false

@@ -138,6 +138,22 @@ const layerManager = {
   },
 
   /**
+   * 暴露 reactive `minimizedGroups` 让调用方在 computed 里访问以建立
+   * reactive 依赖。layerManager 内部的 `minimizedIndex` 是普通 Map，
+   * Map.set 不会触发依赖追踪，所以消费方必须额外读一次 `minimizedGroups`
+   * 的 size/keys 才会让 `minimize` / `restoreMinimized` 之后的 patch
+   * 让 dock 几何重算。
+   * Expose the reactive `minimizedGroups` so callers can read it inside a
+   * `computed` to register a dep. The internal `minimizedIndex` is a plain
+   * Map and `Map.set` doesn't trigger reactivity, so consumers need an extra
+   * touch of `minimizedGroups` (size / keys) for the dock layout to recompute
+   * after `minimize` / `restoreMinimized`.
+   */
+  getMinimizedGroups(): Map<string, Map<string, true>> {
+    return minimizedGroups
+  },
+
+  /**
    * 注册一个新的弹层实例
    * Register a new layer instance
    */

@@ -129,70 +129,94 @@ describe('LiteLayer', () => {
   })
 
   test('minimizes to a dock item and restores the window', async () => {
-    const emitter = mitt<LayerEvents>()
-    const wrapper = mount(LiteLayer, {
-      attachTo: document.body,
-      props: {
-        id: 'minimizable-layer',
-        title: 'Minimizable layer',
-        teleport: 'body',
-        content: 'content',
-        min: true
-      },
-      global: {
-        plugins: [createLayerEmitterPlugin(emitter)]
-      }
-    })
-    await wrapper.vm.$nextTick()
+    vi.useFakeTimers()
+    try {
+        const emitter = mitt<LayerEvents>()
+        const wrapper = mount(LiteLayer, {
+          attachTo: document.body,
+          props: {
+            id: 'minimizable-layer',
+            title: 'Minimizable layer',
+            teleport: 'body',
+            content: 'content',
+            min: true
+          },
+          global: {
+            plugins: [createLayerEmitterPlugin(emitter)]
+          }
+        })
+        await wrapper.vm.$nextTick()
 
-    emitter.emit('minimize')
-    await wrapper.vm.$nextTick()
+        emitter.emit('minimize')
+        await Promise.resolve()
+        // 推进兜底定时器（覆盖 handleMinimize 225ms 与 withTransition 250ms 双重兜底）
+        vi.advanceTimersByTime(280)
+        await wrapper.vm.$nextTick()
 
-    expect(document.body.querySelector('.lite-layer__shade')).toBeNull()
-    expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(true)
-    const dockItem = document.body.querySelector<HTMLElement>('.lite-layer__dock-item')
-    expect(dockItem?.textContent).toContain('Minimizable layer')
-    expect(dockItem?.style.left).toBe('12px')
-    const restoreButton = dockItem?.querySelector<HTMLButtonElement>('.lite-layer__icon-restore')
-    expect(restoreButton?.getAttribute('aria-label')).toBe('VueLiteLayer.restore')
-    expect(dockItem?.querySelector('.lite-layer__icon-close')).not.toBeNull()
+        expect(document.body.querySelector('.lite-layer__shade')).toBeNull()
+        expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(true)
+        const dockItem = document.body.querySelector<HTMLElement>('.lite-layer__dock-item')
+        expect(dockItem?.textContent).toContain('Minimizable layer')
+        expect(dockItem?.style.left).toBe('12px')
+        const restoreButton = dockItem?.querySelector<HTMLButtonElement>('.lite-layer__icon-restore')
+        expect(restoreButton?.getAttribute('aria-label')).toBe('VueLiteLayer.restore')
+        expect(dockItem?.querySelector('.lite-layer__icon-close')).not.toBeNull()
 
-    restoreButton?.click()
-    await wrapper.vm.$nextTick()
+        restoreButton?.click()
+        await Promise.resolve()
+        vi.advanceTimersByTime(280)
+        await wrapper.vm.$nextTick()
 
-    expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
-    expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(false)
+        expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+        expect(document.body.querySelector('.lite-layer__window')?.classList.contains('lite-layer__window--minimized')).toBe(false)
+        wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
   })
 
   test('restores a maximized layer from the dock as maximized', async () => {
-    const emitter = mitt<LayerEvents>()
-    const wrapper = mount(LiteLayer, {
-      attachTo: document.body,
-      props: {
-        id: 'maximized-minimizable-layer',
-        title: 'Maximized minimizable layer',
-        teleport: 'body',
-        content: 'content',
-        min: true
-      },
-      global: {
-        plugins: [createLayerEmitterPlugin(emitter)]
-      }
-    })
-    await wrapper.vm.$nextTick()
+    vi.useFakeTimers()
+    try {
+        const emitter = mitt<LayerEvents>()
+        const wrapper = mount(LiteLayer, {
+          attachTo: document.body,
+          props: {
+            id: 'maximized-minimizable-layer',
+            title: 'Maximized minimizable layer',
+            teleport: 'body',
+            content: 'content',
+            min: true
+          },
+          global: {
+            plugins: [createLayerEmitterPlugin(emitter)]
+          }
+        })
+        await wrapper.vm.$nextTick()
 
-    emitter.emit('maximum')
-    emitter.emit('minimize')
-    await wrapper.vm.$nextTick()
-    document.body.querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')?.click()
-    await wrapper.vm.$nextTick()
+        emitter.emit('maximum')
+        emitter.emit('minimize')
+        await Promise.resolve()
+        vi.advanceTimersByTime(280)
+        await wrapper.vm.$nextTick()
+        document.body.querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')?.click()
+        await Promise.resolve()
+        vi.advanceTimersByTime(280)
+        await wrapper.vm.$nextTick()
 
-    expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')).not.toBeNull()
-    expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-maximum')).toBeNull()
+        expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')).not.toBeNull()
+        expect(document.body.querySelector('.lite-layer__window-header .lite-layer__icon-maximum')).toBeNull()
+        wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
   })
 
   test('lays minimized dock items in one row using the stylesheet geometry', async () => {
     const restoreViewport = mockViewportWidth(DOCK_INSET + (DOCK_WIDTH + DOCK_GAP) * 3)
+    vi.useFakeTimers()
 
     try {
       const first = await mountMinimizableLayer('dock-row-a', 'Dock A')
@@ -200,6 +224,8 @@ describe('LiteLayer', () => {
 
       first.emitter.emit('minimize')
       second.emitter.emit('minimize')
+      // 推进 handleMinimize 的 225ms 与 withTransition 的 250ms 双重兜底
+      vi.advanceTimersByTime(280)
       await first.wrapper.vm.$nextTick()
       await second.wrapper.vm.$nextTick()
 
@@ -213,6 +239,7 @@ describe('LiteLayer', () => {
       expect(items[1].style.left).toBe(`${DOCK_INSET + DOCK_WIDTH + DOCK_GAP}px`)
       expect(items[1].style.bottom).toBe(`${DOCK_INSET}px`)
     } finally {
+      vi.useRealTimers()
       restoreViewport()
       layerManager.resetForTest()
     }
@@ -222,6 +249,7 @@ describe('LiteLayer', () => {
     // 容器宽度只够放一个停靠项 / Container fits exactly one dock item
     const viewportWidth = DOCK_INSET + DOCK_WIDTH
     const restoreViewport = mockViewportWidth(viewportWidth)
+    vi.useFakeTimers()
 
     try {
       const first = await mountMinimizableLayer('dock-wrap-a', 'Wrap A')
@@ -229,6 +257,7 @@ describe('LiteLayer', () => {
 
       first.emitter.emit('minimize')
       second.emitter.emit('minimize')
+      vi.advanceTimersByTime(280)
       await first.wrapper.vm.$nextTick()
       await second.wrapper.vm.$nextTick()
 
@@ -244,6 +273,7 @@ describe('LiteLayer', () => {
         expect(parseFloat(item.style.left) + DOCK_WIDTH).toBeLessThanOrEqual(viewportWidth)
       }
     } finally {
+      vi.useRealTimers()
       restoreViewport()
       layerManager.resetForTest()
     }
@@ -368,12 +398,8 @@ describe('LiteLayer', () => {
       expect(windowEl).not.toBeNull()
 
       emitter.emit('minimize')
-      // eslint-disable-next-line no-console
-      console.log('DEBUG after emit minimize, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
       // flush microtasks so handleMinimize's synchronous withTransition writes the transition style
       await Promise.resolve()
-      // eslint-disable-next-line no-console
-      console.log('DEBUG after Promise.resolve, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
       // 立即断言：最小化尚未结束（--minimized 尚未应用），但过渡样式已写入
       expect(windowEl!.classList.contains('lite-layer__window--minimized')).toBe(false)
       expect(windowEl!.style.transition).toContain('top 200ms ease')
@@ -381,8 +407,6 @@ describe('LiteLayer', () => {
       // 推进兜底定时器（覆盖 handleMinimize 的 225ms 与 withTransition 的 250ms 双重兜底）
       vi.advanceTimersByTime(280)
       await wrapper.vm.$nextTick()
-      // eslint-disable-next-line no-console
-      console.log('DEBUG after advance + nextTick, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
       expect(windowEl!.classList.contains('lite-layer__window--minimized')).toBe(true)
       expect(document.body.querySelector('.lite-layer__dock-item')).not.toBeNull()
 
