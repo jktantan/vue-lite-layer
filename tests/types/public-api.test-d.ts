@@ -76,7 +76,7 @@ const instance: LayerInstance = {
   maximize: () => {},
   minimize: () => {},
   restore: () => {},
-  update: (_options) => {},
+  update: () => {},
   closed: Promise.resolve({ reason: 'programmatic', action: 'close' })
 }
 
