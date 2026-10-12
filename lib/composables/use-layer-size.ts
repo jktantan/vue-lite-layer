@@ -44,6 +44,52 @@ const applyWindowStyle = (
 }
 
 /**
+ * 临时启用位置/尺寸过渡动画，动画结束后自动移除
+ * Temporarily enable position/size transition animation, automatically remove after animation ends
+ *
+ * 使用 setTimeout 兜底：若 transitionend 因元素移除等原因未触发，
+ * 仍能可靠地清除 transition 样式，防止后续操作被干扰。
+ * Uses setTimeout as fallback: if transitionend doesn't fire due to element removal etc.,
+ * transition style is still reliably cleared to prevent interference with subsequent operations.
+ *
+ * 模块顶层导出：供 minimize/restore 过渡等需要同样节奏的代码复用。
+ * Module-top exports so the minimize/restore transition (and any other consumer
+ * that wants the same rhythm) can reuse the same duration/value.
+ */
+export const transitionDuration = 200
+export const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+/**
+ * Run a callback inside a 200ms top/left/width/height transition and clean up
+ * once the transition ends (or after a `setTimeout` fallback). Returns the cleanup
+ * function so the caller (typically `useLayerSize().dispose`) can cancel any
+ * pending listener/timer if the owning layer unmounts mid-flight.
+ */
+export const withTransition = (
+  el: HTMLElement,
+  callback: () => void,
+  onComplete?: () => void
+): (() => void) => {
+  el.style.transition = transitionValue
+  callback()
+  let cleaned = false
+  let timeout: ReturnType<typeof setTimeout> | null = null
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    el.style.transition = ''
+    el.removeEventListener('transitionend', onTransitionEnd)
+    if (timeout) clearTimeout(timeout)
+    onComplete?.()
+  }
+  const onTransitionEnd = (event: TransitionEvent) => {
+    if (event.target === el) cleanup()
+  }
+  el.addEventListener('transitionend', onTransitionEnd)
+  timeout = setTimeout(cleanup, transitionDuration + 50)
+  return cleanup
+}
+
+/**
  * 弹层尺寸与定位 Composable
  * Layer Size and Positioning Composable
  *
@@ -78,7 +124,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
 
   /**
    * 将窗口限制在容器边界内
-   * Constrain window within container boundaries
+   * Constrain window within container edges
    *
    * @param windowEl - 弹层窗口元素 / Layer window element
    * @param containerEl - 约束容器元素 / Constraint container element
@@ -94,39 +140,11 @@ export default (initialSize?: { width?: string; height?: string }) => {
     windowEl.style.left = left + 'px'
   }
 
-  /**
-   * 临时启用位置/尺寸过渡动画，动画结束后自动移除
-   * Temporarily enable position/size transition animation, automatically remove after animation ends
-   *
-   * 使用 setTimeout 兜底：若 transitionend 因元素移除等原因未触发，
-   * 仍能可靠地清除 transition 样式，防止后续操作被干扰。
-   * Uses setTimeout as fallback: if transitionend doesn't fire due to element removal etc.,
-   * transition style is still reliably cleared to prevent interference with subsequent operations.
-   */
-  const transitionDuration = 200
-  const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+  /** Pending `withTransition` cleanups, drained by `dispose()` when the layer unmounts. */
   const transitionCleanups = new Set<() => void>()
-
-  const withTransition = (el: HTMLElement, callback: () => void, onComplete?: () => void) => {
-    el.style.transition = transitionValue
-    callback()
-    let cleaned = false
-    let timeout: ReturnType<typeof setTimeout> | null = null
-    const cleanup = () => {
-      if (cleaned) return
-      cleaned = true
-      el.style.transition = ''
-      el.removeEventListener('transitionend', onTransitionEnd)
-      if (timeout) clearTimeout(timeout)
-      transitionCleanups.delete(cleanup)
-      onComplete?.()
-    }
-    const onTransitionEnd = (event: TransitionEvent) => {
-      if (event.target === el) cleanup()
-    }
+  const trackCleanup = (cleanup: (() => void) | undefined) => {
+    if (!cleanup) return
     transitionCleanups.add(cleanup)
-    el.addEventListener('transitionend', onTransitionEnd)
-    timeout = setTimeout(cleanup, transitionDuration + 50)
   }
 
   /**
@@ -150,7 +168,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
     }
 
     if (animated) {
-      withTransition(windowEl, applySize, onComplete)
+      trackCleanup(withTransition(windowEl, applySize, onComplete))
     } else {
       applySize()
       onComplete?.()
@@ -187,17 +205,19 @@ export default (initialSize?: { width?: string; height?: string }) => {
       getContainerSize(containerEl)
     )
 
-    withTransition(
-      windowEl,
-      () => {
-        applyWindowStyle(windowStyle, windowEl, {
-          top: clampedTop + 'px',
-          left: clampedLeft + 'px',
-          width: defaultSize.width + 'px',
-          height: defaultSize.height + 'px'
-        })
-      },
-      onComplete
+    trackCleanup(
+      withTransition(
+        windowEl,
+        () => {
+          applyWindowStyle(windowStyle, windowEl, {
+            top: clampedTop + 'px',
+            left: clampedLeft + 'px',
+            width: defaultSize.width + 'px',
+            height: defaultSize.height + 'px'
+          })
+        },
+        onComplete
+      )
     )
   }
 
