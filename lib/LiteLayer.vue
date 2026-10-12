@@ -69,6 +69,10 @@
         v-if="visible && isMinimized"
         ref="dockRef"
         class="lite-layer__window-header lite-layer__dock-item"
+        :class="{
+          'is-minimize-enter': !isRestoringFromMin && isMinimizing,
+          'is-minimize-leave': isRestoringFromMin
+        }"
         :style="{
           position: isTeleportToBody ? 'fixed' : 'absolute',
           left: dockPosition.left || `${dockLayout.left}px`,
@@ -123,6 +127,11 @@ import './assets/style/index.scss'
 import dockMetrics from './assets/style/metrics.module.scss'
 import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
+import {
+  withTransition,
+  transitionValue,
+  transitionDuration
+} from './composables/use-layer-size'
 import { useLayerClose } from './composables/use-layer-close'
 import { useLayerFocus } from './composables/use-layer-focus'
 import layerManager from './core/layer-manager'
@@ -179,6 +188,21 @@ const isMaximized = ref(false)
 const isMinimized = ref(false)
 const maximizedBeforeMinimize = ref(false)
 const isResizing = ref(false)
+/**
+ * 最小化/恢复过渡态：用于给 dock 项打 enter/leave 动画类（v-if 已控显隐，
+ * 这里只决定是否再叠 fade 动画）。最小化进行时 `minimizing=true`，`isMinimized`
+ * 仍是 false（动画结束后才翻）；恢复进行时 `restoringFromMin=true`，
+ * `isMinimized` 已是 false（nextTick 后）。
+ */
+const isMinimizing = ref(false)
+const isRestoringFromMin = ref(false)
+let minimizeFallbackTimer: ReturnType<typeof setTimeout> | null = null
+const clearMinimizeFallback = () => {
+  if (minimizeFallbackTimer) {
+    clearTimeout(minimizeFallbackTimer)
+    minimizeFallbackTimer = null
+  }
+}
 const MINIMIZED_DOCK_Z_INDEX = 2_147_483_647
 /**
  * 停靠栏几何尺寸的唯一来源是 SCSS（metrics.module.scss 的 :export）。
@@ -327,14 +351,60 @@ const handleShadeClick = () => {
 
 const handleRestore = () => {
   if (isMinimized.value) {
+    // 恢复路径：从 dock 几何平滑回到原 currentPosition/defaultSize，
+    // 与 maximize/restore 同样的 200ms 节奏。
+    isRestoringFromMin.value = true
     isMinimized.value = false
     isMaximized.value = maximizedBeforeMinimize.value
-    layerManager.restoreMinimized(props.id!, teleportGroup)
-    syncScrollLock()
-    nextTick(() => {
+    const windowEl = windowRef.value
+    const containerEl = layerRef.value
+    // eslint-disable-next-line no-console
+    console.log('DEBUG handleRestore: windowEl=', !!windowEl, 'containerEl=', !!containerEl)
+    if (!windowEl || !containerEl) {
+      isRestoringFromMin.value = false
+      layerManager.restoreMinimized(props.id!, teleportGroup)
+      syncScrollLock()
       handleBringToTop()
       focusWindow()
-    })
+      return
+    }
+    const dockW = DOCK_ITEM_WIDTH
+    const dockH = DOCK_ITEM_HEIGHT
+    const dockLeft = dockLayout.value.left
+    const dockBottom = dockLayout.value.bottom
+    const dockTop = Math.max(0, dockBounds.height - dockBottom - dockH)
+    // 还原目标：从 layerSize.windowStyle 取出最近一次记录的位置作为基准
+    const restoreTop = Number.isFinite(parseFloat(layerSize.windowStyle.top))
+      ? parseFloat(layerSize.windowStyle.top)
+      : 0
+    const restoreLeft = Number.isFinite(parseFloat(layerSize.windowStyle.left))
+      ? parseFloat(layerSize.windowStyle.left)
+      : 0
+    // 先把窗口 style 钉到 dock 起点，再让 withTransition 把它过渡回原坐标
+    windowEl.style.top = dockTop + 'px'
+    windowEl.style.left = dockLeft + 'px'
+    windowEl.style.width = dockW + 'px'
+    windowEl.style.height = dockH + 'px'
+    // eslint-disable-next-line no-console
+    console.log('DEBUG handleRestore: before withTransition, transition=', JSON.stringify(windowEl.style.transition))
+    withTransition(
+      windowEl,
+      () => {
+        windowEl.style.top = restoreTop + 'px'
+        windowEl.style.left = restoreLeft + 'px'
+        windowEl.style.width = ''
+        windowEl.style.height = ''
+      },
+      () => {
+        isRestoringFromMin.value = false
+        layerManager.restoreMinimized(props.id!, teleportGroup)
+        syncScrollLock()
+        handleBringToTop()
+        focusWindow()
+      }
+    )
+    // eslint-disable-next-line no-console
+    console.log('DEBUG handleRestore: after withTransition, transition=', JSON.stringify(windowEl.style.transition))
     return
   }
   isMaximized.value = false
@@ -369,10 +439,51 @@ const handleMaximize = () => {
 
 const handleMinimize = () => {
   if (!props.min || isMinimized.value) return
+  const windowEl = windowRef.value
+  if (!windowEl) return
   maximizedBeforeMinimize.value = isMaximized.value
-  isMinimized.value = true
-  layerManager.minimize(props.id!, teleportGroup)
-  syncScrollLock()
+  isMaximized.value = false
+  isMinimizing.value = true
+  // 计算 dock 几何（top = 视口高 - bottom 偏移 - 项高）
+  const dockW = DOCK_ITEM_WIDTH
+  const dockH = DOCK_ITEM_HEIGHT
+  const dockLeft = dockLayout.value.left
+  const dockBottom = dockLayout.value.bottom
+  const dockTop = Math.max(0, dockBounds.height - dockBottom - dockH)
+  // 先把窗口当前位置固化到 style（防 Vue 重渲染抹掉），再让 withTransition
+  // 平滑过渡到 dock 矩形；过渡结束（或兜底定时器）后再翻 isMinimized 并
+  // 通知 layerManager，避免动画期间层管理器把 dock 顺序算错。
+  const currentRect = windowEl.getBoundingClientRect()
+  windowEl.style.top = currentRect.top + 'px'
+  windowEl.style.left = currentRect.left + 'px'
+  windowEl.style.width = currentRect.width + 'px'
+  windowEl.style.height = currentRect.height + 'px'
+  clearMinimizeFallback()
+  withTransition(
+    windowEl,
+    () => {
+      windowEl.style.top = dockTop + 'px'
+      windowEl.style.left = dockLeft + 'px'
+      windowEl.style.width = dockW + 'px'
+      windowEl.style.height = dockH + 'px'
+    },
+    () => {
+      isMinimizing.value = false
+      isMinimized.value = true
+      layerManager.minimize(props.id!, teleportGroup)
+      syncScrollLock()
+      clearMinimizeFallback()
+    }
+  )
+  // 兜底：若 transitionend 因元素被 v-if 隐藏等原因未触发，也要在
+  // transitionDuration + 25ms 后强制收尾，避免 isMinimizing 永久卡住
+  minimizeFallbackTimer = setTimeout(() => {
+    if (!isMinimizing.value) return
+    isMinimizing.value = false
+    isMinimized.value = true
+    layerManager.minimize(props.id!, teleportGroup)
+    syncScrollLock()
+  }, transitionDuration + 25)
 }
 
 /** Drag the minimized title bar without changing the restored window position. */
@@ -555,6 +666,7 @@ onUnmounted(() => {
     clearTimeout(enterFallbackTimer)
     enterFallbackTimer = null
   }
+  clearMinimizeFallback()
   closeState.dispose()
   resizeObserver?.disconnect()
   resizeObserver = null

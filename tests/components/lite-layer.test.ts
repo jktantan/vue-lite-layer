@@ -358,4 +358,70 @@ describe('LiteLayer', () => {
     expect(layerManager.getZIndex(instance!.id, instance!.teleportKey)).toBe(1000)
     vi.useRealTimers()
   })
+
+  test('animates minimize: window style transitions to dock rect before --minimized is applied', async () => {
+    vi.useFakeTimers()
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer('anim-min-layer', 'Anim Min')
+
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')
+      expect(windowEl).not.toBeNull()
+
+      emitter.emit('minimize')
+      // eslint-disable-next-line no-console
+      console.log('DEBUG after emit minimize, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
+      // flush microtasks so handleMinimize's synchronous withTransition writes the transition style
+      await Promise.resolve()
+      // eslint-disable-next-line no-console
+      console.log('DEBUG after Promise.resolve, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
+      // 立即断言：最小化尚未结束（--minimized 尚未应用），但过渡样式已写入
+      expect(windowEl!.classList.contains('lite-layer__window--minimized')).toBe(false)
+      expect(windowEl!.style.transition).toContain('top 200ms ease')
+
+      // 推进兜底定时器（覆盖 handleMinimize 的 225ms 与 withTransition 的 250ms 双重兜底）
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      // eslint-disable-next-line no-console
+      console.log('DEBUG after advance + nextTick, --minimized=', windowEl!.classList.contains('lite-layer__window--minimized'))
+      expect(windowEl!.classList.contains('lite-layer__window--minimized')).toBe(true)
+      expect(document.body.querySelector('.lite-layer__dock-item')).not.toBeNull()
+
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('animates restore: window style transitions back from dock to previous rect', async () => {
+    vi.useFakeTimers()
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer('anim-restore-layer', 'Anim Restore')
+
+      emitter.emit('minimize')
+      await Promise.resolve()
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+
+      document.body
+        .querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')
+        ?.click()
+      // 动画进行中：过渡样式已写回（withTransition 同步设置）；class 绑定
+      // 在另一个 nextTick 才反映到 DOM，所以只断言 transition。
+      await wrapper.vm.$nextTick()
+      expect(windowEl.style.transition).toContain('top 200ms ease')
+
+      // 推进兜底定时器
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      expect(windowEl.classList.contains('lite-layer__window--minimized')).toBe(false)
+      expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
+  })
 })
