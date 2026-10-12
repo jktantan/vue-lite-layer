@@ -133,7 +133,13 @@ const layerManager = {
   },
 
   /** Get the reactive dock position for one minimized layer (O(1) lookup). */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getMinimizedIndex(id: string, _teleportTarget: string): number {
+    // 参数保留以与计划接口对齐；目前用 O(1) 的全局 `minimizedIndex` 查询
+    // 已经足够（同一 id 在不同 teleport target 间共享索引）。
+    // The argument is kept for API parity with the plan; the O(1) lookup on
+    // the global `minimizedIndex` is sufficient (one id only ever sits in
+    // one dock group at a time).
     return minimizedIndex.get(id) ?? -1
   },
 

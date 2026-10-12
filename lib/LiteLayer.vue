@@ -127,11 +127,7 @@ import './assets/style/index.scss'
 import dockMetrics from './assets/style/metrics.module.scss'
 import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
-import {
-  withTransition,
-  transitionValue,
-  transitionDuration
-} from './composables/use-layer-size'
+import { withTransition, transitionDuration } from './composables/use-layer-size'
 import { useLayerClose } from './composables/use-layer-close'
 import { useLayerFocus } from './composables/use-layer-focus'
 import layerManager from './core/layer-manager'
