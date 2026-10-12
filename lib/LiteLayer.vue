@@ -38,7 +38,10 @@
           maxWidth: maxWidth,
           maxHeight: maxHeight,
           pointerEvents: 'auto',
-          ...layerSize.windowStyle
+          ...layerSize.windowStyle,
+          // 恢复过渡的起点矩形：只在这一帧覆盖 windowStyle，让窗口一落地
+          // 就处在 dock 项的位置/尺寸上，随后由 withTransition 飞回原位。
+          ...restoreStartStyle
         }"
         @mousedown="handleWindowMouseDown"
         @keydown="handleKeydown"
@@ -70,8 +73,7 @@
         ref="dockRef"
         class="lite-layer__window-header lite-layer__dock-item"
         :class="{
-          'is-minimize-enter': !isRestoringFromMin && isMinimizing,
-          'is-minimize-leave': isRestoringFromMin
+          'is-minimize-enter': isMinimizing
         }"
         :style="{
           position: isTeleportToBody ? 'fixed' : 'absolute',
@@ -185,13 +187,22 @@ const isMinimized = ref(false)
 const maximizedBeforeMinimize = ref(false)
 const isResizing = ref(false)
 /**
- * 最小化/恢复过渡态：用于给 dock 项打 enter/leave 动画类（v-if 已控显隐，
- * 这里只决定是否再叠 fade 动画）。最小化进行时 `minimizing=true`，`isMinimized`
- * 仍是 false（动画结束后才翻）；恢复进行时 `restoringFromMin=true`，
- * `isMinimized` 已是 false（nextTick 后）。
+ * 最小化过渡态：用于给 dock 项打 enter 动画类。最小化进行时 `isMinimizing=true`，
+ * `isMinimized` 仍是 false（动画结束后才翻）。
+ * Minimize transition flag: drives the dock item's enter animation class.
  */
 const isMinimizing = ref(false)
-const isRestoringFromMin = ref(false)
+/**
+ * 恢复过渡的起点矩形（视口坐标）。恢复那一帧窗口重新回到 DOM 时，用这一帧的
+ * 内联样式把它钉在 dock 项的位置/尺寸上，`withTransition` 才能从这里飞回原位。
+ * 没有它的话窗口会直接出现在最终位置，恢复就完全没有位移动画。
+ * Restore transition's starting rect (viewport coordinates). On the frame the
+ * window re-enters the DOM, this pins it to the dock item's rect so
+ * `withTransition` can fly it back to the original position. Without it the
+ * window would pop straight into its final rect, leaving restore with no
+ * position/size motion at all.
+ */
+const restoreStartStyle = ref<Partial<LayerArea>>({})
 let minimizeFallbackTimer: ReturnType<typeof setTimeout> | null = null
 const clearMinimizeFallback = () => {
   if (minimizeFallbackTimer) {
@@ -288,6 +299,30 @@ const dockLayout = computed(() => {
   return { left: DOCK_INSET + col * stepX, bottom: DOCK_INSET + row * stepY }
 })
 
+/**
+ * 停靠项当前在视口里的实际位置（视口坐标）。
+ * Actual on-screen position of the dock item, in viewport coordinates.
+ *
+ * 用户拖动过的话用拖到的位置（`dockPosition`），否则用 dock 几何
+ * （`dockLayout` + dock 高度推算的 top）。动画的起点/终点必须用这个值，
+ * 跟着 dock 项的实时位置走；如果只参考 `dockLayout`，一旦用户拖了 dock
+ * 项，最小化和恢复动画就会飞到错位的点，与 dock 项实际位置脱节。
+ * The minimize/restore animation must use this resolved position so its
+ * path tracks where the dock item actually lives (after a drag). Anchoring
+ * to `dockLayout` alone would slide the window to a stale rect and break
+ * the symmetry between minimize and restore.
+ */
+const dockItemRect = computed(() => {
+  const dockW = DOCK_ITEM_WIDTH
+  const dockH = DOCK_ITEM_HEIGHT
+  const geometryTop = Math.max(0, dockBounds.height - dockLayout.value.bottom - dockH)
+  const draggedLeft = parseFloat(dockPosition.left)
+  const draggedTop = parseFloat(dockPosition.top)
+  const left = Number.isFinite(draggedLeft) ? draggedLeft : dockLayout.value.left
+  const top = Number.isFinite(draggedTop) ? draggedTop : geometryTop
+  return { left, top, width: dockW, height: dockH }
+})
+
 // ──── 弹层尺寸与定位 / Layer Size and Positioning ────
 const layerStyle = reactive<LayerArea>({
   top: '0px',
@@ -357,54 +392,68 @@ const handleShadeClick = () => {
 
 const handleRestore = () => {
   if (isMinimized.value) {
-    // 恢复路径：从 dock 几何平滑回到原 currentPosition/defaultSize，
-    // 与 maximize/restore 同样的 200ms 节奏。
-    isRestoringFromMin.value = true
-    isMinimized.value = false
+    // 恢复路径：与 handleMinimize 严格对称的飞行式过渡——窗口从 dock 项的
+    // 矩形出发，200ms 内位移 + 缩放回最小化前的原位/原尺寸。
+    //   minimize = 窗口从当前位置缩到 dock 矩形，动画结束后切到 dock 项
+    //   restore  = 切回窗口（先钉在 dock 矩形），再从 dock 矩形飞回原位
+    // 关键是必须真的产生位移：窗口重新进入 DOM 时先钉在起点矩形，再由
+    // withTransition 补间到目标。起点/终点都取 `dockItemRect`，所以居中的
+    // 或用户拖拽过的 dock 项都能和最小化那段动画首尾相接。
     isMaximized.value = maximizedBeforeMinimize.value
     const windowEl = windowRef.value
-    const containerEl = layerRef.value
-    if (!windowEl || !containerEl) {
-      isRestoringFromMin.value = false
+    if (!windowEl) {
+      isMinimized.value = false
       layerManager.restoreMinimized(props.id!, teleportGroup)
       syncScrollLock()
       handleBringToTop()
       focusWindow()
       return
     }
-    const dockW = DOCK_ITEM_WIDTH
-    const dockH = DOCK_ITEM_HEIGHT
-    const dockLeft = dockLayout.value.left
-    const dockBottom = dockLayout.value.bottom
-    const dockTop = Math.max(0, dockBounds.height - dockBottom - dockH)
-    // 还原目标：从 layerSize.windowStyle 取出最近一次记录的位置作为基准
-    const restoreTop = Number.isFinite(parseFloat(layerSize.windowStyle.top))
-      ? parseFloat(layerSize.windowStyle.top)
-      : 0
-    const restoreLeft = Number.isFinite(parseFloat(layerSize.windowStyle.left))
-      ? parseFloat(layerSize.windowStyle.left)
-      : 0
-    // 先把窗口 style 钉到 dock 起点，再让 withTransition 把它过渡回原坐标
-    windowEl.style.top = dockTop + 'px'
-    windowEl.style.left = dockLeft + 'px'
-    windowEl.style.width = dockW + 'px'
-    windowEl.style.height = dockH + 'px'
-    withTransition(
-      windowEl,
-      () => {
-        windowEl.style.top = restoreTop + 'px'
-        windowEl.style.left = restoreLeft + 'px'
-        windowEl.style.width = ''
-        windowEl.style.height = ''
-      },
-      () => {
-        isRestoringFromMin.value = false
-        layerManager.restoreMinimized(props.id!, teleportGroup)
-        syncScrollLock()
-        handleBringToTop()
-        focusWindow()
-      }
-    )
+    // 目标矩形 = 最小化前记录下来的位置/尺寸（拖拽会同步进来）。
+    const origin = layerSize.windowStyle
+    const dockRect = dockItemRect.value
+    restoreStartStyle.value = {
+      top: `${dockRect.top}px`,
+      left: `${dockRect.left}px`,
+      width: `${dockRect.width}px`,
+      height: `${dockRect.height}px`
+    }
+    // 去掉 --minimized（display:none），窗口先以起点矩形回到 DOM；
+    // display:none 的元素没有可视盒，transition 不会启动——所以这一步
+    // 必须在 withTransition 之前，且起点样式要在同一帧就位（由
+    // restoreStartStyle 经渲染层写入）避免窗口先闪现在原位。
+    isMinimized.value = false
+    // 同步把内联样式钉到起点矩形。此刻元素仍是 display:none，写样式不影响
+    // 布局；这样下一帧 display 恢复时窗口就直接出现在 dock 位置，而不是先
+    // 闪一下原位再飞。restoreStartStyle 负责让渲染层在那一帧也保持起点值。
+    Object.assign(windowEl.style, restoreStartStyle.value)
+    nextTick(() => {
+      const el = windowRef.value
+      if (!el) return
+      // 强制一次 reflow，让渲染层写好的起点矩形成为“当前样式”。否则
+      // display:none → 显示 与改目标会落在同一帧，浏览器可能直接以终点
+      // 起步、整段恢复一点补间都没有。
+      void el.offsetWidth
+      withTransition(
+        el,
+        () => {
+          // 清掉起点覆盖并直接写目标：渲染层随后刷成同一个 windowStyle，
+          // 浏览器按已生效的 transition 从起点补间到目标。
+          restoreStartStyle.value = {}
+          el.style.top = origin.top
+          el.style.left = origin.left
+          el.style.width = origin.width
+          el.style.height = origin.height
+        },
+        () => {
+          restoreStartStyle.value = {}
+          layerManager.restoreMinimized(props.id!, teleportGroup)
+          syncScrollLock()
+          handleBringToTop()
+          focusWindow()
+        }
+      )
+    })
     return
   }
   isMaximized.value = false
@@ -442,14 +491,30 @@ const handleMinimize = () => {
   const windowEl = windowRef.value
   if (!windowEl) return
   maximizedBeforeMinimize.value = isMaximized.value
-  isMaximized.value = false
   isMinimizing.value = true
-  // 计算 dock 几何（top = 视口高 - bottom 偏移 - 项高）
+  // 注意：这里绝不能顺手 `isMaximized.value = false`。`isMaximized` 被
+  // LayerHeader 的 prop 读取，翻它会让 LiteLayer 重新渲染，而窗口的
+  // `:style` 绑定了 `layerSize.windowStyle`（最大化尺寸），patch 时会把
+  // 它整体写回内联样式，正好盖掉下面 withTransition 刚写好的 dock 目标，
+  // 结果窗口留在最大化尺寸、一动不动——这就是「最大化后最小化没有动画」。
+  // `isMaximized` 的翻转推迟到过渡结束（onComplete / 兜底）再和
+  // `isMinimized` 一起做；那时窗口已被 --minimized 隐藏，重渲染无害。
+  // Do NOT flip `isMaximized` here: it is read by LayerHeader's prop, so
+  // flipping it re-renders LiteLayer, and the window's `:style` is bound to
+  // `layerSize.windowStyle` (the maximized size). The subsequent patch writes
+  // that whole style object back onto the element, clobbering the dock target
+  // that withTransition just wrote - leaving the window at the maximized size
+  // and motionless (the "no animation when minimizing from maximized" bug).
+  // Flip it together with `isMinimized` at the end of the transition instead.
+  // 计算 dock 矩形（top = 视口高 - bottom 偏移 - 项高）
+  // 必须用 dock 项实际位置：用户拖过的话，动画终点要跟过去，否则
+  // 窗口会飞到 dock 几何位置、和 dock 项实际位置错开。
+  // Use the dock item's actual position (tracks user drag) so the fly
+  // target stays in sync with where the dock item really lives.
   const dockW = DOCK_ITEM_WIDTH
   const dockH = DOCK_ITEM_HEIGHT
-  const dockLeft = dockLayout.value.left
-  const dockBottom = dockLayout.value.bottom
-  const dockTop = Math.max(0, dockBounds.height - dockBottom - dockH)
+  const dockLeft = dockItemRect.value.left
+  const dockTop = dockItemRect.value.top
   // 先把窗口当前位置固化到 style（防 Vue 重渲染抹掉），再让 withTransition
   // 平滑过渡到 dock 矩形；过渡结束（或兜底定时器）后再翻 isMinimized 并
   // 通知 layerManager，避免动画期间层管理器把 dock 顺序算错。
@@ -459,6 +524,13 @@ const handleMinimize = () => {
   windowEl.style.width = currentRect.width + 'px'
   windowEl.style.height = currentRect.height + 'px'
   clearMinimizeFallback()
+  const finishMinimize = () => {
+    isMinimizing.value = false
+    isMaximized.value = false
+    isMinimized.value = true
+    layerManager.minimize(props.id!, teleportGroup)
+    syncScrollLock()
+  }
   withTransition(
     windowEl,
     () => {
@@ -468,10 +540,7 @@ const handleMinimize = () => {
       windowEl.style.height = dockH + 'px'
     },
     () => {
-      isMinimizing.value = false
-      isMinimized.value = true
-      layerManager.minimize(props.id!, teleportGroup)
-      syncScrollLock()
+      finishMinimize()
       clearMinimizeFallback()
     }
   )
@@ -479,10 +548,7 @@ const handleMinimize = () => {
   // transitionDuration + 25ms 后强制收尾，避免 isMinimizing 永久卡住
   minimizeFallbackTimer = setTimeout(() => {
     if (!isMinimizing.value) return
-    isMinimizing.value = false
-    isMinimized.value = true
-    layerManager.minimize(props.id!, teleportGroup)
-    syncScrollLock()
+    finishMinimize()
   }, transitionDuration + 25)
 }
 

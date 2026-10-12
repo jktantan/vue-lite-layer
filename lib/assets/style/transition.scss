@@ -53,21 +53,6 @@
   }
 }
 
-@keyframes lite-layer-minimize-leave {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 .lite-layer__dock-item.is-minimize-enter {
   animation: lite-layer-minimize-enter 200ms ease forwards;
-}
-
-.lite-layer__dock-item.is-minimize-leave {
-  animation: lite-layer-minimize-leave 200ms ease forwards;
 }

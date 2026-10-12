@@ -29,6 +29,21 @@ const mockViewportWidth = (width: number) => {
   }
 }
 
+const mockViewportSize = (width: number, height: number) => {
+  Object.defineProperty(document.documentElement, 'clientWidth', {
+    configurable: true,
+    get: () => width
+  })
+  Object.defineProperty(document.documentElement, 'clientHeight', {
+    configurable: true,
+    get: () => height
+  })
+  return () => {
+    delete (document.documentElement as unknown as { clientWidth?: number }).clientWidth
+    delete (document.documentElement as unknown as { clientHeight?: number }).clientHeight
+  }
+}
+
 const mountMinimizableLayer = async (id: string, title: string) => {
   const emitter = mitt<LayerEvents>()
   const wrapper = mount(LiteLayer, {
@@ -417,34 +432,240 @@ describe('LiteLayer', () => {
     }
   })
 
-  test('animates restore: window style transitions back from dock to previous rect', async () => {
+  test('animates minimize from the maximized state: the dock target survives the re-render', async () => {
+    // 回归：最大化后最小化曾经没有动画。`isMaximized` 被 LayerHeader 的 prop
+    // 读取，如果 handleMinimize 一开头就翻它，LiteLayer 会重渲染，窗口的
+    // `:style`（绑定 windowStyle = 最大化尺寸）被整体写回，正好盖掉
+    // withTransition 刚写入的 dock 目标，窗口于是留在最大化尺寸、一动不动。
+    // 修法是把 `isMaximized` 的翻转推迟到过渡结束。
+    // Regression: minimizing from the maximized state used to animate
+    // nothing. Flipping `isMaximized` up front re-rendered the layer and its
+    // window `:style` (bound to the maximized windowStyle) overwrote the dock
+    // target written by withTransition, freezing the window at the maximized
+    // size. The flip is now deferred to the end of the transition.
     vi.useFakeTimers()
     try {
-      const { wrapper, emitter } = await mountMinimizableLayer('anim-restore-layer', 'Anim Restore')
+      const { wrapper, emitter } = await mountMinimizableLayer('max-anim-min-layer', 'Max Anim Min')
+
+      emitter.emit('maximum')
+      await wrapper.vm.$nextTick()
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+
+      emitter.emit('minimize')
+      // 关键断言：翻过 isMaximized 的那个 tick 之后，dock 目标仍在，没有被
+      // windowStyle 覆盖回最大化尺寸。
+      await wrapper.vm.$nextTick()
+      expect(windowEl.style.transition).toContain('top 200ms ease')
+      expect(windowEl.style.left).toBe(`${DOCK_INSET}px`)
+      expect(windowEl.style.width).toBe(`${DOCK_WIDTH}px`)
+      expect(windowEl.style.height).toBe(`${DOCK_HEIGHT}px`)
+
+      // 过渡结束后：最大化标记已清、窗口已隐藏、dock 项出现。
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      expect(windowEl.classList.contains('lite-layer__window--minimized')).toBe(true)
+      expect(document.body.querySelector('.lite-layer__dock-item')).not.toBeNull()
+      // isMaximized 已被清（header 重新显示最大化按钮），证明翻转确实延后了
+      // 而不是没发生。
+      expect(windowEl.querySelector('.lite-layer__icon-maximum')).not.toBeNull()
+
+      // 恢复：因为最小化前是最大化，恢复后应回到最大化（既有行为），
+      // header 显示 restore 按钮。
+      document.body.querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')?.click()
+      await wrapper.vm.$nextTick()
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      expect(windowEl.querySelector('.lite-layer__icon-restore')).not.toBeNull()
+      expect(windowEl.querySelector('.lite-layer__icon-maximum')).toBeNull()
+
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('restore: window flies back from the dock rect to its original rect', async () => {
+    // 恢复必须与最小化对称：窗口从 dock 项的矩形出发，200ms 内位移+缩放
+    // 回最小化前的原位/原尺寸。之前的实现是「dock 项淡出 + 窗口闪现」，
+    // 完全没有位移动画——这正是用户报的「恢复动画错了」。
+    // Restore must mirror minimize: the window starts at the dock rect and
+    // flies (position + size) back to its pre-minimize rect. The previous
+    // implementation just faded the dock out and popped the window in, with
+    // no motion at all - the bug the user reported.
+    vi.useFakeTimers()
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer('fly-restore-layer', 'Fly Restore')
 
       emitter.emit('minimize')
       await Promise.resolve()
       vi.advanceTimersByTime(280)
       await wrapper.vm.$nextTick()
       const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+      expect(windowEl.classList.contains('lite-layer__window--minimized')).toBe(true)
+      expect(document.body.querySelector('.lite-layer__dock-item')).not.toBeNull()
 
+      // The pre-minimize rect (windowStyle survives under --minimized) is
+      // where the fly must land.
+      const originalRect = {
+        top: windowEl.style.top,
+        left: windowEl.style.left,
+        width: windowEl.style.width,
+        height: windowEl.style.height
+      }
+      // Sanity: the original width is not the dock width, so we can tell the
+      // start rect from the end rect.
+      expect(originalRect.width).not.toBe(`${DOCK_WIDTH}px`)
+
+      // Click the dock restore button.
       document.body
         .querySelector<HTMLButtonElement>('.lite-layer__dock-item .lite-layer__icon-restore')
         ?.click()
-      // 动画进行中：过渡样式已写回（withTransition 同步设置）；class 绑定
-      // 在另一个 nextTick 才反映到 DOM，所以只断言 transition。
-      await wrapper.vm.$nextTick()
-      expect(windowEl.style.transition).toContain('top 200ms ease')
 
-      // 推进兜底定时器
-      vi.advanceTimersByTime(280)
+      // The start rect is written synchronously (while the element is still
+      // display:none and before Vue flushes the class change), so at this
+      // instant the window is already pinned to the dock rect - the "from the
+      // dock" start of the flight.
+      expect(windowEl.style.left).toBe(`${DOCK_INSET}px`)
+      expect(windowEl.style.width).toBe(`${DOCK_WIDTH}px`)
+      expect(windowEl.style.height).toBe(`${DOCK_HEIGHT}px`)
+
+      // After the flush the --minimized class is gone and the shared 200ms
+      // transition is driving the window back to its original rect.
       await wrapper.vm.$nextTick()
       expect(windowEl.classList.contains('lite-layer__window--minimized')).toBe(false)
+      expect(windowEl.style.transition).toContain('top 200ms ease')
+
+      // Once the transition completes the window rests at its original rect
+      // and the dock item is gone.
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
       expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+      expect(windowEl.style.top).toBe(originalRect.top)
+      expect(windowEl.style.left).toBe(originalRect.left)
+      expect(windowEl.style.width).toBe(originalRect.width)
+      expect(windowEl.style.height).toBe(originalRect.height)
 
       wrapper.unmount()
     } finally {
       vi.useRealTimers()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('minimize animation targets the dragged dock position, not the bare dock layout', async () => {
+    const restoreViewport = mockViewportSize(1024, 768)
+    vi.useFakeTimers()
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer('drag-min-layer', 'Drag Min')
+
+      // 1) Minimize first so the dock item mounts and becomes draggable.
+      emitter.emit('minimize')
+      await Promise.resolve()
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      const dockItem = document.body.querySelector<HTMLElement>('.lite-layer__dock-item')
+      expect(dockItem).not.toBeNull()
+      // jsdom reports getBoundingClientRect as all zeros, which would clamp
+      // the drag math to (0, 0). Stub it with realistic dock dimensions so
+      // the handler can place the dock item at the requested offset.
+      const fakeRect = { left: 0, top: 0, right: 220, bottom: 40, width: 220, height: 40, x: 0, y: 0, toJSON: () => fakeRect }
+      dockItem!.getBoundingClientRect = () => fakeRect as DOMRect
+
+      // 2) Drag the dock item to a custom position.
+      const startClientX = 30
+      const startClientY = 40
+      dockItem!.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: startClientX, clientY: startClientY })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mousemove', { clientX: startClientX + 200, clientY: startClientY + 180 })
+      )
+      document.dispatchEvent(new MouseEvent('mouseup'))
+      await wrapper.vm.$nextTick()
+      // Sanity check: dock item is now pinned to the dragged position.
+      expect(dockItem!.style.left).toBe('200px')
+      expect(dockItem!.style.top).toBe('180px')
+
+      // 3) Restore from the dock so the window comes back at its layout rect.
+      dockItem!.querySelector<HTMLButtonElement>('.lite-layer__icon-restore')?.click()
+      await Promise.resolve()
+      await wrapper.vm.$nextTick()
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+      expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+
+      // 4) Minimize again. The fly target must match the *dragged* dock
+      //    position, not the bare dockLayout geometry; otherwise the window
+      //    slides to a stale rect and the dock item appears to "teleport".
+      emitter.emit('minimize')
+      await Promise.resolve()
+      // withTransition writes the dock rect synchronously into inline style
+      // before yielding; capture it before the transitionend fallback fires.
+      expect(windowEl.style.transition).toContain('top 200ms ease')
+      expect(windowEl.style.left).toBe('200px')
+      expect(windowEl.style.top).toBe('180px')
+
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      restoreViewport()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('restore animation starts from the dragged dock position, not the bare dock layout', async () => {
+    // 用户拖动过 dock 项时，恢复的飞行起点必须跟到拖到的位置，否则窗口
+    // 会从 dock 几何位置起飞、和 dock 项实际位置错开。
+    // When the dock item was dragged, restore's flight must start from the
+    // dragged position, otherwise it takes off from the bare dock geometry
+    // and visually disconnects from where the dock item actually sits.
+    const restoreViewport = mockViewportSize(1024, 768)
+    vi.useFakeTimers()
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer('drag-restore-layer', 'Drag Restore')
+
+      emitter.emit('minimize')
+      await Promise.resolve()
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      const dockItem = document.body.querySelector<HTMLElement>('.lite-layer__dock-item')!
+      const fakeRect = { left: 0, top: 0, right: 220, bottom: 40, width: 220, height: 40, x: 0, y: 0, toJSON: () => fakeRect }
+      dockItem.getBoundingClientRect = () => fakeRect as DOMRect
+      // Drag the dock item to a custom position.
+      const startClientX = 20
+      const startClientY = 30
+      dockItem.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: startClientX, clientY: startClientY })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mousemove', { clientX: startClientX + 250, clientY: startClientY + 160 })
+      )
+      document.dispatchEvent(new MouseEvent('mouseup'))
+      await wrapper.vm.$nextTick()
+      expect(dockItem.style.left).toBe('250px')
+      expect(dockItem.style.top).toBe('160px')
+
+      // Trigger restore. The window must re-enter pinned to the *dragged* dock
+      // rect (written synchronously, while still display:none), so the flight
+      // starts there and lands at the original rect.
+      dockItem.querySelector<HTMLButtonElement>('.lite-layer__icon-restore')?.click()
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+      expect(windowEl.style.left).toBe('250px')
+      expect(windowEl.style.top).toBe('160px')
+      await wrapper.vm.$nextTick()
+      expect(windowEl.style.transition).toContain('top 200ms ease')
+
+      vi.advanceTimersByTime(280)
+      await wrapper.vm.$nextTick()
+      expect(document.body.querySelector('.lite-layer__dock-item')).toBeNull()
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+      restoreViewport()
       layerManager.resetForTest()
     }
   })
