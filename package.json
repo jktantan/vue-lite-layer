@@ -5,7 +5,15 @@
   "type": "module",
   "files": [
     "lib",
-    "dist"
+    "dist",
+    "dist/**",
+    "!dist/lib",
+    "!dist/lib/**",
+    "!dist/runtime",
+    "!dist/runtime/**",
+    "!dist/nuxt/lib",
+    "!dist/nuxt/lib/**",
+    "!dist/favicon.svg"
   ],
   "main": "dist/vue-lite-layer.umd.js",
   "module": "dist/vue-lite-layer.es.js",
@@ -54,7 +62,7 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint --fix",
     "format": "prettier --write \"lib/**/*.{ts,vue,scss}\" \"docs/**/*.{ts,vue,css}\" \"src/**/*.{ts,vue}\"",
-    "lib:build": "run-s lib:type-check lib:build:main lib:build:nuxt lib:build:verify",
+    "lib:build": "run-s lib:type-check lib:build:main lib:build:nuxt lib:clean lib:build:verify",
     "lib:type-check": "vue-tsc --noEmit --pretty false --project tsconfig.lib.json",
     "test:unit": "vitest run",
     "test:types": "vue-tsc --noEmit --pretty false --project tsconfig.test.json",
@@ -65,6 +73,7 @@
     "test:lib:win": "powershell -ExecutionPolicy Bypass -File scripts/test-lib.ps1",
     "lib:build:main": "vite --config vite.config.lib.ts build",
     "lib:build:nuxt": "vite --config vite.config.lib.ts build --mode nuxt",
+    "lib:clean": "node scripts/clean-dist.mjs",
     "lib:build:verify": "pnpm test:dist"
   },
   "dependencies": {
