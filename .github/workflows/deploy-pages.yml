@@ -27,21 +27,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # 版本取自 package.json 的 packageManager 字段（pnpm@12.4.1），
+        # 与本地开发环境保持一致；不再写死 version，避免与仓库配置漂移。
+        # Version comes from the `packageManager` field in package.json
+        # (pnpm@12.4.1), matching local development.
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
-          # 不启用 pnpm 缓存：仓库未提交 pnpm-lock.yaml，
-          # 缓存查找会因为缺少 lockfile 而报错。
-          # pnpm cache is intentionally off: pnpm-lock.yaml is not committed,
-          # so the cache lookup would fail on a missing lockfile.
+          node-version: 24
+          # 不启用缓存：仓库未提交 pnpm-lock.yaml，缺少可哈希的 lockfile，
+          # 而且 setup-node 对 pnpm 默认也不自动缓存。
+          # Caching stays off: pnpm-lock.yaml is not committed, so there is no
+          # lockfile to hash, and setup-node does not auto-cache pnpm.
+          package-manager-cache: false
 
       - name: Install dependencies
         # pnpm-lock.yaml 未纳入版本控制，因此不能使用 --frozen-lockfile。
@@ -52,10 +55,10 @@ jobs:
         run: pnpm docs:build
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist
 
@@ -68,4 +71,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
