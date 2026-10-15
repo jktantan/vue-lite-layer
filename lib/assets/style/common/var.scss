@@ -12,6 +12,30 @@ $lite-layer__text-color: $lite-layer__color-grey;
 /** 标题栏文本大小 / Title bar font size */
 $lite-layer__font-size: 16px;
 
+/** 标题栏高度 / Title bar height */
+$lite-layer__header-height: 40px !default;
+
+/**
+ * 最小化停靠栏的几何尺寸 / Geometry of the minimized dock
+ *
+ * 这些值是停靠布局的唯一真源：style.scss 消费它们做样式，
+ * LiteLayer.vue 通过 metrics.module.scss 的 :export 消费它们做排列计算，
+ * 从而避免样式与脚本各写一份导致不一致。
+ * These values are the single source of truth for the dock layout: style.scss
+ * consumes them for styling, and LiteLayer.vue consumes them through the
+ * :export of metrics.module.scss for layout math, so the stylesheet and the
+ * script can never drift apart.
+ */
+
+/** 停靠项宽度 / Dock item width */
+$lite-layer__dock-item-width: 220px !default;
+/** 停靠项高度（与标题栏等高） / Dock item height (same as the title bar) */
+$lite-layer__dock-item-height: $lite-layer__header-height !default;
+/** 相邻停靠项的水平间距 / Horizontal gap between neighbouring dock items */
+$lite-layer__dock-item-gap: 12px !default;
+/** 停靠栏距容器左/下边缘的偏移 / Inset of the dock from the container edge */
+$lite-layer__dock-inset: 12px !default;
+
 $lite-layer__icon-margin: 10px;
 $lite-layer__icon-size: $lite-layer__font-size;
 

@@ -88,7 +88,10 @@ function getBuiltInMessages(): LocaleMessages {
 export default () => {
   const getI18n = (localeI18n?: { locale?: string; messages?: LocaleMessages }) => {
     const builtIn = getBuiltInMessages()
-    // 深拷贝内置消息，避免污染缓存 / Deep copy built-in messages to avoid polluting cache
+    // Each `getI18n` call must not mutate cached messages, so we always clone
+    // the built-ins once. The expensive part — re-cloning the built-in payload
+    // for every openLayer call — is what we avoid: only locales the caller
+    // actually overrides pay the merge cost, and that merge is cached.
     const combinedMessages: LocaleMessages = {}
     for (const locale of Object.keys(builtIn)) {
       combinedMessages[locale] = cloneMessage(builtIn[locale] ?? {})
@@ -98,10 +101,19 @@ export default () => {
       for (const locale of Object.keys(localeI18n.messages)) {
         if (!isSafeMessageKey(locale)) continue
 
-        combinedMessages[locale] = mergeMessages(
-          combinedMessages[locale],
-          localeI18n.messages[locale]
-        )
+        const override = localeI18n.messages[locale]
+        // 不缓存合并结果：不同 openLayer 调用可能传不同的 override，
+        // 按 locale 缓存会让后调用的 layer 复用前一次的 payload，
+        // 出现"用户传入被忽略"或"层间互相污染"的 bug（参见 i18n.test.ts
+        // ignores prototype pollution 用例）。
+        // Don't cache the merged payload: different `openLayer` calls may
+        // pass different overrides, and caching by locale lets later calls
+        // reuse an earlier layer's payload, dropping the user's current
+        // override or crossing-pollinating layers (see the i18n.test.ts
+        // "ignores prototype pollution" cases).
+        const mergedOverride = mergeMessages({}, override)
+
+        combinedMessages[locale] = mergeMessages(combinedMessages[locale], mergedOverride)
       }
     }
 

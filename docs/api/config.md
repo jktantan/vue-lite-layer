@@ -15,6 +15,7 @@
 | `location` | `PositionPreset \| Position` | `'CC'` | 弹层定位方式，见下方说明 |
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
 | `max` | `boolean` | `true` | 是否允许最大化 |
+| `min` | `boolean` | `false` | 是否允许最小化到 Teleport 容器底部的停靠栏 |
 | `close` | `boolean` | `true` | 是否显示关闭按钮 |
 | `closeOnOk` | `boolean` | `false` | 点击默认 Footer 的确认按钮后是否自动关闭；表单异步场景建议保持 `false` |
 | `closeOnEsc` | `boolean` | `true` | 按 `Esc` 是否请求关闭弹层 |
@@ -52,7 +53,7 @@
 
 ## 关闭控制与无障碍
 
-所有关闭入口（标题栏、遮罩、`Esc`、Footer、实例 `close()`）都会经过 `beforeClose`。它支持异步确认：
+所有关闭入口（标题栏、遮罩、`Esc`、Footer、实例 `close()`）都会经过 `beforeClose`。它支持同步或异步确认：
 
 ```ts
 openLayer({
@@ -66,7 +67,11 @@ openLayer({
 }, appContext)
 ```
 
-默认情况下，弹层会自动聚焦、锁定 `Tab` 焦点，并在关闭当前顶层弹层时恢复原焦点。Teleport 到 `body` 且带遮罩的弹层会锁定页面滚动；多个弹层同时打开时，最后一个关闭才恢复页面样式。
+`beforeClose` 在 await 期间如果又收到新的关闭请求，新的请求会与最近一次关闭意图**合并**——后续请求按顺序排队进入守卫，**不会**并发抢占；任意一次守卫返回 `false` 都会保留 Layer，第一个返回真值的请求触发离场动画。
+
+默认情况下，弹层会自动聚焦、锁定 `Tab` 焦点，并在关闭当前顶层弹层时恢复原焦点。Teleport 到 `body` 且带遮罩的弹层会锁定页面滚动；多个弹层同时打开时，最后一个关闭才恢复页面样式，且在 SSR 或缺少 `document.body` 的宿主下不会抛错。焦点陷阱会跳过被 CSS 或 ARIA 隐藏的元素（`display: none`、`visibility: hidden`、`aria-hidden="true"`、祖先链上的隐藏状态等），避免 Tab 顺序错乱。
+
+启用 `min: true` 后，标题栏会出现最小化按钮。最小化窗口会进入同一 Teleport 容器底部的停靠栏；它不会保留遮罩、滚动锁或焦点陷阱。点击停靠项可恢复窗口并置顶，恢复时会保留最小化前的普通或最大化状态。
 
 ## 异步内容
 
@@ -88,6 +93,10 @@ openLayer({
 ```
 
 `timeout` 为加载超时毫秒数；省略时不超时。`maxRetries` 限制手动重试次数，省略时不限；`retryDelay` 可避免立即重试。`onTimeout` 和 `onRetry(retryCount)` 可分别记录超时与重试。关闭 Layer 会清理本库创建的超时和重试定时器；异步组件 loader 本身若需要中止，应由业务请求层自行使用 `AbortController`。
+
+::: tip 错误回调的去重与传播
+同一错误的 `onError` 在 timeout 路径与同步子组件渲染错误之间只会触发一次——避免双重告警。同时，渲染错误**不会**被吞掉，仍会向上传播给祖先 `errorCaptured` 钩子和 app-level `errorHandler`，方便上层统一观测。
+:::
 
 ## footer 详解
 

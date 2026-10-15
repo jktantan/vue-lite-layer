@@ -1,5 +1,6 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, test } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { defineAsyncComponent } from 'vue'
+import { describe, expect, test, vi } from 'vitest'
 import LayerContainer from '@lib/components/LayerContainer.vue'
 
 describe('LayerContainer', () => {
@@ -84,5 +85,33 @@ describe('LayerContainer', () => {
     wrapper.unmount()
     expect(parent.children[1]).toBe(element)
     expect(element.nextSibling).toBe(after)
+  })
+
+  test('shows the configured error state when async content times out', async () => {
+    vi.useFakeTimers()
+    const onTimeout = vi.fn()
+    const onError = vi.fn()
+    const PendingContent = defineAsyncComponent(() => new Promise(() => {}))
+    const wrapper = mount(LayerContainer, {
+      props: {
+        content: PendingContent,
+        asyncContent: {
+          timeout: 20,
+          errorText: 'Timed out',
+          onTimeout,
+          onError
+        }
+      }
+    })
+
+    await flushPromises()
+    vi.advanceTimersByTime(20)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Timed out')
+    expect(onTimeout).toHaveBeenCalledTimes(1)
+    expect(onError).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+    vi.useRealTimers()
   })
 })

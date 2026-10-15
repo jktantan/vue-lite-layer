@@ -10,6 +10,7 @@ const createInstance = (id: string, uniqueGroup?: string, teleportTarget = 'body
   close: vi.fn(() => true),
   bringToTop: vi.fn(),
   maximize: vi.fn(),
+  minimize: vi.fn(),
   restore: vi.fn()
 })
 

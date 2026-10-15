@@ -99,7 +99,11 @@ openLayer({ teleport: '#container-a', ... }, appContext)
 openLayer({ teleport: '#container-b', ... }, appContext)
 ```
 
-When `teleport` is a DOM element, Vue Lite Layer generates a stable internal group key for that element. Opening, bringing to top, and closing all use the same key, so z-index records are cleaned up correctly after close.
+When `teleport` is a DOM element, Vue Lite Layer generates a stable internal group key (`LayerInstance.teleportKey`) for that element. Opening, bringing to top, and closing all use the same key, so z-index records are cleaned up correctly after close.
+
+::: tip The `teleportTarget` instance field
+`LayerInstance.teleportTarget` is the user-facing string field: it carries the CSS selector or `'body'` when `teleport` is a string, and is the **empty string** when `teleport` is an `HTMLElement` / `RendererNode` (a DOM node has no stable string form). **To distinguish Teleport groups or track an instance's mount target, read `LayerInstance.teleportKey`** — it is stable across all teleport types.
+:::
 
 The mount target should define a positioning context via a CSS class or inline style:
 
@@ -122,3 +126,7 @@ app.use(VueLiteLayer, {
 ```
 
 Per-layer `teleport` configuration overrides the global setting.
+
+## SSR and Hosts Without `document.body`
+
+Layers teleported to `body` are skipped entirely in SSR environments — `openLayer()` returns `null` instead of attempting to create DOM. When `document.body` is missing at runtime, scroll locking and any other `body`-dependent operation silently no-ops rather than throwing.

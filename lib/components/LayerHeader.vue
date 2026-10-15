@@ -11,6 +11,14 @@
 
     <div class="lite-layer__window-header-operator" @mousedown.stop>
       <button
+        v-if="min && !isMinimized"
+        type="button"
+        class="lite-layer__mask-button lite-layer__icon-minimum"
+        :title="t('VueLiteLayer.minimum')"
+        :aria-label="t('VueLiteLayer.minimum')"
+        @click="handleMinimize"
+      />
+      <button
         v-if="max && !isMaximized"
         type="button"
         class="lite-layer__mask-button lite-layer__icon-maximum"
@@ -39,7 +47,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useLayerEmitter } from '../core/layer-emitter'
 import { useI18n } from 'vue-i18n-lite'
 
@@ -47,7 +55,6 @@ const i18n = useI18n()
 const t = i18n?.t ?? ((key: string) => key)
 const el = ref<HTMLElement>()
 const emitter = useLayerEmitter()
-const isMaximized = ref(false)
 
 const props = withDefaults(
   defineProps<{
@@ -57,6 +64,12 @@ const props = withDefaults(
     titleId?: string
     /** 是否允许最大化 / Whether maximization is allowed */
     max?: boolean
+    /** 是否允许最小化 / Whether minimization is allowed */
+    min?: boolean
+    /** 当前是否最大化 / Whether the window is maximized */
+    isMaximized?: boolean
+    /** 当前是否最小化 / Whether the window is minimized */
+    isMinimized?: boolean
     /** 是否显示关闭按钮 / Whether to show close button */
     close?: boolean
   }>(),
@@ -64,6 +77,9 @@ const props = withDefaults(
     title: '',
     titleId: undefined,
     max: true,
+    min: false,
+    isMaximized: false,
+    isMinimized: false,
     close: true
   }
 )
@@ -71,12 +87,16 @@ const props = withDefaults(
 /** 双击标题栏切换最大化/还原 / Double-click header to toggle maximize/restore */
 const handleDoubleClick = () => {
   if (props.max) {
-    isMaximized.value ? handleRestore() : handleMaximize()
+    props.isMaximized ? handleRestore() : handleMaximize()
   }
 }
 
 const handleMaximize = () => {
   emitter.emit('maximum')
+}
+
+const handleMinimize = () => {
+  emitter.emit('minimize')
 }
 
 const handleClose = () => {
@@ -86,26 +106,6 @@ const handleClose = () => {
 const handleRestore = () => {
   emitter.emit('restore')
 }
-
-/** 响应外部最大化事件（同步内部状态） / Respond to external maximize event (sync internal state) */
-const onMaximized = () => {
-  isMaximized.value = true
-}
-
-/** 响应外部还原事件（同步内部状态） / Respond to external restore event (sync internal state) */
-const onRestored = () => {
-  isMaximized.value = false
-}
-
-onMounted(() => {
-  emitter.on('maximum', onMaximized)
-  emitter.on('restore', onRestored)
-})
-
-onUnmounted(() => {
-  emitter.off('maximum', onMaximized)
-  emitter.off('restore', onRestored)
-})
 
 defineExpose({ el })
 </script>

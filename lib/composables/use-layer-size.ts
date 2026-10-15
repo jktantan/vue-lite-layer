@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { type Position, PositionPreset, type PixelSize } from '../types/layer'
+import { clampPosition, getPresetPosition } from '@lib/core/layer-geometry'
 
 /** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） / Window style (for template binding, prevents Vue re-render from overwriting maximize/restore direct styles) */
 export interface WindowStyle {
@@ -10,6 +11,23 @@ export interface WindowStyle {
 }
 
 export type WindowStylePatch = Partial<WindowStyle>
+
+/**
+ * 容器可用于放置窗口的尺寸
+ * Size of the container available for placing windows
+ *
+ * 使用 clientWidth/clientHeight 而非 offsetWidth/offsetHeight：
+ * 前者不含滚动条与边框，才是窗口真正能落地的区域。
+ * 出现滚动条时若按 offset 计算，窗口会被允许压到滚动条下方。
+ * Uses clientWidth/clientHeight instead of offsetWidth/offsetHeight: the
+ * former excludes scrollbars and borders, which is the area a window can
+ * actually occupy. Measuring with offset* lets a window slide under the
+ * scrollbar when one is present.
+ */
+const getContainerSize = (el: HTMLElement): PixelSize => ({
+  height: el.clientHeight || el.offsetHeight,
+  width: el.clientWidth || el.offsetWidth
+})
 
 const applyWindowStyle = (
   windowStyle: WindowStyle,
@@ -26,6 +44,52 @@ const applyWindowStyle = (
 }
 
 /**
+ * 临时启用位置/尺寸过渡动画，动画结束后自动移除
+ * Temporarily enable position/size transition animation, automatically remove after animation ends
+ *
+ * 使用 setTimeout 兜底：若 transitionend 因元素移除等原因未触发，
+ * 仍能可靠地清除 transition 样式，防止后续操作被干扰。
+ * Uses setTimeout as fallback: if transitionend doesn't fire due to element removal etc.,
+ * transition style is still reliably cleared to prevent interference with subsequent operations.
+ *
+ * 模块顶层导出：供 minimize/restore 过渡等需要同样节奏的代码复用。
+ * Module-top exports so the minimize/restore transition (and any other consumer
+ * that wants the same rhythm) can reuse the same duration/value.
+ */
+export const transitionDuration = 200
+export const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+/**
+ * Run a callback inside a 200ms top/left/width/height transition and clean up
+ * once the transition ends (or after a `setTimeout` fallback). Returns the cleanup
+ * function so the caller (typically `useLayerSize().dispose`) can cancel any
+ * pending listener/timer if the owning layer unmounts mid-flight.
+ */
+export const withTransition = (
+  el: HTMLElement,
+  callback: () => void,
+  onComplete?: () => void
+): (() => void) => {
+  el.style.transition = transitionValue
+  callback()
+  let cleaned = false
+  let timeout: ReturnType<typeof setTimeout> | null = null
+  const cleanup = () => {
+    if (cleaned) return
+    cleaned = true
+    el.style.transition = ''
+    el.removeEventListener('transitionend', onTransitionEnd)
+    if (timeout) clearTimeout(timeout)
+    onComplete?.()
+  }
+  const onTransitionEnd = (event: TransitionEvent) => {
+    if (event.target === el) cleanup()
+  }
+  el.addEventListener('transitionend', onTransitionEnd)
+  timeout = setTimeout(cleanup, transitionDuration + 50)
+  return cleanup
+}
+
+/**
  * 弹层尺寸与定位 Composable
  * Layer Size and Positioning Composable
  *
@@ -39,8 +103,6 @@ export default (initialSize?: { width?: string; height?: string }) => {
   const defaultSize: PixelSize = { height: 0, width: 0 }
   /** 容器（最大化时）的可用尺寸 / Available size of container (when maximized) */
   const maximumSize: PixelSize = { height: 0, width: 0 }
-  /** 弹层窗口的初始默认坐标 / Initial default coordinates of layer window */
-  const defaultPosition: Position = { top: '', left: '' }
   /** 弹层窗口的当前坐标（拖拽后更新） / Current coordinates of layer window (updated after drag) */
   const currentPosition: Position = { top: '', left: '' }
 
@@ -62,49 +124,27 @@ export default (initialSize?: { width?: string; height?: string }) => {
 
   /**
    * 将窗口限制在容器边界内
-   * Constrain window within container boundaries
+   * Constrain window within container edges
    *
    * @param windowEl - 弹层窗口元素 / Layer window element
    * @param containerEl - 约束容器元素 / Constraint container element
    */
   const clampToContainer = (windowEl: HTMLElement, containerEl: HTMLElement) => {
-    const top = Math.max(
-      0,
-      Math.min(windowEl.offsetTop, containerEl.offsetHeight - windowEl.offsetHeight)
-    )
-    const left = Math.max(
-      0,
-      Math.min(windowEl.offsetLeft, containerEl.offsetWidth - windowEl.offsetWidth)
+    const containerSize = getContainerSize(containerEl)
+    const { top, left } = clampPosition(
+      { top: windowEl.offsetTop, left: windowEl.offsetLeft },
+      { height: windowEl.offsetHeight, width: windowEl.offsetWidth },
+      containerSize
     )
     windowEl.style.top = top + 'px'
     windowEl.style.left = left + 'px'
   }
 
-  /**
-   * 临时启用位置/尺寸过渡动画，动画结束后自动移除
-   * Temporarily enable position/size transition animation, automatically remove after animation ends
-   *
-   * 使用 setTimeout 兜底：若 transitionend 因元素移除等原因未触发，
-   * 仍能可靠地清除 transition 样式，防止后续操作被干扰。
-   * Uses setTimeout as fallback: if transitionend doesn't fire due to element removal etc.,
-   * transition style is still reliably cleared to prevent interference with subsequent operations.
-   */
-  const transitionDuration = 200
-  const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
-
-  const withTransition = (el: HTMLElement, callback: () => void, onComplete?: () => void) => {
-    el.style.transition = transitionValue
-    callback()
-    let cleaned = false
-    const cleanup = () => {
-      if (cleaned) return
-      cleaned = true
-      el.style.transition = ''
-      el.removeEventListener('transitionend', cleanup)
-      onComplete?.()
-    }
-    el.addEventListener('transitionend', cleanup)
-    setTimeout(cleanup, transitionDuration + 50)
+  /** Pending `withTransition` cleanups, drained by `dispose()` when the layer unmounts. */
+  const transitionCleanups = new Set<() => void>()
+  const trackCleanup = (cleanup: (() => void) | undefined) => {
+    if (!cleanup) return
+    transitionCleanups.add(cleanup)
   }
 
   /**
@@ -128,7 +168,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
     }
 
     if (animated) {
-      withTransition(windowEl, applySize, onComplete)
+      trackCleanup(withTransition(windowEl, applySize, onComplete))
     } else {
       applySize()
       onComplete?.()
@@ -153,46 +193,32 @@ export default (initialSize?: { width?: string; height?: string }) => {
   ) => {
     if (!windowEl || !containerEl) return
 
-    const restoreTop = parseFloat(currentPosition.top) || 0
-    const restoreLeft = parseFloat(currentPosition.left) || 0
-    const containerH = containerEl.offsetHeight || containerEl.clientHeight
-    const containerW = containerEl.offsetWidth || containerEl.clientWidth
-    const clampedTop = Math.max(0, Math.min(restoreTop, containerH - defaultSize.height))
-    const clampedLeft = Math.max(0, Math.min(restoreLeft, containerW - defaultSize.width))
-
-    withTransition(
-      windowEl,
-      () => {
-        applyWindowStyle(windowStyle, windowEl, {
-          top: clampedTop + 'px',
-          left: clampedLeft + 'px',
-          width: defaultSize.width + 'px',
-          height: defaultSize.height + 'px'
-        })
-      },
-      onComplete
+    // `currentPosition` may be empty (initial state) or contain stale CSS
+    // strings; `parseFloat('')` is NaN and would propagate as "NaNpx", which
+    // browsers discard, snapping the window to (0,0). Treat NaN / non-finite
+    // values as 0 so clampPosition always receives finite numbers.
+    const restoreTop = Number.isFinite(parseFloat(currentPosition.top)) ? parseFloat(currentPosition.top) : 0
+    const restoreLeft = Number.isFinite(parseFloat(currentPosition.left)) ? parseFloat(currentPosition.left) : 0
+    const { top: clampedTop, left: clampedLeft } = clampPosition(
+      { top: restoreTop, left: restoreLeft },
+      defaultSize,
+      getContainerSize(containerEl)
     )
-  }
 
-  /**
-   * 预设定位 → [行方向计算, 列方向计算] 的查找表
-   * Preset positioning → lookup table for [row calculation, column calculation]
-   */
-  type PosFn = (gap: number, center: number, far: number) => number
-  const posGap: PosFn = (gap) => gap
-  const posCenter: PosFn = (_gap, center) => center
-  const posFar: PosFn = (_gap, _center, far) => far
-
-  const positionPresetMap: Record<PositionPreset, [PosFn, PosFn]> = {
-    [PositionPreset.LEFT_TOP]: [posGap, posGap],
-    [PositionPreset.LEFT_CENTER]: [posCenter, posGap],
-    [PositionPreset.LEFT_BOTTOM]: [posFar, posGap],
-    [PositionPreset.CENTER_TOP]: [posGap, posCenter],
-    [PositionPreset.CENTER_CENTER]: [posCenter, posCenter],
-    [PositionPreset.CENTER_BOTTOM]: [posFar, posCenter],
-    [PositionPreset.RIGHT_TOP]: [posGap, posFar],
-    [PositionPreset.RIGHT_CENTER]: [posCenter, posFar],
-    [PositionPreset.RIGHT_BOTTOM]: [posFar, posFar]
+    trackCleanup(
+      withTransition(
+        windowEl,
+        () => {
+          applyWindowStyle(windowStyle, windowEl, {
+            top: clampedTop + 'px',
+            left: clampedLeft + 'px',
+            width: defaultSize.width + 'px',
+            height: defaultSize.height + 'px'
+          })
+        },
+        onComplete
+      )
+    )
   }
 
   /**
@@ -213,41 +239,26 @@ export default (initialSize?: { width?: string; height?: string }) => {
     if (isCustomPosition(location)) {
       windowEl.style.top = location.top
       windowEl.style.left = location.left
-      clampToContainer(windowEl, containerEl)
-      // 保存自定义坐标到 defaultPosition / currentPosition，供还原时使用
-      // Save custom coordinates to defaultPosition / currentPosition for restore
-      defaultPosition.top = windowEl.style.top
-      defaultPosition.left = windowEl.style.left
-      currentPosition.top = windowEl.style.top
-      currentPosition.left = windowEl.style.left
-      applyWindowStyle(windowStyle, windowEl, {
-        top: windowEl.style.top,
-        left: windowEl.style.left,
-        width: windowEl.offsetWidth + 'px',
-        height: windowEl.offsetHeight + 'px'
-      })
     } else {
-      const gap = 25
-      const rowCenter = containerEl.offsetHeight / 2 - defaultSize.height / 2
-      const rowBottom = containerEl.offsetHeight - defaultSize.height - gap
-      const colCenter = containerEl.offsetWidth / 2 - defaultSize.width / 2
-      const colRight = containerEl.offsetWidth - defaultSize.width - gap
-
-      const [rowFn, colFn] = positionPresetMap[location]
-      windowEl.style.top = rowFn(gap, rowCenter, rowBottom) + 'px'
-      windowEl.style.left = colFn(gap, colCenter, colRight) + 'px'
-
-      defaultPosition.top = windowEl.style.top
-      defaultPosition.left = windowEl.style.left
-      currentPosition.top = windowEl.style.top
-      currentPosition.left = windowEl.style.left
-      applyWindowStyle(windowStyle, windowEl, {
-        top: windowEl.style.top,
-        left: windowEl.style.left,
-        width: windowEl.offsetWidth + 'px',
-        height: windowEl.offsetHeight + 'px'
-      })
+      const { top, left } = getPresetPosition(location, defaultSize, getContainerSize(containerEl))
+      windowEl.style.top = top + 'px'
+      windowEl.style.left = left + 'px'
     }
+
+    // Both branches clamp against the live DOM: presets can also compute
+    // negative coordinates (e.g. center when the window is larger than the
+    // container), and the custom branch is not guaranteed to be in-bounds.
+    // 两个分支都基于实际 DOM 做 clamp：预设同样可能算出负坐标（例如窗口
+    // 大于容器时的居中），自定义坐标也不保证在边界内。
+    clampToContainer(windowEl, containerEl)
+    currentPosition.top = windowEl.style.top
+    currentPosition.left = windowEl.style.left
+    applyWindowStyle(windowStyle, windowEl, {
+      top: windowEl.style.top,
+      left: windowEl.style.left,
+      width: windowEl.offsetWidth + 'px',
+      height: windowEl.offsetHeight + 'px'
+    })
   }
 
   /**
@@ -294,6 +305,11 @@ export default (initialSize?: { width?: string; height?: string }) => {
     })
   }
 
+  /** Clear pending transition timers/listeners when the owning layer unmounts. */
+  const dispose = (): void => {
+    for (const cleanup of transitionCleanups) cleanup()
+  }
+
   return {
     windowStyle,
     maximize,
@@ -301,6 +317,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
     setDefaultSize,
     setMaximumSize,
     initPosition,
-    setCurrentPosition
+    setCurrentPosition,
+    dispose
   }
 }

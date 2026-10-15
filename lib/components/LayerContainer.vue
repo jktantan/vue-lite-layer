@@ -46,7 +46,6 @@
 import {
   computed,
   nextTick,
-  onErrorCaptured,
   onMounted,
   onUnmounted,
   ref,
@@ -57,6 +56,7 @@ import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
 import type { AsyncContentConfig, LayerContentType } from '@lib/types/layer'
 import { warnIfUnsafeHtml } from '@lib/core/html-safety'
+import { useAsyncContent } from '@lib/composables/use-async-content'
 
 interface LayerContainerProps {
   content?: Component | HTMLElement | string
@@ -75,13 +75,7 @@ const shadowClass = ref('')
 const wrapperRef = useTemplateRef<HTMLElement>('wrapperRef')
 const elementHostRef = useTemplateRef<HTMLElement>('elementHostRef')
 const contentRef = useTemplateRef('contentRef')
-const contentError = ref<unknown>(null)
-const contentKey = ref(0)
-const retryCount = ref(0)
-const isRetrying = ref(false)
 let scrollFrame = 0
-let loadingTimeout: ReturnType<typeof setTimeout> | null = null
-let retryTimer: ReturnType<typeof setTimeout> | null = null
 let mountedElement: HTMLElement | null = null
 let originalParent: ParentNode | null = null
 let originalNextSibling: ChildNode | null = null
@@ -97,69 +91,16 @@ const normalizedContentType = computed<LayerContentType>(() => {
   return 'text'
 })
 
-const canRetry = computed(() => {
-  const maxRetries = layerProps.asyncContent?.maxRetries
-  return maxRetries == null || retryCount.value < maxRetries
-})
-
-const clearLoadingTimeout = (): void => {
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout)
-    loadingTimeout = null
-  }
-}
-
-const handlePending = (): void => {
-  clearLoadingTimeout()
-  const timeout = layerProps.asyncContent?.timeout
-  if (!timeout || timeout <= 0) return
-  loadingTimeout = setTimeout(() => {
-    loadingTimeout = null
-    const error = new Error(`Async layer content timed out after ${timeout}ms`)
-    contentError.value = error
-    layerProps.asyncContent?.onTimeout?.()
-    layerProps.asyncContent?.onError?.(error)
-  }, timeout)
-}
-
-const retryContent = (): void => {
-  if (!canRetry.value || isRetrying.value) return
-  retryCount.value += 1
-  layerProps.asyncContent?.onRetry?.(retryCount.value)
-  isRetrying.value = true
-  const retry = () => {
-    retryTimer = null
-    contentError.value = null
-    contentKey.value += 1
-    isRetrying.value = false
-  }
-  const retryDelay = layerProps.asyncContent?.retryDelay ?? 0
-  if (retryDelay > 0) {
-    retryTimer = setTimeout(retry, retryDelay)
-  } else {
-    retry()
-  }
-}
-
-const resetAsyncState = (): void => {
-  clearLoadingTimeout()
-  if (retryTimer) {
-    clearTimeout(retryTimer)
-    retryTimer = null
-  }
-  contentError.value = null
-  retryCount.value = 0
-  isRetrying.value = false
-}
-
-onErrorCaptured((error) => {
-  clearLoadingTimeout()
-  contentError.value = error
-  layerProps.asyncContent?.onError?.(error)
-  // The error is represented by the retry UI; do not also surface it as an
-  // uncaught application error.
-  return false
-})
+const {
+  contentError,
+  contentKey,
+  isRetrying,
+  canRetry,
+  clearLoadingTimeout,
+  handlePending,
+  retryContent,
+  reset: resetAsyncState
+} = useAsyncContent(() => layerProps.asyncContent)
 
 /**
  * 将 HTMLElement 内容恢复到原始 DOM 位置

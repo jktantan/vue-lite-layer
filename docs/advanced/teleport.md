@@ -99,7 +99,11 @@ openLayer({ teleport: '#container-a', ... }, appContext)
 openLayer({ teleport: '#container-b', ... }, appContext)
 ```
 
-当 `teleport` 是 DOM 元素时，Vue Lite Layer 会为该元素生成稳定的内部分组 key。打开、置顶和关闭都使用同一个 key，因此关闭后会正确清理 z-index 记录。
+当 `teleport` 是 DOM 元素时，Vue Lite Layer 会为该元素生成稳定的内部分组 key（`LayerInstance.teleportKey`）。打开、置顶和关闭都使用同一个 key，因此关闭后会正确清理 z-index 记录。
+
+::: tip 关于实例上的 teleportTarget 字段
+`LayerInstance.teleportTarget` 是面向用户的字符串字段：当 `teleport` 是 CSS 选择器或 `'body'` 时它是有意义的字符串；当 `teleport` 是 `HTMLElement` / `RendererNode` 时它为**空字符串**（DOM 元素没有稳定的字符串表示）。**区分 Teleport 分组、追踪实例归属时，请读取 `LayerInstance.teleportKey`**——它对所有 teleport 类型都是稳定字符串。
+:::
 
 挂载目标建议通过 CSS class 或 inline style 设置定位上下文：
 
@@ -122,3 +126,7 @@ app.use(VueLiteLayer, {
 ```
 
 单个弹层的 `teleport` 配置可以覆盖全局设置。
+
+## SSR 与无 body 宿主
+
+Teleport 到 `body` 的弹层在 SSR 环境下 `openLayer()` 会直接返回 `null`，不会尝试创建 DOM。当 `document.body` 缺失时，滚动锁定与基于 `body` 的相关操作会安全跳过，不会抛错。

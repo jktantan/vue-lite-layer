@@ -23,6 +23,10 @@ const result = await instance?.closed
 
 `closed` 会在离场动画结束后 resolve，适合在调用方继续后续流程。`reason` 用于判断关闭入口：`header`、`shade`、`escape`、`ok`、`cancel` 或 `programmatic`。
 
+### 并发关闭请求的合并
+
+当 `beforeClose` 是异步函数，且 Layer 在 await 期间又收到新的关闭请求，新的请求会与**最近一次**的关闭意图合并——不会并发抢占守卫。最终只执行一次关闭动作，其 `reason` 取最新一次请求的值。任意一次守卫返回 `false` 都会保留 Layer；第一个返回真值的请求触发离场动画。该语义由 `useLayerClose` 集中保证，所有入口（标题栏、遮罩、`Esc`、Footer、实例 `close()`）行为一致。
+
 ## Footer 与业务完成
 
 默认 Footer 的按钮只负责通知内容组件：确认触发 `onOk()`，取消触发 `onCancel()`。它们不会替业务自动关闭，避免表单校验和异步保存尚未完成时窗口消失。
@@ -91,6 +95,8 @@ openLayer({
 ```
 
 `maxRetries` 省略时不限制手动重试；`retryDelay` 省略时立即重试。关闭 Layer 会清理 Layer 创建的超时和重试定时器；异步组件 loader 中的网络请求若需取消，请由业务请求层使用 `AbortController` 等方式处理。
+
+同一错误的 `onError` 在 timeout 路径与同步子组件渲染错误之间**只触发一次**——避免双重告警。同时，子组件抛出的渲染错误**不会被吞掉**，仍会向上传播给祖先 `errorCaptured` 钩子和 app-level `errorHandler`，方便上层统一观测；本库的 `onError` 只是把错误渲染到重试 UI。
 
 ## 无障碍默认行为
 

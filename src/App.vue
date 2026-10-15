@@ -89,16 +89,17 @@ const testLoading = () => {
   )
 }
 
-// ---------- Test 3: Maximize / Restore animation ----------
+// ---------- Test 3: Window controls ----------
 const testMaximize = () => {
-  addLog('Opening maximize test layer...')
+  addLog('Opening window controls test layer...')
   const inst = openLayer(
     {
-      title: 'Test: Maximize / Restore (double-click title bar)',
+      title: 'Test: Maximize / Restore / Minimize',
       content: TextContent,
-      props: { text: 'Double-click the title bar to maximize, double-click again to restore. Both should animate smoothly.' },
+      props: { text: 'Use the title-bar controls: minimize to the bottom dock, maximize, or restore. Double-click the title bar to toggle maximize.' },
       size: { width: '450px', height: '250px' },
       shade: false,
+      min: true,
     },
     appContext
   )
@@ -385,7 +386,7 @@ const ElementPlusLocaleTest = defineComponent({
       <div style="display: flex; flex-wrap: wrap; gap: 10px">
         <button class="test-btn blue" @click="testOpenClose">1. 打开 / 关闭动画</button>
         <button class="test-btn green" @click="testLoading">2. Loading 动画</button>
-        <button class="test-btn orange" @click="testMaximize">3. 最大化 / 还原</button>
+        <button class="test-btn orange" @click="testMaximize">3. 窗口控制（最大化 / 最小化）</button>
         <button class="test-btn gray" @click="testMultiple">4. 多弹层</button>
       </div>
     </div>

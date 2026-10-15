@@ -1,0 +1,71 @@
+name: Deploy Docs to GitHub Pages
+
+# 只有 main 更新才发布文档站点；dev 及其他分支不触发 Pages。
+# Only `main` publishes the docs site; `dev` and other branches do not.
+on:
+  push:
+    branches: [main]
+  # 允许在 Actions 页面手动触发一次部署。
+  # Allow manual one-off deployments from the Actions tab.
+  workflow_dispatch:
+
+# GitHub Pages 官方部署所需权限。
+# Permissions required by the official GitHub Pages deployment flow.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一个 Pages 部署；不打断正在进行的发布。
+# Keep a single in-flight Pages deployment; never cancel a running publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # 不启用 pnpm 缓存：仓库未提交 pnpm-lock.yaml，
+          # 缓存查找会因为缺少 lockfile 而报错。
+          # pnpm cache is intentionally off: pnpm-lock.yaml is not committed,
+          # so the cache lookup would fail on a missing lockfile.
+
+      - name: Install dependencies
+        # pnpm-lock.yaml 未纳入版本控制，因此不能使用 --frozen-lockfile。
+        # pnpm-lock.yaml is not tracked, so a frozen lockfile install would fail.
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build docs
+        run: pnpm docs:build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

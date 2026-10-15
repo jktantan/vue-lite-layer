@@ -8,7 +8,22 @@ const sfcTypeResolverFs = {
   realpath: realpathSync
 }
 
+/**
+ * 站点基础路径。GitHub Pages 项目站点地址为
+ * https://jktantan.github.io/vue-lite-layer/，因此 base 必须是 `'/vue-lite-layer/'`。
+ * 若改用自定义域名或用户页，请改回 `'/'`。
+ *
+ * VitePress does not rewrite absolute URLs placed in `head`, so the favicon
+ * below is built from this constant instead of a hard-coded root path.
+ */
+const base = '/vue-lite-layer/'
+
 export default defineConfig({
+  base,
+  // 内部分析与计划文档保留在仓库中，但不进入公开文档站点。
+  // Internal analysis / planning notes stay in the repo but are excluded
+  // from the published site.
+  srcExclude: ['analysis/**', 'superpowers/**'],
   ignoreDeadLinks: [/^http:\/\/localhost:5174\/?$/],
   vue: {
     script: { fs: sfcTypeResolverFs }
@@ -25,10 +40,18 @@ export default defineConfig({
       alias: {
         '@lib': fileURLToPath(new URL('../../lib', import.meta.url))
       }
+    },
+    build: {
+      // Disable esbuild CSS minify for the docs site. esbuild emits two
+      // harmless `[css-syntax-error] Unexpected "}"` warnings on VitePress's
+      // own default-theme CSS (around the `--vp-c-green-*` variable block);
+      // our `lib/assets/style/*.scss` compiles and minifies cleanly on its
+      // own. The lib build still uses esbuild minify independently.
+      cssMinify: false
     }
   },
   title: 'Vue Lite Layer',
-  head: [['link', { rel: 'icon', href: '/img/logo.svg' }]],
+  head: [['link', { rel: 'icon', href: `${base}img/logo.svg` }]],
 
   locales: {
     root: {
@@ -163,7 +186,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/img/logo.svg',
     footer: {
-      message: 'Released under the Apache License.',
+      message: 'Released under the Apache-2.0 License.',
       copyright: 'Copyright © 2024-present tantan'
     },
     search: {

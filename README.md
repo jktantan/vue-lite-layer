@@ -13,7 +13,7 @@
 - **服务式调用** — 通过 `useLiteLayer().openLayer()` 在任意组件中打开弹层，无需在模板中预先声明
 - **Vue 组件作为内容** — 弹层内容支持 Vue 组件、HTML 元素或纯文本
 - **拖拽移动** — 通过标题栏拖拽移动弹层窗口，自动限制在容器边界内
-- **最大化 / 还原** — 内置最大化和还原，支持双击标题栏切换
+- **最大化 / 最小化 / 还原** — 内置最大化、最小化到停靠栏与还原，支持双击标题栏切换
 - **多弹层管理** — 自动分配 z-index，点击窗口自动置顶
 - **唯一分组** — `uniqueGroup` 防止同组弹层重复打开
 - **遮罩层配置** — 支持有/无遮罩，点击遮罩关闭或不关闭
@@ -27,7 +27,7 @@
 - **事件通信** — Footer → Container → 调用方的完整事件链路
 - **国际化** — 内置中文/英文，支持自定义语言包
 - **Nuxt 支持** — 提供 Nuxt 模块，自动注册插件和 composables
-- **Teleport** — 支持挂载到 `body` 或任意 DOM 容器
+- **Teleport** — 支持挂载到 `body` 或任意 DOM 容器；HTMLElement 目标在实例上通过稳定的 `teleportKey` 标识
 - **TypeScript** — 完整的类型定义
 
 ### 安装
@@ -100,6 +100,8 @@ openLayer({
 
 所有关闭入口都会经过 `beforeClose`。默认 Footer 只发送确认/取消事件；内容组件完成校验或保存后必须自行调用 `close()`。简单确认框可设置 `closeOnOk: true`。
 
+`beforeClose` 可以是异步函数。同一 Layer 在守卫等待期间收到多次关闭请求时，后续请求会合并为**最近一次**的关闭意图并按顺序经过守卫，避免并发抢占；任意一次守卫通过都会触发离场动画。
+
 ```ts
 const instance = openLayer({
   title: '编辑资料',
@@ -153,6 +155,7 @@ export default defineNuxtConfig({
 | `footer` | `true` | `true` 默认按钮、`false` 隐藏、组件为自定义 Footer |
 | `shade` / `shadeClose` | `true` / `true` | 遮罩及点击遮罩关闭行为 |
 | `size` | `300px × 400px` | 窗口尺寸 |
+| `max` / `min` | `true` / `false` | 是否允许最大化 / 最小化到停靠栏 |
 | `teleport` | `'body'` | 挂载目标，支持选择器或 HTMLElement |
 | `uniqueGroup` | — | 同组仅允许一个 Layer |
 | `closeOnEsc` | `true` | 是否允许 `Esc` 请求关闭 |
@@ -231,9 +234,11 @@ openLayer({
 
 ### 可访问性与异步内容
 
-Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复。
+Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复，SSR 与缺少 `document.body` 的宿主下不会抛错。
 
-异步组件支持加载、超时、失败重试：
+焦点锁定会跳过被 CSS 或 ARIA 隐藏的元素（`display: none`、`visibility: hidden`、`aria-hidden="true"`、祖先链上的隐藏状态等），避免 Tab 顺序错乱。
+
+异步组件支持加载、超时、失败重试。同一错误的 `onError` 回调只会触发一次（避免 timeout 路径与同步渲染错误重复触发），渲染错误会继续向上传播给祖先 `errorCaptured` 与 app-level `errorHandler`，不会被吞掉：
 
 ```ts
 import { defineAsyncComponent } from 'vue'
@@ -255,7 +260,9 @@ openLayer({
 
 ### 文档
 
-完整文档请查看 [docs](./docs) 或 [GitHub 文档目录](https://github.com/jktantan/vue-lite-layer/tree/main/docs)。
+- 在线文档：<https://jktantan.github.io/vue-lite-layer/>
+- 仓库文档目录：[docs](./docs)
+- GitHub 文档目录：<https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### 第三方 UI 组件（Element Plus）
 
@@ -279,7 +286,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 ### 许可证
 
-[MIT](./LICENSE)
+[Apache-2.0](./LICENSE)
 
 ---
 
@@ -292,7 +299,7 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Service-style API** — Open layers from any component via `useLiteLayer().openLayer()`, no template declaration needed
 - **Vue Component as Content** — Layer content supports Vue components, HTML elements, or plain text
 - **Draggable** — Drag layer windows via the title bar, automatically constrained within container boundaries
-- **Maximize / Restore** — Built-in maximize and restore, supports double-click title bar toggle
+- **Maximize / Minimize / Restore** — Built-in maximize, minimize-to-dock, and restore, with double-click title bar toggle
 - **Multi-layer Management** — Automatic z-index allocation, click to bring window to top
 - **Unique Group** — `uniqueGroup` prevents duplicate layers in the same group
 - **Shade Configuration** — Support for shade on/off, click-to-close or not
@@ -306,7 +313,7 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Event Communication** — Complete event chain from Footer → Container → Caller
 - **i18n** — Built-in Chinese/English, supports custom language packs
 - **Nuxt Support** — Nuxt module for automatic plugin and composable registration
-- **Teleport** — Mount to `body` or any DOM container
+- **Teleport** — Mount to `body` or any DOM container; HTMLElement targets are identified on the instance via the stable `teleportKey`
 - **TypeScript** — Full type definitions
 
 ### Installation
@@ -379,6 +386,8 @@ openLayer({
 
 Every close path passes through `beforeClose`. The default footer only emits OK/Cancel events; content must call `close()` after validation or saving. Use `closeOnOk: true` for simple confirmations.
 
+`beforeClose` may be asynchronous. While the guard is awaiting, additional close requests on the same Layer are coalesced into the **most recent** intent and processed serially through the guard, so concurrent clicks cannot race ahead. The first guard that passes starts the leave animation.
+
 ```ts
 const instance = openLayer({
   title: 'Edit profile',
@@ -432,6 +441,7 @@ These are the options most NPM users need. See the [full API reference](./docs/e
 | `footer` | `true` | `true` default footer, `false` hidden, or a custom Footer component |
 | `shade` / `shadeClose` | `true` / `true` | Overlay and click-to-close behavior |
 | `size` | `300px × 400px` | Window dimensions |
+| `max` / `min` | `true` / `false` | Whether maximize / minimize-to-dock is allowed |
 | `teleport` | `'body'` | Mount target: selector or HTMLElement |
 | `uniqueGroup` | — | Limits a group to one open Layer |
 | `closeOnEsc` | `true` | Whether Escape requests closing |
@@ -506,9 +516,11 @@ openLayer({
 
 ### Accessibility and Async Content
 
-Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers.
+Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers, and do not throw under SSR or hosts that lack `document.body`.
 
-Async components support loading, timeout, failure, and retry:
+Focus trapping skips elements hidden by CSS or ARIA (`display: none`, `visibility: hidden`, `aria-hidden="true"`, hidden ancestors, etc.) so the Tab order never lands on an unreachable control.
+
+Async components support loading, timeout, failure, and retry. The same error fires `onError` only once — duplicates between the timeout path and the synchronous render-error path are deduped — and render errors continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` rather than being swallowed:
 
 ```ts
 import { defineAsyncComponent } from 'vue'
@@ -530,7 +542,9 @@ openLayer({
 
 ### Documentation
 
-See the full documentation in [docs](./docs) or the [GitHub docs directory](https://github.com/jktantan/vue-lite-layer/tree/main/docs).
+- Online documentation: <https://jktantan.github.io/vue-lite-layer/>
+- Repository docs directory: [docs](./docs)
+- GitHub docs directory: <https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### Third-party UI Components (Element Plus)
 
@@ -554,4 +568,4 @@ import en from 'element-plus/es/locale/lang/en'
 
 ### License
 
-[MIT](./LICENSE)
+[Apache-2.0](./LICENSE)

@@ -12,14 +12,21 @@ interface LayerInstance {
   /** Unique group identifier; undefined when no uniqueGroup is configured */
   uniqueGroup?: string
 
-  /** Teleport target selector, kept for backward compatibility */
+  /**
+   * Teleport target CSS selector or `'body'`.
+   * Empty string when `teleport` is an `HTMLElement` / `RendererNode`;
+   * read `teleportKey` instead.
+   */
   teleportTarget: string
 
-  /** Normalized Teleport key for internal grouping and cleanup */
+  /**
+   * Normalized Teleport key, stable across all teleport types
+   * (CSS selector, HTMLElement, etc.), used for internal grouping and cleanup.
+   */
   teleportKey: string
 
-  /** Close the layer */
-  close: () => boolean
+  /** Close the layer (only requests closing; beforeClose decides) */
+  close: () => void
 
   /** Bring the layer to top */
   bringToTop: () => void
@@ -27,11 +34,14 @@ interface LayerInstance {
   /** Maximize the layer */
   maximize: () => void
 
+  /** Minimize the layer to the dock */
+  minimize: () => void
+
   /** Restore the layer size */
   restore: () => void
 
-  /** Update mutable options through normal Vue props */
-  update: (options: Partial<LayerConfig>) => void
+  /** Update mutable options */
+  update: (options: Partial<Omit<LayerConfig, 'id' | 'uniqueGroup' | 'teleport'>>) => void
 
   /** Resolves with the close result after the leave animation */
   closed: Promise<LayerCloseResult>
@@ -39,7 +49,7 @@ interface LayerInstance {
 ```
 
 ::: tip Teleport metadata
-`teleportTarget` is kept for backward compatibility with older instance fields. New code that needs to distinguish `HTMLElement` Teleport groups should read the stable `teleportKey`. When no `uniqueGroup` is configured, `uniqueGroup` is `undefined`.
+`teleportTarget` is the user-facing string field: it carries the CSS selector or `'body'` when `teleport` is a string, and is the **empty string** when `teleport` is an `HTMLElement` / `RendererNode` (a DOM node has no stable string form). **To distinguish Teleport groups or track an instance's mount target, read the stable `teleportKey`** — it is stable across all teleport types. When no `uniqueGroup` is configured, `uniqueGroup` is `undefined`.
 :::
 
 ## Methods
@@ -57,7 +67,7 @@ setTimeout(() => {
 }, 3000)
 ```
 
-**Returns:** `boolean` — Always returns `true`
+**Returns:** `void` — the method returns no value. Await `instance.closed` for the final close result.
 
 ### bringToTop()
 
@@ -81,10 +91,20 @@ instance?.maximize()
 
 ### restore()
 
-Restore the layer from maximized state to its default size and position.
+Restore the layer from maximized state to its default size and position. If the layer is minimized, it restores the state it had before minimization.
 
 ```typescript
 instance?.restore()
+```
+
+### minimize()
+
+Minimize a layer that allows minimization (`min: true`) to the bottom dock of its Teleport target. The window stays mounted and can be restored with `restore()` or its dock item.
+
+```typescript
+const instance = openLayer({ title: 'Edit order', min: true })
+
+instance?.minimize()
 ```
 
 ### update()

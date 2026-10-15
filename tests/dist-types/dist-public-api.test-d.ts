@@ -48,10 +48,13 @@ const instance: LayerInstance = {
   id: 'a',
   teleportTarget: 'body',
   teleportKey: 'body',
-  close: () => true,
+  close: () => {},
   bringToTop: () => {},
   maximize: () => {},
-  restore: () => {}
+  minimize: () => {},
+  restore: () => {},
+  update: () => {},
+  closed: Promise.resolve({ reason: 'programmatic', action: 'close' })
 }
 
 const moduleOptions: ModuleOptions = {

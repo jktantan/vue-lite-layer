@@ -1,7 +1,19 @@
-import { type AppContext, getCurrentInstance, inject } from 'vue'
+import { type AppContext, type ComponentInternalInstance, getCurrentInstance, inject } from 'vue'
 import { LayerServiceKey, type LayerService } from '@lib/core/layer-service'
 import type { LayerConfig } from '@lib/types/layer'
 import type { LayerInstance } from '@lib/types/instance'
+
+/**
+ * Vue exposes component-scoped provides at runtime but does not include it in
+ * ComponentInternalInstance's public TypeScript declaration. Keep that
+ * compatibility boundary in one place instead of leaking unchecked casts into
+ * the layer service call.
+ */
+const getComponentProvides = (
+  instance: ComponentInternalInstance | null
+): AppContext['provides'] | undefined => {
+  return (instance as unknown as { provides?: AppContext['provides'] } | null)?.provides
+}
 
 /**
  * 弹层操作 Composable
@@ -73,7 +85,7 @@ export default () => {
     // appContext only contains application-level provides. Keep the caller's
     // component provides as well, so values supplied by a parent component
     // (such as ElConfigProvider's locale) are available to layer content.
-    return $layer?.open(finalOptions, effectiveAppContext, instance?.provides) ?? null
+    return $layer?.open(finalOptions, effectiveAppContext, getComponentProvides(instance)) ?? null
   }
 
   /**
