@@ -42,8 +42,10 @@ Per-layer configuration passed via `openLayer(config, appContext)`. Inherits all
 | `onCancel` | `LayerCallback \| null` | `null` | Cancel callback |
 | `onCommand` | `LayerCallback \| null` | `null` | Custom command callback |
 | `beforeClose` | `(context) => boolean \| Promise<boolean>` | `null` | Close guard; return `false` to keep the layer open |
-| `onOpen` / `onOpened` | `() => void` | `null` | Called on mount / after enter animation |
-| `onClose` / `onClosed` | `(context) => void` | `null` | Called when closing begins / after leave completes |
+| `onOpen` | `() => void` | `null` | Called when the layer mounts |
+| `onOpened` | `() => void` | `null` | Called after the enter animation completes |
+| `onClose` | `(context) => void` | `null` | Called when the close guard passes and the leave animation begins |
+| `onClosed` | `(context) => void` | `null` | Called after the leave animation completes, before unmount |
 
 ::: warning HTML content security
 String `content` is for trusted HTML, and runtime rendering does not sanitize HTML for you. Prefer `textContent` or `contentType: 'text'` for plain text or user input. If you must render rich user content, sanitize it with a trusted sanitizer first.

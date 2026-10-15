@@ -1,3 +1,21 @@
+# v1.1.0
+
+## Highlights
+
+- **Minimize support**: the new `min` option adds a title-bar minimize button, `instance.minimize()`, and a dock at the bottom of the Teleport container. Clicking a dock item restores the window, brings it to front, and returns to its pre-minimize (normal or maximized) state.
+- **Animated minimize / restore**: minimize and restore transitions now match maximize / restore.
+- **i18n**: Element Plus locale configured on an ancestor `ElConfigProvider` is inherited through component-scoped `provide`.
+- **i18n fix**: removed a module-level user-message cache that leaked overrides across layers and test runs.
+- **Fixes**: Nuxt type errors, position clamping, `titleId`, and close semantics.
+- **Performance**: internal lib optimizations; high-frequency scroll-shadow updates are coalesced into a single animation frame.
+
+## Docs Updated
+
+- `README.md`
+- `RELEASE_NOTES.md`
+- `CHANGELOG_DRAFT.md`
+- `docs/` (VitePress site, zh + en)
+
 # v1.0.0
 
 ## Highlights

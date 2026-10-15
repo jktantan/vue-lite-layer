@@ -13,7 +13,7 @@
 - **服务式调用** — 通过 `useLiteLayer().openLayer()` 在任意组件中打开弹层，无需在模板中预先声明
 - **Vue 组件作为内容** — 弹层内容支持 Vue 组件、HTML 元素或纯文本
 - **拖拽移动** — 通过标题栏拖拽移动弹层窗口，自动限制在容器边界内
-- **最大化 / 还原** — 内置最大化和还原，支持双击标题栏切换
+- **最大化 / 最小化 / 还原** — 内置最大化、最小化到停靠栏与还原，支持双击标题栏切换
 - **多弹层管理** — 自动分配 z-index，点击窗口自动置顶
 - **唯一分组** — `uniqueGroup` 防止同组弹层重复打开
 - **遮罩层配置** — 支持有/无遮罩，点击遮罩关闭或不关闭
@@ -155,6 +155,7 @@ export default defineNuxtConfig({
 | `footer` | `true` | `true` 默认按钮、`false` 隐藏、组件为自定义 Footer |
 | `shade` / `shadeClose` | `true` / `true` | 遮罩及点击遮罩关闭行为 |
 | `size` | `300px × 400px` | 窗口尺寸 |
+| `max` / `min` | `true` / `false` | 是否允许最大化 / 最小化到停靠栏 |
 | `teleport` | `'body'` | 挂载目标，支持选择器或 HTMLElement |
 | `uniqueGroup` | — | 同组仅允许一个 Layer |
 | `closeOnEsc` | `true` | 是否允许 `Esc` 请求关闭 |
@@ -259,7 +260,9 @@ openLayer({
 
 ### 文档
 
-完整文档请查看 [docs](./docs) 或 [GitHub 文档目录](https://github.com/jktantan/vue-lite-layer/tree/main/docs)。
+- 在线文档：<https://jktantan.github.io/vue-lite-layer/>
+- 仓库文档目录：[docs](./docs)
+- GitHub 文档目录：<https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### 第三方 UI 组件（Element Plus）
 
@@ -283,7 +286,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 ### 许可证
 
-[MIT](./LICENSE)
+[Apache-2.0](./LICENSE)
 
 ---
 
@@ -296,7 +299,7 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Service-style API** — Open layers from any component via `useLiteLayer().openLayer()`, no template declaration needed
 - **Vue Component as Content** — Layer content supports Vue components, HTML elements, or plain text
 - **Draggable** — Drag layer windows via the title bar, automatically constrained within container boundaries
-- **Maximize / Restore** — Built-in maximize and restore, supports double-click title bar toggle
+- **Maximize / Minimize / Restore** — Built-in maximize, minimize-to-dock, and restore, with double-click title bar toggle
 - **Multi-layer Management** — Automatic z-index allocation, click to bring window to top
 - **Unique Group** — `uniqueGroup` prevents duplicate layers in the same group
 - **Shade Configuration** — Support for shade on/off, click-to-close or not
@@ -438,6 +441,7 @@ These are the options most NPM users need. See the [full API reference](./docs/e
 | `footer` | `true` | `true` default footer, `false` hidden, or a custom Footer component |
 | `shade` / `shadeClose` | `true` / `true` | Overlay and click-to-close behavior |
 | `size` | `300px × 400px` | Window dimensions |
+| `max` / `min` | `true` / `false` | Whether maximize / minimize-to-dock is allowed |
 | `teleport` | `'body'` | Mount target: selector or HTMLElement |
 | `uniqueGroup` | — | Limits a group to one open Layer |
 | `closeOnEsc` | `true` | Whether Escape requests closing |
@@ -538,7 +542,9 @@ openLayer({
 
 ### Documentation
 
-See the full documentation in [docs](./docs) or the [GitHub docs directory](https://github.com/jktantan/vue-lite-layer/tree/main/docs).
+- Online documentation: <https://jktantan.github.io/vue-lite-layer/>
+- Repository docs directory: [docs](./docs)
+- GitHub docs directory: <https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### Third-party UI Components (Element Plus)
 
@@ -562,4 +568,4 @@ import en from 'element-plus/es/locale/lang/en'
 
 ### License
 
-[MIT](./LICENSE)
+[Apache-2.0](./LICENSE)

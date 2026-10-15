@@ -1,5 +1,36 @@
 # 版本更新草稿
 
+## v1.1.0
+
+### ✨ 新功能
+
+1. **最小化与停靠栏**
+   - 新增 `min` 配置与标题栏最小化按钮，弹层实例新增 `minimize()`。
+   - 最小化窗口会收起到同一 Teleport 容器底部的停靠栏；点击停靠项可恢复并置顶，并还原到最小化前的普通 / 最大化状态。
+   - 最小化 / 还原过渡动画与最大化 / 还原保持一致。
+   - 相关文件：`lib/LiteLayer.vue`, `lib/composables/use-layer-size.ts`, `lib/types/layer.ts`, `lib/i18n/lang/*`
+
+### 🐛 Bug 修复
+
+1. **Element Plus 国际化透传**
+   - 修复祖先 `ElConfigProvider` 的 locale 在 Layer 内不生效的问题；组件级 `provide` 现在会随调用链继承。
+
+2. **i18n 缓存串扰**
+   - 移除模块级用户语言包缓存，避免不同 Layer 之间互相污染语言文本。
+
+3. **Nuxt 类型 / 定位 / 关闭语义**
+   - 修正 Nuxt 类型错误、定位 clamp、`titleId` 与关闭语义。
+
+### ⚡ 性能
+
+- 优化 lib 内部实现与安全性。
+- 高频滚动阴影更新合并为单个动画帧，降低滚动期间调度开销。
+
+### 📝 文档与发布
+
+- 对齐 README 与 VitePress 文档，统一许可证为 Apache-2.0。
+- 新增 GitHub Pages 文档发布工作流（仅 `main` 分支触发，`dev` 不发布）。
+
 ## v0.1.19 (待发布)
 
 ### ✨ 改进
