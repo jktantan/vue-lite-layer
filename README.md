@@ -1,5 +1,16 @@
 # Vue Lite Layer
 
+[![npm version](https://img.shields.io/npm/v/vue-lite-layer.svg)](https://www.npmjs.com/package/vue-lite-layer)
+[![npm downloads](https://img.shields.io/npm/dm/vue-lite-layer.svg)](https://www.npmjs.com/package/vue-lite-layer)
+[![minzip size](https://img.shields.io/bundlephobia/minzip/vue-lite-layer)](https://bundlephobia.com/package/vue-lite-layer)
+[![license](https://img.shields.io/npm/l/vue-lite-layer.svg)](https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE)
+[![Vue 3](https://img.shields.io/badge/vue-3.x-42b883.svg)](https://vuejs.org/)
+[![Nuxt](https://img.shields.io/badge/nuxt-module-00DC82.svg)](https://nuxt.com/)
+
+A lightweight, flexible **Vue 3 modal / layer** component library with a service-style API — drag, maximize & restore, multi-layer z-index management, unique groups, focus trap, i18n and a Nuxt module, packaged together.
+
+一个轻量、灵活的 Vue 3 弹层（Modal / Layer）组件库，以服务式调用为核心，支持拖拽、最大化/还原、多弹层 z-index 管理、唯一分组等功能。
+
 [中文](#中文) | [English](#english)
 
 ---
@@ -145,7 +156,7 @@ export default defineNuxtConfig({
 
 ### 基础配置速查
 
-以下是 NPM 使用时最常用的配置；完整类型和全部选项见 [API 文档](./docs/api/config.md)。
+以下是 NPM 使用时最常用的配置；完整类型和全部选项见 [API 文档](https://github.com/jktantan/vue-lite-layer/blob/main/docs/api/config.md)。
 
 | 配置 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -261,7 +272,7 @@ openLayer({
 ### 文档
 
 - 在线文档：<https://jktantan.github.io/vue-lite-layer/>
-- 仓库文档目录：[docs](./docs)
+- 仓库文档目录：[docs](https://github.com/jktantan/vue-lite-layer/tree/main/docs)
 - GitHub 文档目录：<https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### 第三方 UI 组件（Element Plus）
@@ -286,7 +297,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 ### 许可证
 
-[Apache-2.0](./LICENSE)
+[Apache-2.0](https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE)
 
 ---
 
@@ -431,7 +442,7 @@ export default defineNuxtConfig({
 
 ### Essential Configuration
 
-These are the options most NPM users need. See the [full API reference](./docs/en/api/config.md) for all types and options.
+These are the options most NPM users need. See the [full API reference](https://github.com/jktantan/vue-lite-layer/blob/main/docs/en/api/config.md) for all types and options.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -543,7 +554,7 @@ openLayer({
 ### Documentation
 
 - Online documentation: <https://jktantan.github.io/vue-lite-layer/>
-- Repository docs directory: [docs](./docs)
+- Repository docs directory: [docs](https://github.com/jktantan/vue-lite-layer/tree/main/docs)
 - GitHub docs directory: <https://github.com/jktantan/vue-lite-layer/tree/main/docs>
 
 ### Third-party UI Components (Element Plus)
@@ -568,4 +579,4 @@ import en from 'element-plus/es/locale/lang/en'
 
 ### License
 
-[Apache-2.0](./LICENSE)
+[Apache-2.0](https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE)
