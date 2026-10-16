@@ -13,7 +13,7 @@ const isOpen = ref(false)
 
 const handleOpen = () => {
   if (isOpen.value) return
-  instance.value = openLayer(
+  const layer = openLayer(
     withLocale({
       title: t.value.instanceDemo,
       content: TextContent,
@@ -24,7 +24,16 @@ const handleOpen = () => {
     }),
     appContext
   )
+  instance.value = layer
   isOpen.value = true
+  // 标题栏 / 遮罩 / Esc 等入口同样能关闭弹层；统一监听 closed 同步状态，
+  // 否则「打开弹层」按钮会永久停在 disabled。
+  // The header / shade / Escape paths can also close the layer; syncing on
+  // `closed` keeps state consistent so "Open Layer" never stays disabled.
+  layer?.closed.then(() => {
+    instance.value = null
+    isOpen.value = false
+  })
 }
 
 const handleMaximize = () => {
@@ -40,9 +49,8 @@ const handleBringToTop = () => {
 }
 
 const handleClose = () => {
+  // 状态复位交给上面的 closed.then，避免与重新打开产生竞态。
   instance.value?.close()
-  instance.value = null
-  isOpen.value = false
 }
 </script>
 

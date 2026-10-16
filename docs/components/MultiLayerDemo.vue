@@ -31,6 +31,15 @@ const openMultiple = () => {
   )
   if (instance) {
     instances.value.push(instance)
+    // 通过标题栏 / Esc 等外部入口关闭时也要移出计数，否则「当前已打开 N 个」会偏大。
+    // 按 id 比较：instances 是深层响应式数组，读出的元素是 reactive proxy，
+    // 用 `item !== instance` 会恒为 true 而删不掉。
+    // Remove externally closed layers from the count so it never drifts.
+    // Compare by id: `instances` is a deep-reactive array, so reading an item
+    // yields a reactive proxy that never compares equal to the raw `instance`.
+    instance.closed.then(() => {
+      instances.value = instances.value.filter((item) => item.id !== instance.id)
+    })
   }
 }
 

@@ -1,6 +1,6 @@
 # 交互演示
 
-在此页面可以直接体验 Vue Lite Layer 的各种功能。点击按钮即可打开弹层，所有弹层都支持拖拽移动和标题栏双击最大化。
+在此页面可以直接体验 Vue Lite Layer 的各种功能。点击按钮即可打开弹层，所有弹层都支持拖拽移动、标题栏双击最大化，以及最小化到停靠栏。
 
 <script setup>
 import BasicDemo from '../components/BasicDemo.vue'
@@ -14,6 +14,7 @@ import AsyncContentDemo from '../components/AsyncContentDemo.vue'
 import LifecycleDemo from '../components/LifecycleDemo.vue'
 import MultiLayerDemo from '../components/MultiLayerDemo.vue'
 import InstanceDemo from '../components/InstanceDemo.vue'
+import MinimizeDemo from '../components/MinimizeDemo.vue'
 </script>
 
 ## 基础用法
@@ -325,6 +326,36 @@ instance.value?.maximize()   // 最大化
 instance.value?.restore()    // 还原
 instance.value?.bringToTop() // 置顶
 instance.value?.close()      // 关闭
+```
+:::
+
+## 最小化与停靠栏
+
+设置 `min: true` 后，弹层标题栏会出现最小化按钮。点击后窗口收入页面底部的停靠栏；点击停靠项（或调用 `instance.restore()`）即可还原并置顶。也可以用 `instance.minimize()` 从外部收起。
+
+<MinimizeDemo />
+
+::: details 查看代码
+```vue
+<script setup>
+import { ref, getCurrentInstance } from 'vue'
+import { useLiteLayer } from 'vue-lite-layer'
+
+const { appContext } = getCurrentInstance()!
+const { openLayer } = useLiteLayer()
+
+const instance = ref(null)
+
+// min: true 打开后，标题栏会多出最小化按钮
+instance.value = openLayer({
+  title: '可最小化弹层',
+  min: true,          // 默认 false，需显式开启
+  shade: false,
+}, appContext)
+
+// 外部控制（与标题栏按钮等价）
+instance.value?.minimize()  // 最小化到停靠栏
+instance.value?.restore()   // 从停靠栏还原并置顶
 ```
 :::
 

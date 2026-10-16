@@ -1,6 +1,6 @@
 # Interactive Demo
 
-On this page you can experience all Vue Lite Layer features firsthand. Click the buttons to open layers — all layers support drag-to-move and double-click title bar to maximize.
+On this page you can experience all Vue Lite Layer features firsthand. Click the buttons to open layers — all layers support drag-to-move, double-click title bar to maximize, and minimize-to-dock.
 
 <script setup>
 import BasicDemo from '../../components/BasicDemo.vue'
@@ -14,6 +14,7 @@ import AsyncContentDemo from '../../components/AsyncContentDemo.vue'
 import LifecycleDemo from '../../components/LifecycleDemo.vue'
 import MultiLayerDemo from '../../components/MultiLayerDemo.vue'
 import InstanceDemo from '../../components/InstanceDemo.vue'
+import MinimizeDemo from '../../components/MinimizeDemo.vue'
 </script>
 
 ## Basic Usage
@@ -325,6 +326,36 @@ instance.value?.maximize()   // Maximize
 instance.value?.restore()    // Restore
 instance.value?.bringToTop() // Bring to top
 instance.value?.close()      // Close
+```
+:::
+
+## Minimize and Dock
+
+With `min: true` the layer's title bar shows a minimize button. Clicking it collapses the window into the dock at the bottom of the page; clicking the dock item (or calling `instance.restore()`) restores and raises it. You can also collapse it from outside via `instance.minimize()`.
+
+<MinimizeDemo />
+
+::: details View Code
+```vue
+<script setup>
+import { ref, getCurrentInstance } from 'vue'
+import { useLiteLayer } from 'vue-lite-layer'
+
+const { appContext } = getCurrentInstance()!
+const { openLayer } = useLiteLayer()
+
+const instance = ref(null)
+
+// With min: true the title bar gains a minimize button
+instance.value = openLayer({
+  title: 'Minimizable Layer',
+  min: true,          // Defaults to false; enable it explicitly
+  shade: false,
+}, appContext)
+
+// External control (equivalent to the title bar buttons)
+instance.value?.minimize()  // Minimize to the dock
+instance.value?.restore()   // Restore from the dock and bring to top
 ```
 :::
 
