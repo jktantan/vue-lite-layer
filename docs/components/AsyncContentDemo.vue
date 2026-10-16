@@ -41,7 +41,9 @@ const openAsyncLayer = () => {
 <template>
   <div class="demo-block">
     <div class="demo-block__title">{{ t.asyncContentConfig }}</div>
-    <p style="color: var(--vp-c-text-2); font-size: 14px; margin-bottom: 12px">{{ t.asyncContentDesc }}</p>
+    <p style="color: var(--vp-c-text-2); font-size: 14px; margin-bottom: 12px">
+      {{ t.asyncContentDesc }}
+    </p>
     <button @click="openAsyncLayer">{{ t.openAsyncContent }}</button>
   </div>
 </template>

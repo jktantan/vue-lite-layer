@@ -60,7 +60,9 @@ const handleClose = () => {
     <button @click="handleOpen" :disabled="isOpen">{{ t.openLayer }}</button>
     <button @click="handleMaximize" class="outline" :disabled="!isOpen">{{ t.maximize }}</button>
     <button @click="handleRestore" class="outline" :disabled="!isOpen">{{ t.restore }}</button>
-    <button @click="handleBringToTop" class="outline" :disabled="!isOpen">{{ t.bringToTop }}</button>
+    <button @click="handleBringToTop" class="outline" :disabled="!isOpen">
+      {{ t.bringToTop }}
+    </button>
     <button @click="handleClose" class="outline" :disabled="!isOpen">{{ t.close }}</button>
   </div>
 </template>

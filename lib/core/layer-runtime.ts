@@ -72,7 +72,10 @@ const cloneAppConfigForLayer = (layerConfig: AppConfig, hostConfig: AppConfig): 
   return {
     ...copyConfigWithoutCompilerOptions(layerConfig),
     ...copyConfigWithoutCompilerOptions(hostConfig),
-    globalProperties: cloneGlobalProperties(hostConfig.globalProperties, layerConfig.globalProperties),
+    globalProperties: cloneGlobalProperties(
+      hostConfig.globalProperties,
+      layerConfig.globalProperties
+    ),
     optionMergeStrategies: {
       ...hostConfig.optionMergeStrategies,
       ...layerConfig.optionMergeStrategies
@@ -204,8 +207,12 @@ const openLayer = (
     restore: () => emitter.emit('restore'),
     update: (nextOptions) => {
       // Identity and teleport are immutable because manager bookkeeping uses them.
-      const { id: _id, uniqueGroup: _uniqueGroup, teleport: _teleport, ...mutableOptions } =
-        nextOptions as LayerConfig
+      const {
+        id: _id,
+        uniqueGroup: _uniqueGroup,
+        teleport: _teleport,
+        ...mutableOptions
+      } = nextOptions as LayerConfig
       Object.assign(runtimeOptions, mutableOptions)
     },
     closed

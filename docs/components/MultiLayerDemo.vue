@@ -82,7 +82,12 @@ const openUniqueGroup = () => {
     <p
       v-if="uniqueLog"
       style="margin-top: 8px; font-size: 13px; font-weight: 500"
-      :style="{ color: uniqueLog.includes('拦截') || uniqueLog.includes('Blocked') ? '#e6a23c' : 'var(--vp-c-brand-1)' }"
+      :style="{
+        color:
+          uniqueLog.includes('拦截') || uniqueLog.includes('Blocked')
+            ? '#e6a23c'
+            : 'var(--vp-c-brand-1)'
+      }"
     >
       {{ uniqueLog }}
     </p>

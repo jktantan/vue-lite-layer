@@ -27,7 +27,13 @@
         </div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-else-if="content && typeof content === 'string'" v-html="content"></div>
-        <component v-else-if="content" :is="content" :key="contentKey" v-bind="props" ref="contentRef" />
+        <component
+          v-else-if="content"
+          :is="content"
+          :key="contentKey"
+          v-bind="props"
+          ref="contentRef"
+        />
       </div>
     </div>
     <template #fallback>
@@ -36,22 +42,16 @@
         style="display: flex; align-items: center; justify-content: center"
       >
         <div class="vll-loading-spinner" />
-        <span v-if="asyncContent?.loadingText" style="margin-left: 10px">{{ asyncContent.loadingText }}</span>
+        <span v-if="asyncContent?.loadingText" style="margin-left: 10px">{{
+          asyncContent.loadingText
+        }}</span>
       </div>
     </template>
   </suspense>
 </template>
 
 <script lang="ts" setup>
-import {
-  computed,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  ref,
-  useTemplateRef,
-  watch
-} from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
 import type { AsyncContentConfig, LayerContentType } from '@lib/types/layer'

@@ -197,8 +197,12 @@ export default (initialSize?: { width?: string; height?: string }) => {
     // strings; `parseFloat('')` is NaN and would propagate as "NaNpx", which
     // browsers discard, snapping the window to (0,0). Treat NaN / non-finite
     // values as 0 so clampPosition always receives finite numbers.
-    const restoreTop = Number.isFinite(parseFloat(currentPosition.top)) ? parseFloat(currentPosition.top) : 0
-    const restoreLeft = Number.isFinite(parseFloat(currentPosition.left)) ? parseFloat(currentPosition.left) : 0
+    const restoreTop = Number.isFinite(parseFloat(currentPosition.top))
+      ? parseFloat(currentPosition.top)
+      : 0
+    const restoreLeft = Number.isFinite(parseFloat(currentPosition.left))
+      ? parseFloat(currentPosition.left)
+      : 0
     const { top: clampedTop, left: clampedLeft } = clampPosition(
       { top: restoreTop, left: restoreLeft },
       defaultSize,

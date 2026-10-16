@@ -20,8 +20,12 @@ export function useDemoLocale() {
   }
   /** 带当前 locale 的弹层配置，使 LayerFooter 的确认/取消等按钮显示对应语言 */
   const layerLocale = computed(() => ({ locale: isEn.value ? 'en' : 'zh-CN' }))
-  const withLocale = <T extends Record<string, any>>(opts: T): T & { i18n: { locale: string } } =>
-    ({ ...opts, i18n: { ...(opts.i18n ?? {}), ...layerLocale.value } })
+  const withLocale = <T extends Record<string, any>>(
+    opts: T
+  ): T & { i18n: { locale: string } } => ({
+    ...opts,
+    i18n: { ...(opts.i18n ?? {}), ...layerLocale.value }
+  })
   return { isEn, t, format, layerLocale, withLocale }
 }
 
@@ -89,7 +93,8 @@ const zh = {
   saveSubmit: '保存并提交',
   // Layer content
   basicLayer: '基础弹层',
-  basicLayerText: '这是一个简单的文本弹层内容。支持拖拽标题栏移动位置，点击最大化按钮或双击标题栏切换全屏。',
+  basicLayerText:
+    '这是一个简单的文本弹层内容。支持拖拽标题栏移动位置，点击最大化按钮或双击标题栏切换全屏。',
   componentContentLayer: '组件内容弹层',
   pleaseFillInfo: '请填写您的信息',
   noFooterLayerText: '这个弹层没有底部的确认/取消按钮，只能通过关闭按钮或点击遮罩关闭。',
@@ -104,14 +109,16 @@ const zh = {
   largeLayer: '大型弹层',
   size80x70: '尺寸：80% x 70%',
   maxSizeLayer: '限制最大尺寸',
-  maxSizeDesc: '此弹层设置了 maxWidth: 600px 和 maxHeight: 400px。即使设置了较大的尺寸，也不会超过最大限制。',
+  maxSizeDesc:
+    '此弹层设置了 maxWidth: 600px 和 maxHeight: 400px。即使设置了较大的尺寸，也不会超过最大限制。',
   positionAt: '定位：{{label}} ({{loc}})',
   positionDesc: '此弹层使用预设定位 "{{loc}}" 显示在 {{label}} 位置。',
   customCoord: '自定义坐标',
   customCoordDesc: '此弹层使用自定义坐标 { top: "50px", left: "100px" } 定位。',
   defaultFooterDesc: '使用默认底部按钮（确认 / 取消）。设置 footer: true（默认值）。',
   hideFooterDesc: '底部按钮区域被隐藏。设置 footer: false。',
-  customFooterDesc: '底部区域由自定义 Vue 组件渲染。\n\n• 取消 → emitCancel() 后 close()\n• 存为草稿 → emitCommand(\'draft\')，保持打开\n• 保存并提交 → emitOk() 后 close()\n\n关闭行为完全由按钮逻辑决定。',
+  customFooterDesc:
+    "底部区域由自定义 Vue 组件渲染。\n\n• 取消 → emitCancel() 后 close()\n• 存为草稿 → emitCommand('draft')，保持打开\n• 保存并提交 → emitOk() 后 close()\n\n关闭行为完全由按钮逻辑决定。",
   commandKeepsOpen: '命令已发送，Layer 保持打开',
   asyncContentConfig: '异步内容与失败重试',
   asyncContentDesc: '首次加载会模拟失败；点击 Layer 内的重试按钮后会成功渲染。',
@@ -125,7 +132,8 @@ const zh = {
   openLifecycle: '打开生命周期演示',
   lifecycleTitle: '生命周期演示',
   lifecycleUpdatedTitle: '标题已通过 instance.update() 更新',
-  lifecycleDesc: '800ms 后标题会自动更新。尝试通过关闭按钮、遮罩或 Esc 关闭；每次都会经过 beforeClose 确认。',
+  lifecycleDesc:
+    '800ms 后标题会自动更新。尝试通过关闭按钮、遮罩或 Esc 关闭；每次都会经过 beforeClose 确认。',
   lifecycleConfirm: '确定关闭当前 Layer 吗？',
   lifecycleOpened: '正在打开…',
   lifecycleReady: 'onOpened 已触发；等待关闭。',
@@ -157,7 +165,8 @@ const zh = {
   ready: '就绪',
   saving: '保存中...',
   saved: '保存完成！',
-  asyncDesc: '点击下方"确认"按钮后，将模拟一个 2 秒的异步保存操作。\n保存期间会显示加载遮罩，完成后自动关闭弹层。',
+  asyncDesc:
+    '点击下方"确认"按钮后，将模拟一个 2 秒的异步保存操作。\n保存期间会显示加载遮罩，完成后自动关闭弹层。',
   customCommandTitle: '自定义命令',
   customCommandDesc: '点击下方按钮，向调用方发送不同的命令：',
   exportPdf: '导出 PDF',
@@ -201,7 +210,8 @@ const en: typeof zh = {
   clearLogs: 'Clear Logs',
   eventLog: 'Event Log:',
   loadingConfig: 'Loading State',
-  loadingDesc: 'Click the OK button in the layer to simulate a 2-second async operation with loading overlay.',
+  loadingDesc:
+    'Click the OK button in the layer to simulate a 2-second async operation with loading overlay.',
   openLoadingLayer: 'Open Loading Layer',
   instanceConfig: 'Instance Methods',
   openLayer: 'Open Layer',
@@ -227,7 +237,8 @@ const en: typeof zh = {
   saveDraft: 'Save Draft',
   saveSubmit: 'Save & Submit',
   basicLayer: 'Basic Layer',
-  basicLayerText: 'Simple text content. Supports drag to move and double-click title bar to maximize.',
+  basicLayerText:
+    'Simple text content. Supports drag to move and double-click title bar to maximize.',
   componentContentLayer: 'Component Content Layer',
   pleaseFillInfo: 'Please fill in your information',
   noFooterLayerText: 'This layer has no footer buttons. Close via X or shade click.',
@@ -249,7 +260,8 @@ const en: typeof zh = {
   customCoordDesc: 'This layer uses { top: "50px", left: "100px" }.',
   defaultFooterDesc: 'Default footer (OK/Cancel). footer: true (default).',
   hideFooterDesc: 'Footer hidden. footer: false.',
-  customFooterDesc: 'Custom footer component.\n\n• Cancel → emitCancel()\n• Save draft → emitCommand(\'draft\')\n• Save → emitOk()\n\nAll buttons call close().',
+  customFooterDesc:
+    "Custom footer component.\n\n• Cancel → emitCancel()\n• Save draft → emitCommand('draft')\n• Save → emitOk()\n\nAll buttons call close().",
   eventCallbackDemo: 'Event Callbacks',
   fillThenConfirm: 'Fill in and click OK or Cancel',
   openLayerLog: 'Layer opened',
@@ -264,7 +276,8 @@ const en: typeof zh = {
   layerN: 'Layer #{{n}}',
   layerNText: 'This is layer {{n}}. Click different layers to bring to top.',
   uniqueGroupLayer: 'Unique Group Layer',
-  uniqueGroupText: 'This layer is in "settings" group. Only one per group. Click again returns null.',
+  uniqueGroupText:
+    'This layer is in "settings" group. Only one per group. Click again returns null.',
   uniqueGroupOpened: 'Group layer opened. Try again →',
   uniqueGroupBlocked: 'Blocked! Same group layer exists, returned null.',
   formExample: 'Form Example',
@@ -282,7 +295,8 @@ const en: typeof zh = {
   customCommandDesc: 'Click buttons to send different commands:',
   commandKeepsOpen: 'Command sent; the Layer remains open',
   asyncContentConfig: 'Async Content and Retry',
-  asyncContentDesc: 'The first load intentionally fails; retry inside the Layer to render successfully.',
+  asyncContentDesc:
+    'The first load intentionally fails; retry inside the Layer to render successfully.',
   openAsyncContent: 'Open Async Content Layer',
   asyncContentTitle: 'Async Content Demo',
   asyncLoading: 'Loading component…',
@@ -293,7 +307,8 @@ const en: typeof zh = {
   openLifecycle: 'Open Lifecycle Demo',
   lifecycleTitle: 'Lifecycle Demo',
   lifecycleUpdatedTitle: 'Title updated through instance.update()',
-  lifecycleDesc: 'The title updates after 800ms. Try closing by header, shade, or Escape; each path passes through beforeClose.',
+  lifecycleDesc:
+    'The title updates after 800ms. Try closing by header, shade, or Escape; each path passes through beforeClose.',
   lifecycleConfirm: 'Close this Layer?',
   lifecycleOpened: 'Opening…',
   lifecycleReady: 'onOpened fired; waiting for close.',

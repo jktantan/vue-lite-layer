@@ -54,7 +54,9 @@ const handleClose = () => instance.value?.close()
     <button @click="handleOpen" :disabled="isOpen">{{ t.openMinimizableLayer }}</button>
     <button @click="handleMinimize" class="outline" :disabled="!isOpen">{{ t.minimize }}</button>
     <button @click="handleRestore" class="outline" :disabled="!isOpen">{{ t.restore }}</button>
-    <button @click="handleBringToTop" class="outline" :disabled="!isOpen">{{ t.bringToTop }}</button>
+    <button @click="handleBringToTop" class="outline" :disabled="!isOpen">
+      {{ t.bringToTop }}
+    </button>
     <button @click="handleClose" class="outline" :disabled="!isOpen">{{ t.close }}</button>
   </div>
 </template>
