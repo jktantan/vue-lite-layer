@@ -69,7 +69,10 @@ export default () => {
 
       // 最大化状态下（窗口与容器可用区同尺寸）不允许拖拽
       // Dragging not allowed when maximized (window fills the container's usable area)
-      if (windowEl.offsetWidth === containerSize.width && windowEl.offsetHeight === containerSize.height) {
+      if (
+        windowEl.offsetWidth === containerSize.width &&
+        windowEl.offsetHeight === containerSize.height
+      ) {
         return
       }
 

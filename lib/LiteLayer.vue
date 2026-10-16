@@ -83,7 +83,9 @@
         }"
         @mousedown="handleDockMouseDown"
       >
-        <div class="lite-layer__window-header-title" :title="title">{{ title || t('VueLiteLayer.restore') }}</div>
+        <div class="lite-layer__window-header-title" :title="title">
+          {{ title || t('VueLiteLayer.restore') }}
+        </div>
         <div class="lite-layer__window-header-operator" @mousedown.stop>
           <button
             type="button"
@@ -239,9 +241,9 @@ let hasScrollLock = false
 
 // ──── z-index 管理 / Z-index Management ────
 const isTeleportToBody =
-  props.teleport === 'body' ||
-  (typeof document !== 'undefined' && props.teleport === document.body)
-const teleportGroup = props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
+  props.teleport === 'body' || (typeof document !== 'undefined' && props.teleport === document.body)
+const teleportGroup =
+  props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
 const minimizedIndex = computed(() => {
   // 显式读 `minimizedGroups` 触发 reactive 订阅，

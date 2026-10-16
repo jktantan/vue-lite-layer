@@ -45,7 +45,8 @@ export const useLayerFocus = ({
   let previouslyFocused: HTMLElement | null = null
 
   const capturePreviousFocus = (): void => {
-    previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
   }
 
   const focusWindow = (): void => {

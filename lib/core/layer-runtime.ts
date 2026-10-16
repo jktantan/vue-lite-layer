@@ -30,20 +30,61 @@ const cloneGlobalProperties = (
   ) as AppConfig['globalProperties']
 }
 
+/**
+ * Reads `config.compilerOptions` without tripping Vue's runtime-only warning.
+ *
+ * In a runtime-only build Vue redefines `app.config.compilerOptions` as an
+ * accessor whose *getter* also warns (see Vue's `injectCompilerOptionsCheck`).
+ * Plain property access would therefore log a warning on every layer open.
+ * Inspecting the own property descriptor avoids invoking the getter: a real
+ * data property (full build, where the option is meaningful) exposes `value`,
+ * while the runtime-only accessor does not — and then there is nothing to copy.
+ */
+const readCompilerOptions = (config: AppConfig): AppConfig['compilerOptions'] | undefined => {
+  const descriptor = Object.getOwnPropertyDescriptor(config, 'compilerOptions')
+  return descriptor && 'value' in descriptor
+    ? (descriptor.value as AppConfig['compilerOptions'])
+    : undefined
+}
+
+/**
+ * Shallow-copies an app config's own enumerable fields while skipping
+ * `compilerOptions`.
+ *
+ * `{ ...config }` is unsafe here: the object-literal `compilerOptions` property
+ * stays enumerable when Vue swaps in the warning accessor, so spreading the
+ * config still reads it (getter included) and logs Vue's runtime-only warning
+ * on every layer open. `Object.keys` yields only key names — no getter call —
+ * so the key can be dropped and its value copied deliberately via
+ * {@link readCompilerOptions}.
+ */
+const copyConfigWithoutCompilerOptions = (config: AppConfig): Partial<AppConfig> => {
+  const copy: Record<string, unknown> = {}
+  const source = config as unknown as Record<string, unknown>
+  for (const key of Object.keys(config)) {
+    if (key === 'compilerOptions') continue
+    copy[key] = source[key]
+  }
+  return copy as unknown as Partial<AppConfig>
+}
+
 const cloneAppConfigForLayer = (layerConfig: AppConfig, hostConfig: AppConfig): AppConfig => {
   return {
-    ...layerConfig,
-    ...hostConfig,
-    globalProperties: cloneGlobalProperties(hostConfig.globalProperties, layerConfig.globalProperties),
+    ...copyConfigWithoutCompilerOptions(layerConfig),
+    ...copyConfigWithoutCompilerOptions(hostConfig),
+    globalProperties: cloneGlobalProperties(
+      hostConfig.globalProperties,
+      layerConfig.globalProperties
+    ),
     optionMergeStrategies: {
       ...hostConfig.optionMergeStrategies,
       ...layerConfig.optionMergeStrategies
     },
     compilerOptions: {
-      ...hostConfig.compilerOptions,
-      ...layerConfig.compilerOptions
+      ...readCompilerOptions(layerConfig),
+      ...readCompilerOptions(hostConfig)
     }
-  }
+  } as AppConfig
 }
 
 /**
@@ -121,8 +162,14 @@ const openLayer = (
   }
 
   layerApp.use(createLayerEmitterPlugin(emitter)).use(i18n().getI18n(currentOptions.i18n))
-  layerApp.provide(LayerServiceKey, service)
-  layerApp.provide('layer', service)
+  // Assign the service keys directly instead of calling `layerApp.provide()`.
+  // The layer app inherits the host's provides through the prototype chain (set
+  // above), and the host already provides these same keys — `app.provide()`
+  // would log a dev warning ("...inherited from its parent element") even
+  // though the value is identical. A plain assignment creates an own property
+  // that shadows the inherited one, with no warning.
+  layerApp._context.provides[LayerServiceKey] = service
+  layerApp._context.provides['layer'] = service
   layerApp.provide('layerParentTeleport', normalizedTeleport.target)
 
   let resolveClosed!: (result: LayerCloseResult) => void
@@ -160,8 +207,12 @@ const openLayer = (
     restore: () => emitter.emit('restore'),
     update: (nextOptions) => {
       // Identity and teleport are immutable because manager bookkeeping uses them.
-      const { id: _id, uniqueGroup: _uniqueGroup, teleport: _teleport, ...mutableOptions } =
-        nextOptions as LayerConfig
+      const {
+        id: _id,
+        uniqueGroup: _uniqueGroup,
+        teleport: _teleport,
+        ...mutableOptions
+      } = nextOptions as LayerConfig
       Object.assign(runtimeOptions, mutableOptions)
     },
     closed

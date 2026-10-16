@@ -72,7 +72,9 @@ export interface LayerCloseResult extends LayerCloseContext {
   data?: unknown
 }
 
-export type LayerBeforeClose = (context: LayerCloseContext) => boolean | void | Promise<boolean | void>
+export type LayerBeforeClose = (
+  context: LayerCloseContext
+) => boolean | void | Promise<boolean | void>
 export type LayerLifecycleCallback = (context?: LayerCloseContext) => void
 
 /** 异步内容的加载/失败展示配置 / Async content loading and failure presentation */

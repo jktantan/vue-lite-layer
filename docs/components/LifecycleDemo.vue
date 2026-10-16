@@ -34,6 +34,8 @@ const openLifecycleLayer = () => {
   <div class="demo-block">
     <div class="demo-block__title">{{ t.lifecycleConfig }}</div>
     <button @click="openLifecycleLayer">{{ t.openLifecycle }}</button>
-    <p v-if="result" style="margin: 10px 0 0; color: var(--vp-c-text-2); font-size: 13px">{{ result }}</p>
+    <p v-if="result" style="margin: 10px 0 0; color: var(--vp-c-text-2); font-size: 13px">
+      {{ result }}
+    </p>
   </div>
 </template>
