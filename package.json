@@ -1,6 +1,6 @@
 {
   "name": "vue-lite-layer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A lightweight, flexible Vue 3 modal / layer component library with a service-style API: drag, maximize & restore, multi-layer z-index management, focus trap, i18n and Nuxt module support.",
   "private": false,
   "packageManager": "pnpm@12.4.1",
@@ -17,55 +17,66 @@
     "!dist/nuxt/lib/**",
     "!dist/favicon.svg"
   ],
-  "main": "dist/vue-lite-layer.umd.js",
-  "module": "dist/vue-lite-layer.es.js",
-  "types": "dist/index.d.ts",
-  "typings": "dist/index.d.ts",
+  "main": "./dist/vue-lite-layer.umd.js",
+  "module": "./dist/vue-lite-layer.es.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/vue-lite-layer.umd.js",
+  "jsdelivr": "./dist/vue-lite-layer.umd.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/vue-lite-layer.es.js",
-      "require": "./dist/vue-lite-layer.umd.js"
+      "default": "./dist/vue-lite-layer.es.js"
     },
+    "./style.css": "./dist/vue-lite-layer.css",
     "./nuxt": {
       "types": "./dist/nuxt/module.d.ts",
-      "import": "./dist/nuxt/module.mjs"
+      "import": "./dist/nuxt/module.mjs",
+      "default": "./dist/nuxt/module.mjs"
     },
+    "./package.json": "./package.json",
     "./dist/*": "./dist/*"
   },
   "nuxt": {
     "module": "./dist/nuxt/module.mjs"
   },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jktantan/vue-lite-layer.git"
   },
-  "homepage": "https://jktantan.github.io/vue-lite-layer/",
-  "bugs": {
-    "url": "https://github.com/jktantan/vue-lite-layer/issues"
-  },
+  "keywords": [
+    "vue",
+    "vue3",
+    "vue-component",
+    "nuxt",
+    "nuxt-module",
+    "layer",
+    "modal",
+    "dialog",
+    "popup",
+    "overlay",
+    "window",
+    "draggable",
+    "component",
+    "composable",
+    "typescript",
+    "ui"
+  ],
   "author": {
     "name": "tantan",
     "url": "https://github.com/jktantan"
   },
   "license": "Apache-2.0",
-  "keywords": [
-    "vue",
-    "vue3",
-    "vue-component",
-    "component",
-    "modal",
-    "dialog",
-    "layer",
-    "popup",
-    "overlay",
-    "window",
-    "draggable",
-    "nuxt",
-    "nuxt-module",
-    "typescript",
-    "ui"
-  ],
+  "bugs": {
+    "url": "https://github.com/jktantan/vue-lite-layer/issues"
+  },
+  "homepage": "https://jktantan.github.io/vue-lite-layer",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

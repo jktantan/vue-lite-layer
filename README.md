@@ -1,17 +1,29 @@
-# Vue Lite Layer
+<p align="center">
+  <img src="https://jktantan.github.io/vue-lite-layer/img/logo.svg" alt="Vue Lite Layer logo" width="120" />
+</p>
 
-[![npm version](https://img.shields.io/npm/v/vue-lite-layer.svg)](https://www.npmjs.com/package/vue-lite-layer)
-[![npm downloads](https://img.shields.io/npm/dm/vue-lite-layer.svg)](https://www.npmjs.com/package/vue-lite-layer)
-[![minzip size](https://img.shields.io/bundlephobia/minzip/vue-lite-layer)](https://bundlephobia.com/package/vue-lite-layer)
-[![license](https://img.shields.io/npm/l/vue-lite-layer.svg)](https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE)
-[![Vue 3](https://img.shields.io/badge/vue-3.x-42b883.svg)](https://vuejs.org/)
-[![Nuxt](https://img.shields.io/badge/nuxt-module-00DC82.svg)](https://nuxt.com/)
+<h1 align="center">Vue Lite Layer</h1>
 
-A lightweight, flexible **Vue 3 modal / layer** component library with a service-style API — drag, maximize & restore, multi-layer z-index management, unique groups, focus trap, i18n and a Nuxt module, packaged together.
+<p align="center">
+  轻量、灵活的 Vue 3 弹层（Modal / Layer）组件库，以服务式调用为核心。
+  <br />
+  A lightweight, flexible Vue 3 modal / layer library built around a service-style API.
+</p>
 
-一个轻量、灵活的 Vue 3 弹层（Modal / Layer）组件库，以服务式调用为核心，支持拖拽、最大化/还原、多弹层 z-index 管理、唯一分组等功能。
+<p align="center">
+  <a href="https://www.npmjs.com/package/vue-lite-layer"><img src="https://img.shields.io/npm/v/vue-lite-layer?logo=npm" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/vue-lite-layer"><img src="https://img.shields.io/npm/dm/vue-lite-layer?logo=npm" alt="npm downloads" /></a>
+  <a href="https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="license" /></a>
+  <a href="https://jktantan.github.io/vue-lite-layer/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-42b883" alt="documentation" /></a>
+</p>
 
-[中文](#中文) | [English](#english)
+<p align="center">
+  <a href="#中文">中文</a> ·
+  <a href="#english">English</a> ·
+  <a href="https://jktantan.github.io/vue-lite-layer/">在线文档</a> ·
+  <a href="https://jktantan.github.io/vue-lite-layer/demo/">在线演示</a> ·
+  <a href="https://github.com/jktantan/vue-lite-layer">GitHub</a>
+</p>
 
 ---
 
@@ -41,49 +53,84 @@ A lightweight, flexible **Vue 3 modal / layer** component library with a service
 - **Teleport** — 支持挂载到 `body` 或任意 DOM 容器；HTMLElement 目标在实例上通过稳定的 `teleportKey` 标识
 - **TypeScript** — 完整的类型定义
 
+### 环境要求
+
+- Vue `>= 3.3`
+- Nuxt `>= 3`（仅在使用 `vue-lite-layer/nuxt` 时需要）
+- Node.js `>= 18`（构建与 SSR 环境）
+
 ### 安装
 
 ```bash
 npm install vue-lite-layer
 # 或
 pnpm add vue-lite-layer
+# 或
+yarn add vue-lite-layer
 ```
 
+包以 ESM 作为主入口（`import`），同时提供 UMD 构建用于 CDN 直连；Node 端请使用 ESM。
+
 ### 快速开始
+
+在应用入口注册插件并引入样式：
 
 ```typescript
 // main.ts
 import { createApp } from 'vue'
 import App from './App.vue'
 import VueLiteLayer from 'vue-lite-layer'
-import 'vue-lite-layer/dist/vue-lite-layer.css'
+import 'vue-lite-layer/style.css'
 
 const app = createApp(App)
 app.use(VueLiteLayer)
 app.mount('#app')
 ```
 
+在任意组件中打开弹层：
+
 ```vue
-<script setup>
+<script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
 
 const { openLayer } = useLiteLayer()
 
-openLayer({
-  title: '你好，世界',
-  textContent: '这是一个弹层内容。',
-  size: { width: '400px', height: '300px' },
-})
+const open = () => {
+  openLayer({
+    title: '你好，世界',
+    textContent: '这是一个弹层内容。',
+    size: { width: '400px', height: '300px' }
+  })
+}
 </script>
+
+<template>
+  <button @click="open">打开弹层</button>
+</template>
 ```
 
-在组件中通过 `useLiteLayer()` 调用时，会自动继承当前应用上下文和组件级 `provide`，通常不需要手动传 `appContext`。
+通过 `useLiteLayer()` 调用时，会自动继承当前应用上下文和组件级 `provide`，通常不需要手动传 `appContext`。
+
+### CDN 使用
+
+通过 `<script>` 直接引入时，UMD 构建暴露的全局变量为 `window['vue-lite-layer']`：
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/vue-lite-layer@1/dist/vue-lite-layer.css" />
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/vue-lite-layer@1"></script>
+<script>
+  const app = Vue.createApp({ /* ... */ })
+  app.use(window['vue-lite-layer'].default)
+  app.mount('#app')
+</script>
+```
 
 ### 使用 Vue 组件作为内容
 
 ```vue
 <!-- MyForm.vue -->
-<script setup>
+<script setup lang="ts">
 import { useLayerEvent } from 'vue-lite-layer'
 
 const { onOk, resolveOk, close } = useLayerEvent()
@@ -103,60 +150,13 @@ openLayer({
   content: MyForm,
   onOk: (message) => {
     console.log('表单数据:', message)
-  },
-})
-```
-
-### 关闭控制与实例结果
-
-所有关闭入口都会经过 `beforeClose`。默认 Footer 只发送确认/取消事件；内容组件完成校验或保存后必须自行调用 `close()`。简单确认框可设置 `closeOnOk: true`。
-
-`beforeClose` 可以是异步函数。同一 Layer 在守卫等待期间收到多次关闭请求时，后续请求会合并为**最近一次**的关闭意图并按顺序经过守卫，避免并发抢占；任意一次守卫通过都会触发离场动画。
-
-```ts
-const instance = openLayer({
-  title: '编辑资料',
-  closeOnOk: true,
-  beforeClose: async ({ reason }) =>
-    reason !== 'shade' || window.confirm('确定放弃未保存修改吗？')
-})
-
-instance?.update({ title: '编辑资料（未保存）' })
-const result = await instance?.closed
-console.log(result?.action, result?.reason)
-```
-
-### 异步内容
-
-```ts
-openLayer({
-  content: AsyncEditor,
-  asyncContent: {
-    loadingText: '正在加载编辑器…',
-    errorText: '编辑器加载失败',
-    retryText: '重新加载',
-    timeout: 10_000,
-    maxRetries: 3,
-    onError: console.error
   }
 })
 ```
 
-### Nuxt 集成
+### 配置速查
 
-```typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['vue-lite-layer/nuxt'],
-  vueLiteLayer: {
-    // 全局配置（可选）
-  }
-})
-```
-
-### 基础配置速查
-
-以下是 NPM 使用时最常用的配置；完整类型和全部选项见 [API 文档](https://github.com/jktantan/vue-lite-layer/blob/main/docs/api/config.md)。
+以下是 NPM 使用时最常用的配置；完整类型和全部选项见 [API 文档](https://jktantan.github.io/vue-lite-layer/api/config)。
 
 | 配置 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -173,6 +173,30 @@ export default defineNuxtConfig({
 | `closeOnOk` | `false` | 默认确认按钮是否自动关闭 |
 
 `content` 的字符串默认按 HTML 渲染，仅可传可信内容。用户输入请使用 `textContent` 或 `contentType: 'text'`。
+
+### 关闭控制与实例结果
+
+所有关闭入口（标题栏、遮罩、Esc、Footer、`instance.close()`）都会经过 `beforeClose`。默认 Footer 只发送确认/取消事件；内容组件完成校验或保存后必须自行调用 `close()`。简单确认框可设置 `closeOnOk: true`。
+
+`beforeClose` 可以是异步函数。同一 Layer 在守卫等待期间收到多次关闭请求时，后续请求会合并为**最近一次**的关闭意图并按顺序经过守卫，避免并发抢占；任意一次守卫通过都会触发离场动画。
+
+```ts
+const instance = openLayer({
+  title: '编辑资料',
+  closeOnOk: true,
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('确定放弃未保存修改吗？')
+})
+
+instance?.update({ title: '编辑资料（未保存）' })
+instance?.maximize()
+
+const result = await instance?.closed
+console.log(result?.action, result?.reason)
+// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
+```
+
+实例还提供 `bringToTop()`、`maximize()`、`minimize()`、`restore()` 和 `update()`。`id`、`uniqueGroup` 与 `teleport` 在打开后不可修改。
 
 ### 确认、取消与自定义按钮
 
@@ -222,34 +246,7 @@ const submit = async () => {
 
 调用端用 `onCommand(command, data)` 接收自定义命令。简单确认框才建议使用 `closeOnOk: true`。
 
-### 实例控制与关闭结果
-
-```ts
-const instance = openLayer({ title: '编辑用户', content: UserForm })
-
-instance?.update({ title: '编辑用户（未保存）' })
-instance?.maximize()
-
-const result = await instance?.closed
-// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
-```
-
-所有关闭入口（标题栏、遮罩、Esc、Footer、`instance.close()`）都会经过 `beforeClose`：
-
-```ts
-openLayer({
-  beforeClose: async ({ reason }) =>
-    reason !== 'shade' || window.confirm('确定放弃修改吗？')
-})
-```
-
-### 可访问性与异步内容
-
-Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复，SSR 与缺少 `document.body` 的宿主下不会抛错。
-
-焦点锁定会跳过被 CSS 或 ARIA 隐藏的元素（`display: none`、`visibility: hidden`、`aria-hidden="true"`、祖先链上的隐藏状态等），避免 Tab 顺序错乱。
-
-异步组件支持加载、超时、失败重试。同一错误的 `onError` 回调只会触发一次（避免 timeout 路径与同步渲染错误重复触发），渲染错误会继续向上传播给祖先 `errorCaptured` 与 app-level `errorHandler`，不会被吞掉：
+### 异步内容
 
 ```ts
 import { defineAsyncComponent } from 'vue'
@@ -264,16 +261,33 @@ openLayer({
     retryText: '重新加载',
     timeout: 10_000,
     maxRetries: 3,
-    retryDelay: 500
+    retryDelay: 500,
+    onError: console.error
   }
 })
 ```
 
-### 文档
+异步组件支持加载、超时、失败重试。同一错误的 `onError` 回调只会触发一次（避免 timeout 路径与同步渲染错误重复触发），渲染错误会继续向上传播给祖先 `errorCaptured` 与 app-level `errorHandler`，不会被吞掉。
 
-- 在线文档：<https://jktantan.github.io/vue-lite-layer/>
-- 仓库文档目录：[docs](https://github.com/jktantan/vue-lite-layer/tree/main/docs)
-- GitHub 文档目录：<https://github.com/jktantan/vue-lite-layer/tree/main/docs>
+### 可访问性与滚动锁定
+
+Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭顶层 Layer 后恢复原焦点。焦点锁定会跳过被 CSS 或 ARIA 隐藏的元素（`display: none`、`visibility: hidden`、`aria-hidden="true"`、祖先链上的隐藏状态等），避免 Tab 顺序错乱。
+
+带遮罩且 Teleport 到 body 时，会自动锁定页面滚动；多个 Layer 同时打开时会安全恢复，SSR 与缺少 `document.body` 的宿主下不会抛错。
+
+### Nuxt 集成
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['vue-lite-layer/nuxt'],
+  vueLiteLayer: {
+    // 全局配置（可选）
+  }
+})
+```
+
+Nuxt 模块会自动注册客户端插件、注入样式，并自动导入 `useLiteLayer` 与 `useLayerEvent`。
 
 ### 第三方 UI 组件（Element Plus）
 
@@ -295,6 +309,25 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 </template>
 ```
 
+### 文档与示例
+
+- 在线文档：<https://jktantan.github.io/vue-lite-layer/>
+- 在线演示：<https://jktantan.github.io/vue-lite-layer/demo/>
+- API 参考：<https://jktantan.github.io/vue-lite-layer/api/config>
+- English Docs: <https://jktantan.github.io/vue-lite-layer/en/>
+- 仓库文档目录：<https://github.com/jktantan/vue-lite-layer/tree/main/docs>
+
+### 贡献
+
+欢迎通过 [GitHub Issues](https://github.com/jktantan/vue-lite-layer/issues) 反馈问题，或提交 Pull Request。
+
+```bash
+pnpm install
+pnpm dev        # 本地演示
+pnpm test       # 单元测试与类型检查
+pnpm lib:build  # 构建发布产物
+```
+
 ### 许可证
 
 [Apache-2.0](https://github.com/jktantan/vue-lite-layer/blob/main/LICENSE)
@@ -303,7 +336,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 ## English
 
-A lightweight, flexible Vue 3 modal/layer component library with service-style invocation, supporting drag, maximize/restore, multi-layer z-index management, unique grouping, and more.
+A lightweight, flexible Vue 3 modal / layer library built around a service-style API, with draggable windows, maximize/restore, multi-layer z-index management, unique grouping, and more.
 
 ### Features
 
@@ -327,49 +360,84 @@ A lightweight, flexible Vue 3 modal/layer component library with service-style i
 - **Teleport** — Mount to `body` or any DOM container; HTMLElement targets are identified on the instance via the stable `teleportKey`
 - **TypeScript** — Full type definitions
 
+### Requirements
+
+- Vue `>= 3.3`
+- Nuxt `>= 3` (only when using `vue-lite-layer/nuxt`)
+- Node.js `>= 18` (build and SSR environments)
+
 ### Installation
 
 ```bash
 npm install vue-lite-layer
 # or
 pnpm add vue-lite-layer
+# or
+yarn add vue-lite-layer
 ```
 
+The package is ESM-first (`import`) and also ships a UMD build for CDN usage. Use ESM in Node.js.
+
 ### Quick Start
+
+Register the plugin and import the styles in your application entry:
 
 ```typescript
 // main.ts
 import { createApp } from 'vue'
 import App from './App.vue'
 import VueLiteLayer from 'vue-lite-layer'
-import 'vue-lite-layer/dist/vue-lite-layer.css'
+import 'vue-lite-layer/style.css'
 
 const app = createApp(App)
 app.use(VueLiteLayer)
 app.mount('#app')
 ```
 
+Open a layer from any component:
+
 ```vue
-<script setup>
+<script setup lang="ts">
 import { useLiteLayer } from 'vue-lite-layer'
 
 const { openLayer } = useLiteLayer()
 
-openLayer({
-  title: 'Hello World',
-  textContent: 'This is a layer content.',
-  size: { width: '400px', height: '300px' },
-})
+const open = () => {
+  openLayer({
+    title: 'Hello World',
+    textContent: 'This is a layer content.',
+    size: { width: '400px', height: '300px' }
+  })
+}
 </script>
+
+<template>
+  <button @click="open">Open layer</button>
+</template>
 ```
 
 When called through `useLiteLayer()` in a component, the current app context and component-scoped provides are inherited automatically. You normally do not need to pass `appContext` manually.
+
+### CDN Usage
+
+When loaded via `<script>`, the UMD build exposes the global `window['vue-lite-layer']`:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/vue-lite-layer@1/dist/vue-lite-layer.css" />
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/vue-lite-layer@1"></script>
+<script>
+  const app = Vue.createApp({ /* ... */ })
+  app.use(window['vue-lite-layer'].default)
+  app.mount('#app')
+</script>
+```
 
 ### Using Vue Components as Content
 
 ```vue
 <!-- MyForm.vue -->
-<script setup>
+<script setup lang="ts">
 import { useLayerEvent } from 'vue-lite-layer'
 
 const { onOk, resolveOk, close } = useLayerEvent()
@@ -389,60 +457,13 @@ openLayer({
   content: MyForm,
   onOk: (message) => {
     console.log('Form data:', message)
-  },
-})
-```
-
-### Close Control and Instance Results
-
-Every close path passes through `beforeClose`. The default footer only emits OK/Cancel events; content must call `close()` after validation or saving. Use `closeOnOk: true` for simple confirmations.
-
-`beforeClose` may be asynchronous. While the guard is awaiting, additional close requests on the same Layer are coalesced into the **most recent** intent and processed serially through the guard, so concurrent clicks cannot race ahead. The first guard that passes starts the leave animation.
-
-```ts
-const instance = openLayer({
-  title: 'Edit profile',
-  closeOnOk: true,
-  beforeClose: async ({ reason }) =>
-    reason !== 'shade' || window.confirm('Discard unsaved changes?')
-})
-
-instance?.update({ title: 'Edit profile (unsaved)' })
-const result = await instance?.closed
-console.log(result?.action, result?.reason)
-```
-
-### Async Content
-
-```ts
-openLayer({
-  content: AsyncEditor,
-  asyncContent: {
-    loadingText: 'Loading editor…',
-    errorText: 'Editor failed to load',
-    retryText: 'Retry',
-    timeout: 10_000,
-    maxRetries: 3,
-    onError: console.error
-  }
-})
-```
-
-### Nuxt Integration
-
-```typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['vue-lite-layer/nuxt'],
-  vueLiteLayer: {
-    // Global config (optional)
   }
 })
 ```
 
 ### Essential Configuration
 
-These are the options most NPM users need. See the [full API reference](https://github.com/jktantan/vue-lite-layer/blob/main/docs/en/api/config.md) for all types and options.
+These are the options most NPM users need. See the [full API reference](https://jktantan.github.io/vue-lite-layer/en/api/config) for all types and options.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -460,6 +481,30 @@ These are the options most NPM users need. See the [full API reference](https://
 
 String `content` is rendered as HTML and must be trusted. Use `textContent` or `contentType: 'text'` for user input.
 
+### Close Control and Instance Results
+
+Every close path (header, shade, Escape, footer, `instance.close()`) passes through `beforeClose`. The default footer only emits OK/Cancel events; content must call `close()` after validation or saving. Use `closeOnOk: true` for simple confirmations.
+
+`beforeClose` may be asynchronous. While the guard is awaiting, additional close requests on the same Layer are coalesced into the **most recent** intent and processed serially through the guard, so concurrent clicks cannot race ahead. The first guard that passes starts the leave animation.
+
+```ts
+const instance = openLayer({
+  title: 'Edit profile',
+  closeOnOk: true,
+  beforeClose: async ({ reason }) =>
+    reason !== 'shade' || window.confirm('Discard unsaved changes?')
+})
+
+instance?.update({ title: 'Edit profile (unsaved)' })
+instance?.maximize()
+
+const result = await instance?.closed
+console.log(result?.action, result?.reason)
+// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
+```
+
+Instances also expose `bringToTop()`, `maximize()`, `minimize()`, `restore()`, and `update()`. `id`, `uniqueGroup`, and `teleport` cannot be changed after opening.
+
 ### OK, Cancel, and Custom Buttons
 
 The default footer only emits OK/Cancel events; it **does not close the Layer directly**. Content must call `close()` after validation or saving succeeds:
@@ -473,11 +518,14 @@ const { onOk, onCancel, resolveOk, close } = useLayerEvent()
 
 onOk(async () => {
   const data = await saveUserForm()
-  resolveOk(data)
-  close() // Explicitly close only after success
+  resolveOk(data) // triggers openLayer's onOk
+  close()         // only this closes the Layer
 })
 
-onCancel(() => close())
+onCancel(() => {
+  // Optionally warn about unsaved changes before closing
+  close()
+})
 </script>
 ```
 
@@ -489,6 +537,7 @@ For any number of business-specific buttons, supply a custom Footer component an
 import { useLayerEvent } from 'vue-lite-layer'
 
 const { emitCommand, close } = useLayerEvent()
+
 const saveDraft = () => emitCommand('save-draft') // Keep the Layer open
 const submit = async () => {
   await submitForm()
@@ -504,34 +553,7 @@ const submit = async () => {
 
 Receive custom commands with `onCommand(command, data)`. Use `closeOnOk: true` only for simple confirmations.
 
-### Instance Control and Close Results
-
-```ts
-const instance = openLayer({ title: 'Edit user', content: UserForm })
-
-instance?.update({ title: 'Edit user (unsaved)' })
-instance?.maximize()
-
-const result = await instance?.closed
-// result: { action: 'close' | 'ok' | 'cancel', reason, data? }
-```
-
-Every close path (header, shade, Escape, footer, `instance.close()`) passes through `beforeClose`:
-
-```ts
-openLayer({
-  beforeClose: async ({ reason }) =>
-    reason !== 'shade' || window.confirm('Discard unsaved changes?')
-})
-```
-
-### Accessibility and Async Content
-
-Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Shaded Layers teleported to body lock page scrolling safely, including stacked Layers, and do not throw under SSR or hosts that lack `document.body`.
-
-Focus trapping skips elements hidden by CSS or ARIA (`display: none`, `visibility: hidden`, `aria-hidden="true"`, hidden ancestors, etc.) so the Tab order never lands on an unreachable control.
-
-Async components support loading, timeout, failure, and retry. The same error fires `onError` only once — duplicates between the timeout path and the synchronous render-error path are deduped — and render errors continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` rather than being swallowed:
+### Async Content
 
 ```ts
 import { defineAsyncComponent } from 'vue'
@@ -546,16 +568,33 @@ openLayer({
     retryText: 'Retry',
     timeout: 10_000,
     maxRetries: 3,
-    retryDelay: 500
+    retryDelay: 500,
+    onError: console.error
   }
 })
 ```
 
-### Documentation
+Async components support loading, timeout, failure, and retry. The same error fires `onError` only once — duplicates between the timeout path and the synchronous render-error path are deduped — and render errors continue to propagate to ancestor `errorCaptured` hooks and the app-level `errorHandler` rather than being swallowed.
 
-- Online documentation: <https://jktantan.github.io/vue-lite-layer/>
-- Repository docs directory: [docs](https://github.com/jktantan/vue-lite-layer/tree/main/docs)
-- GitHub docs directory: <https://github.com/jktantan/vue-lite-layer/tree/main/docs>
+### Accessibility and Scroll Lock
+
+Layers auto-focus, trap Tab focus, support Escape closing, and restore focus after the active top Layer closes. Focus trapping skips elements hidden by CSS or ARIA (`display: none`, `visibility: hidden`, `aria-hidden="true"`, hidden ancestors, etc.) so the Tab order never lands on an unreachable control.
+
+Shaded Layers teleported to body lock page scrolling safely, including stacked Layers, and do not throw under SSR or hosts that lack `document.body`.
+
+### Nuxt Integration
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['vue-lite-layer/nuxt'],
+  vueLiteLayer: {
+    // Global config (optional)
+  }
+})
+```
+
+The Nuxt module registers the client plugin, injects the stylesheet, and auto-imports `useLiteLayer` and `useLayerEvent`.
 
 ### Third-party UI Components (Element Plus)
 
@@ -575,6 +614,24 @@ import en from 'element-plus/es/locale/lang/en'
     <ElDatePicker type="date" placeholder="Pick a date" />
   </ElConfigProvider>
 </template>
+```
+
+### Documentation & Examples
+
+- Documentation: <https://jktantan.github.io/vue-lite-layer/>
+- Live demo: <https://jktantan.github.io/vue-lite-layer/demo/>
+- API reference: <https://jktantan.github.io/vue-lite-layer/en/api/config>
+- Repository docs: <https://github.com/jktantan/vue-lite-layer/tree/main/docs>
+
+### Contributing
+
+Issues and Pull Requests are welcome on [GitHub](https://github.com/jktantan/vue-lite-layer).
+
+```bash
+pnpm install
+pnpm dev        # local playground
+pnpm test       # unit tests and type checks
+pnpm lib:build  # build distributable assets
 ```
 
 ### License
