@@ -2,6 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineAsyncComponent } from 'vue'
 import { describe, expect, test, vi } from 'vitest'
 import LayerContainer from '@lib/components/LayerContainer.vue'
+import i18n from '@lib/i18n'
+
+const englishI18n = () => i18n().getI18n({ locale: 'en' })
 
 describe('LayerContainer', () => {
   test('keeps legacy content string behavior as trusted HTML', () => {
@@ -113,5 +116,64 @@ describe('LayerContainer', () => {
     expect(onError).toHaveBeenCalledTimes(1)
     wrapper.unmount()
     vi.useRealTimers()
+  })
+
+  test('falls back to i18n error and retry text', async () => {
+    vi.useFakeTimers()
+    const PendingContent = defineAsyncComponent(() => new Promise(() => {}))
+    const wrapper = mount(LayerContainer, {
+      props: {
+        content: PendingContent,
+        asyncContent: { timeout: 20 }
+      },
+      global: {
+        plugins: [englishI18n()]
+      }
+    })
+
+    await flushPromises()
+    vi.advanceTimersByTime(20)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Failed to load content.')
+    expect(wrapper.text()).toContain('Retry')
+    wrapper.unmount()
+    vi.useRealTimers()
+  })
+
+  test('marks the suspense fallback as a live status region', async () => {
+    const PendingContent = defineAsyncComponent(() => new Promise(() => {}))
+    const wrapper = mount(LayerContainer, {
+      props: { content: PendingContent },
+      global: {
+        plugins: [englishI18n()]
+      }
+    })
+
+    await flushPromises()
+    const status = wrapper.find('[role="status"]')
+
+    expect(status.exists()).toBe(true)
+    expect(status.attributes('aria-label')).toBe('Loading…')
+    wrapper.unmount()
+  })
+
+  test('refreshes the scroll shadow after content changes without a wrapper resize', async () => {
+    const wrapper = mount(LayerContainer, {
+      props: { content: 'first', contentType: 'text' }
+    })
+    await wrapper.vm.$nextTick()
+
+    const wrapperEl = wrapper.find('.lite-layer__window-wrapper').element as HTMLElement
+    Object.defineProperty(wrapperEl, 'scrollHeight', { configurable: true, value: 200 })
+    Object.defineProperty(wrapperEl, 'clientHeight', { configurable: true, value: 100 })
+    Object.defineProperty(wrapperEl, 'scrollTop', { configurable: true, value: 0 })
+
+    await wrapper.setProps({ content: 'second', contentType: 'text' })
+    await wrapper.vm.$nextTick()
+    await new Promise(requestAnimationFrame)
+
+    expect(wrapperEl.classList.contains('lite-layer__shadow-bottom-inset')).toBe(true)
+    wrapper.unmount()
   })
 })

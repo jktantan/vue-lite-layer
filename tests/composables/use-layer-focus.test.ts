@@ -32,6 +32,43 @@ describe('useLayerFocus', () => {
     expect(document.activeElement).toBe(first)
   })
 
+  test('wraps Shift+Tab from the dialog itself to the last focusable', () => {
+    const dialog = document.createElement('div')
+    const first = document.createElement('button')
+    const last = document.createElement('button')
+    dialog.tabIndex = -1
+    dialog.append(first, last)
+    document.body.append(dialog)
+    const { handleKeydown } = createFocusController(dialog)
+
+    dialog.focus()
+    const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true })
+    handleKeydown(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(last)
+  })
+
+  test('pulls focus back into the dialog when Tab starts on the shade', () => {
+    const layerRoot = document.createElement('div')
+    const dialog = document.createElement('div')
+    const shade = document.createElement('div')
+    const first = document.createElement('button')
+    const last = document.createElement('button')
+    shade.tabIndex = -1
+    dialog.append(first, last)
+    layerRoot.append(dialog, shade)
+    document.body.append(layerRoot)
+    const { handleKeydown } = createFocusController(dialog)
+
+    shade.focus()
+    const event = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true })
+    handleKeydown(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(first)
+  })
+
   test('routes Escape through the shared close request', () => {
     const dialog = document.createElement('div')
     const requestClose = vi.fn()

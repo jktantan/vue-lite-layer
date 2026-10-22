@@ -68,7 +68,7 @@ const mountMinimizableLayer = async (id: string, title: string) => {
 const minimizedDockItems = () =>
   [...document.body.querySelectorAll<HTMLElement>('.lite-layer__dock-item')]
 
-const mountLayer = () => {
+const mountLayer = (props: Record<string, unknown> = {}) => {
   const emitter = mitt<LayerEvents>()
   const wrapper = mount(LiteLayer, {
     attachTo: document.body,
@@ -76,7 +76,8 @@ const mountLayer = () => {
       id: 'test-layer',
       title: 'Test Layer',
       teleport: 'body',
-      content: 'content'
+      content: 'content',
+      ...props
     },
     global: {
       plugins: [createLayerEmitterPlugin(emitter)]
@@ -92,10 +93,22 @@ describe('LiteLayer', () => {
     await wrapper.vm.$nextTick()
 
     const dialog = document.body.querySelector('[role="dialog"]')
+    const shade = document.body.querySelector('.lite-layer__shade')
 
     expect(dialog).not.toBeNull()
     expect(dialog?.getAttribute('aria-modal')).toBe('true')
     expect(dialog?.getAttribute('aria-labelledby')).toBeTruthy()
+    expect(shade?.getAttribute('aria-label')).toBe('VueLiteLayer.close')
+  })
+
+  test('marks the dialog non-modal when shade is disabled', async () => {
+    const { wrapper } = mountLayer({ shade: false })
+    await wrapper.vm.$nextTick()
+
+    const dialog = document.body.querySelector('[role="dialog"]')
+
+    expect(dialog?.getAttribute('aria-modal')).toBe('false')
+    expect(document.body.querySelector('.lite-layer__shade')).toBeNull()
   })
 
   test('emits unmount even when leave animationend is missing', async () => {
@@ -863,6 +876,52 @@ describe('LiteLayer', () => {
     } finally {
       wrapper.unmount()
       vi.useRealTimers()
+    }
+  })
+
+  test('ignores right-button drag on the title bar', async () => {
+    const { wrapper } = mountLayer()
+    await wrapper.vm.$nextTick()
+    // Let the enter-animation rAF flush; it re-renders windowStyle once.
+    await new Promise(requestAnimationFrame)
+    await wrapper.vm.$nextTick()
+
+    try {
+      const header = document.body.querySelector<HTMLElement>('.lite-layer__window-header')!
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+      windowEl.style.left = '40px'
+
+      header.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 2, clientX: 10, clientY: 10 })
+      )
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 100 }))
+      await new Promise(requestAnimationFrame)
+      document.dispatchEvent(new MouseEvent('mouseup'))
+
+      expect(windowEl.style.left).toBe('40px')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  test('does not toggle maximize when double-clicking a header button', async () => {
+    const { wrapper } = mountLayer()
+    await wrapper.vm.$nextTick()
+
+    try {
+      const maximizeButton = document.body.querySelector<HTMLButtonElement>(
+        '.lite-layer__window-header .lite-layer__icon-maximum'
+      )
+      expect(maximizeButton).not.toBeNull()
+
+      maximizeButton!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+      await wrapper.vm.$nextTick()
+
+      expect(
+        document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')
+      ).toBeNull()
+    } finally {
+      wrapper.unmount()
     }
   })
 })

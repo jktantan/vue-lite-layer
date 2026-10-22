@@ -62,6 +62,10 @@ export default () => {
     if (!handleEl || !windowEl || !containerEl) return
 
     onMouseDown = (e: MouseEvent) => {
+      // Only the primary button starts a drag. Right/middle clicks should keep
+      // their native behaviour (context menu, autoscroll, etc.).
+      if (e.button !== 0) return
+
       const containerSize = {
         height: containerEl.clientHeight || containerEl.offsetHeight,
         width: containerEl.clientWidth || containerEl.offsetWidth

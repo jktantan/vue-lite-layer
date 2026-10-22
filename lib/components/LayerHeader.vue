@@ -9,7 +9,7 @@
       {{ title }}
     </div>
 
-    <div class="lite-layer__window-header-operator" @mousedown.stop>
+    <div class="lite-layer__window-header-operator" @mousedown.stop @dblclick.stop>
       <button
         v-if="min && !isMinimized"
         type="button"

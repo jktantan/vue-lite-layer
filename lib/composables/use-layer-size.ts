@@ -74,6 +74,12 @@ const applyWindowStyle = (
  */
 export const transitionDuration = 200
 export const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 /**
  * Run a callback inside a 200ms top/left/width/height transition and clean up
  * once the transition ends (or after a `setTimeout` fallback). Returns the cleanup
@@ -85,6 +91,15 @@ export const withTransition = (
   callback: () => void,
   onComplete?: () => void
 ): (() => void) => {
+  // Respect the OS-level reduced-motion preference: apply the final layout
+  // immediately instead of animating it.
+  if (prefersReducedMotion()) {
+    callback()
+    onComplete?.()
+    return () => {}
+  }
+
+  const previousTransition = el.style.transition
   el.style.transition = transitionValue
   callback()
   let cleaned = false
@@ -92,7 +107,7 @@ export const withTransition = (
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
-    el.style.transition = ''
+    el.style.transition = previousTransition
     el.removeEventListener('transitionend', onTransitionEnd)
     if (timeout) clearTimeout(timeout)
     onComplete?.()

@@ -15,7 +15,7 @@
         v-if="shade && !isMinimized"
         class="lite-layer__shade"
         role="button"
-        aria-label="Close layer"
+        :aria-label="t('VueLiteLayer.close')"
         tabindex="-1"
         @click="handleShadeClick"
       />
@@ -24,7 +24,7 @@
         ref="windowRef"
         class="lite-layer__window"
         role="dialog"
-        aria-modal="true"
+        :aria-modal="shade ? 'true' : 'false'"
         :aria-labelledby="titleId"
         tabindex="-1"
         :class="{
@@ -109,7 +109,6 @@
 </template>
 
 <script lang="ts" setup>
-import { ResizeObserver } from '@juggle/resize-observer'
 import {
   computed,
   reactive,
@@ -147,7 +146,6 @@ import { useLayerEmitter } from './core/layer-emitter'
 import { useI18n } from 'vue-i18n-lite'
 import type { LayerCommandPayload } from './core/layer-events'
 import LayerLoading from './components/LayerLoading.vue'
-import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
 
 type InternalLayerConfig = LayerConfig & { teleportKey?: string }
 
@@ -722,7 +720,13 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
 onMounted(() => {
   capturePreviousFocus()
   props.onOpen?.()
-  resizeObserver = new ResizeObserver(handleContainerResize)
+  // ResizeObserver ships natively in current evergreen browsers. Keeping the
+  // polyfill as a static import added ~5KB gzip to every consumer; hosts that
+  // still target older engines can install a polyfill before the plugin.
+  const ResizeObserverCtor = typeof ResizeObserver === 'undefined' ? null : ResizeObserver
+  if (ResizeObserverCtor) {
+    resizeObserver = new ResizeObserverCtor(handleContainerResize)
+  }
   syncScrollLock()
 
   if (!isTeleportToBody) {
@@ -740,10 +744,10 @@ onMounted(() => {
         height: '100%'
       })
     }
-    if (layerRef.value?.parentNode) {
+    if (resizeObserver && layerRef.value?.parentNode) {
       resizeObserver.observe(layerRef.value.parentNode as Element)
     }
-  } else if (layerRef.value) {
+  } else if (resizeObserver && layerRef.value) {
     resizeObserver.observe(layerRef.value)
   }
 

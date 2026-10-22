@@ -1,13 +1,22 @@
 <template>
-  <div v-if="loading" class="vll-loading-mask">
-    <div class="vll-loading-spinner" />
+  <div
+    v-if="loading"
+    class="vll-loading-mask"
+    role="status"
+    aria-live="polite"
+    :aria-label="t('VueLiteLayer.loading')"
+  >
+    <div class="vll-loading-spinner" aria-hidden="true" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n-lite'
 import { useLayerEmitter } from '../core/layer-emitter'
 
+const i18n = useI18n()
+const t = i18n?.t ?? ((key: string) => key)
 const loading = ref(false)
 const emitter = useLayerEmitter()
 

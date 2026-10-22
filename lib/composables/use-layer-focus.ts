@@ -75,6 +75,8 @@ export const useLayerFocus = ({
     }
     if (event.key !== 'Tab' || !shouldTrapFocus()) return
 
+    const windowEl = getWindow()
+    if (!windowEl) return
     const focusable = getFocusableElements()
     if (focusable.length === 0) {
       event.preventDefault()
@@ -83,10 +85,21 @@ export const useLayerFocus = ({
     }
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
+    const active = document.activeElement
+
+    // The dialog itself and the shade are both outside the focusable set (the
+    // dialog has tabindex="-1", the shade is a sibling). Without these guards
+    // Shift+Tab from the dialog or Tab from the shade escapes the trap.
+    if (active === windowEl || !windowEl.contains(active)) {
+      event.preventDefault()
+      ;(event.shiftKey ? last : first).focus()
+      return
+    }
+
+    if (event.shiftKey && active === first) {
       event.preventDefault()
       last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && active === last) {
       event.preventDefault()
       first.focus()
     }

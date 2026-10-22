@@ -44,4 +44,43 @@ describe('use-layer-size transition utility', () => {
       vi.useRealTimers()
     }
   })
+
+  test('restores the element previous inline transition', () => {
+    const el = document.createElement('div')
+    el.style.transition = 'opacity 1s linear'
+    document.body.appendChild(el)
+    const onComplete = vi.fn()
+
+    withTransition(el, () => {}, onComplete)
+    expect(el.style.transition).toBe(transitionValue)
+
+    el.dispatchEvent(new TransitionEvent('transitionend', { bubbles: true }))
+    expect(el.style.transition).toBe('opacity 1s linear')
+    expect(onComplete).toHaveBeenCalledTimes(1)
+
+    el.remove()
+  })
+
+  test('applies the final layout immediately when reduced motion is requested', () => {
+    const el = document.createElement('div')
+    el.style.transition = 'opacity 1s linear'
+    document.body.appendChild(el)
+    const callback = vi.fn()
+    const onComplete = vi.fn()
+    const matchMedia = vi.fn().mockReturnValue({ matches: true })
+    vi.stubGlobal('matchMedia', matchMedia)
+
+    try {
+      const cleanup = withTransition(el, callback, onComplete)
+
+      expect(matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)')
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(onComplete).toHaveBeenCalledTimes(1)
+      expect(el.style.transition).toBe('opacity 1s linear')
+      expect(cleanup).toBeTypeOf('function')
+    } finally {
+      vi.unstubAllGlobals()
+      el.remove()
+    }
+  })
 })

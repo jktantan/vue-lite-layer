@@ -1,18 +1,18 @@
 <template>
   <div v-if="contentError" class="lite-layer__window-container">
     <div class="lite-layer__window-wrapper lite-layer__content-error" role="alert">
-      <p>{{ asyncContent?.errorText ?? '内容加载失败。' }}</p>
+      <p>{{ asyncContent?.errorText ?? t('VueLiteLayer.error') }}</p>
       <button
         type="button"
         class="lite-layer__button primary"
         :disabled="!canRetry || isRetrying"
         @click="retryContent"
       >
-        {{ asyncContent?.retryText ?? '重试' }}
+        {{ asyncContent?.retryText ?? t('VueLiteLayer.retry') }}
       </button>
     </div>
   </div>
-  <suspense v-else @pending="handlePending" @resolve="clearLoadingTimeout">
+  <suspense v-else @pending="handlePending" @resolve="handleResolve">
     <div class="lite-layer__window-container">
       <div
         ref="wrapperRef"
@@ -33,9 +33,12 @@
     <template #fallback>
       <div
         class="lite-layer__window-container"
+        role="status"
+        aria-live="polite"
+        :aria-label="asyncContent?.loadingText ?? t('VueLiteLayer.loading')"
         style="display: flex; align-items: center; justify-content: center"
       >
-        <div class="vll-loading-spinner" />
+        <div class="vll-loading-spinner" aria-hidden="true" />
         <span v-if="asyncContent?.loadingText" style="margin-left: 10px">{{
           asyncContent.loadingText
         }}</span>
@@ -46,8 +49,8 @@
 
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
+import { useI18n } from 'vue-i18n-lite'
 import type { AsyncContentConfig, LayerContentType } from '@lib/types/layer'
 import { warnIfUnsafeHtml } from '@lib/core/html-safety'
 import { useAsyncContent } from '@lib/composables/use-async-content'
@@ -64,6 +67,9 @@ const layerProps = withDefaults(defineProps<LayerContainerProps>(), {
   contentType: 'html',
   props: null
 })
+
+const i18n = useI18n()
+const t = i18n?.t ?? ((key: string) => key)
 
 const shadowClass = ref('')
 const wrapperRef = ref<HTMLElement | null>(null)
@@ -189,6 +195,12 @@ const handleScroll = (e: Event): void => {
   scheduleShadowUpdate(e.target as HTMLElement)
 }
 
+/** Resolving async content changes `scrollHeight` without resizing the wrapper. */
+const handleResolve = (): void => {
+  clearLoadingTimeout()
+  if (wrapperRef.value) scheduleShadowUpdate(wrapperRef.value)
+}
+
 let resizeObserver: ResizeObserver | null = null
 
 watch(
@@ -201,6 +213,9 @@ watch(
     }
     await nextTick()
     renderHTMLElementContent()
+    // The wrapper's own size is fixed by the layer; a content swap only
+    // changes scrollHeight, so ResizeObserver alone cannot refresh the shadow.
+    if (wrapperRef.value) scheduleShadowUpdate(wrapperRef.value)
   }
 )
 
@@ -214,12 +229,17 @@ onMounted(() => {
   }
   renderHTMLElementContent()
   if (!wrapperRef.value) return
-  resizeObserver = new ResizeObserver(() => {
-    if (wrapperRef.value) {
-      scheduleShadowUpdate(wrapperRef.value)
-    }
-  })
-  resizeObserver.observe(wrapperRef.value)
+  const ResizeObserverCtor = typeof ResizeObserver === 'undefined' ? null : ResizeObserver
+  if (ResizeObserverCtor) {
+    resizeObserver = new ResizeObserverCtor(() => {
+      if (wrapperRef.value) {
+        scheduleShadowUpdate(wrapperRef.value)
+      }
+    })
+    resizeObserver.observe(wrapperRef.value)
+  }
+  // Also covers hosts without ResizeObserver.
+  scheduleShadowUpdate(wrapperRef.value)
 })
 
 onUnmounted(() => {
