@@ -64,7 +64,7 @@
       line-height: $lite-layer__header-height;
       display: flex;
       align-items: center;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid $lite-layer__color-border-light;
       &:hover {
         cursor: grab;
         &:active {
@@ -124,7 +124,7 @@
       flex-direction: row;
       justify-content: flex-end;
       padding: 8px;
-      border-top: 1px solid #f0f0f0;
+      border-top: 1px solid $lite-layer__color-border-light;
     }
   }
 
@@ -141,7 +141,7 @@
     box-sizing: border-box;
     pointer-events: auto;
     background-color: $lite-layer__color-white;
-    border: 1px solid #dcdfe6;
+    border: 1px solid $lite-layer__color-border;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
   }
@@ -151,9 +151,9 @@
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
-    background: #fff;
-    border: 1px solid #dcdfe6;
-    color: #606266;
+    background: $lite-layer__color-white;
+    border: 1px solid $lite-layer__color-border;
+    color: $lite-layer__color-text-regular;
     appearance: none;
     text-align: center;
     box-sizing: border-box;
@@ -171,14 +171,14 @@
     }
 
     &:hover {
-      color: #409eff;
-      border-color: #c6e2ff;
-      background-color: #ecf5ff;
+      color: $lite-layer__color-primary;
+      border-color: $lite-layer__color-primary-border;
+      background-color: $lite-layer__color-primary-light;
     }
 
     &:active {
-      color: #3a8ee6;
-      border-color: #3a8ee6;
+      color: $lite-layer__color-primary-active;
+      border-color: $lite-layer__color-primary-active;
       outline: none;
     }
 
@@ -188,20 +188,20 @@
     }
 
     &.primary {
-      color: #fff;
-      background-color: #409eff;
-      border-color: #409eff;
+      color: $lite-layer__color-white;
+      background-color: $lite-layer__color-primary;
+      border-color: $lite-layer__color-primary;
 
       &:hover {
-        background: #66b1ff;
-        border-color: #66b1ff;
-        color: #fff;
+        background: $lite-layer__color-primary-hover;
+        border-color: $lite-layer__color-primary-hover;
+        color: $lite-layer__color-white;
       }
 
       &:active {
-        background: #3a8ee6;
-        border-color: #3a8ee6;
-        color: #fff;
+        background: $lite-layer__color-primary-active;
+        border-color: $lite-layer__color-primary-active;
+        color: $lite-layer__color-white;
       }
     }
   }

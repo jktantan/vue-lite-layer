@@ -5,7 +5,7 @@
     :class="{ 'lite-layer__disabled-point-event': isMaximized }"
     @dblclick="handleDoubleClick"
   >
-    <div :id="titleId" ref="layerTitle" class="lite-layer__window-header-title" :title="title">
+    <div :id="titleId" class="lite-layer__window-header-title" :title="title">
       {{ title }}
     </div>
 

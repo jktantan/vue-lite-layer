@@ -26,12 +26,23 @@ interface LayerFocusOptions {
  * with `aria-hidden="true"`, or that have zero rendered size from CSS hiding.
  */
 const isElementVisible = (element: HTMLElement): boolean => {
-  if (element.getAttribute('aria-hidden') === 'true') return false
-  if (element.hasAttribute('hidden')) return false
-  // Walk up so a hidden ancestor also disqualifies the descendant.
+  // ARIA/hidden ancestry is cheap to check and not covered by checkVisibility().
   let current: HTMLElement | null = element
   while (current) {
-    if (current.getAttribute('aria-hidden') === 'true') return false
+    if (current.getAttribute('aria-hidden') === 'true' || current.hasAttribute('hidden')) {
+      return false
+    }
+    current = current.parentElement
+  }
+
+  // Prefer the native API: one call instead of getComputedStyle() on every
+  // ancestor for every Tab press.
+  if (typeof element.checkVisibility === 'function') {
+    return element.checkVisibility({ checkVisibilityCSS: true })
+  }
+
+  current = element
+  while (current) {
     const style = window.getComputedStyle(current)
     if (style.display === 'none' || style.visibility === 'hidden') return false
     current = current.parentElement

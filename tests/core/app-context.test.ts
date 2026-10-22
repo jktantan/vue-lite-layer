@@ -7,6 +7,7 @@ import {
   nextTick,
   provide,
   ref,
+  resolveComponent,
   watchEffect
 } from 'vue'
 import { describe, expect, test } from 'vitest'
@@ -131,5 +132,40 @@ describe('layer app context isolation', () => {
     await new Promise((resolve) => setTimeout(resolve, 250))
     hostApp.unmount()
     host.remove()
+  })
+
+  test('copies host component/directive registries without sharing mutations', async () => {
+    const HostBadge = defineComponent({
+      render: () => h('span', 'host-badge')
+    })
+    let layerComponents: Record<string, unknown> | undefined
+
+    const Content = defineComponent({
+      setup() {
+        layerComponents = getCurrentInstance()!.appContext.components as Record<string, unknown>
+        const Badge = resolveComponent('HostBadge')
+        return () => h(Badge)
+      }
+    })
+
+    const hostApp = createApp({ render: () => null })
+    hostApp.component('HostBadge', HostBadge)
+    hostApp.use(VueLiteLayer, { banner: false })
+
+    const instance = hostApp.config.globalProperties.$layer.open(
+      { content: Content, i18n: { locale: 'en' } },
+      hostApp._context
+    )
+    await nextTick()
+
+    expect(document.body.textContent).toContain('host-badge')
+    expect(layerComponents?.HostBadge).toBe(HostBadge)
+
+    // A layer-local registration must not appear in the host registry.
+    layerComponents!.LayerOnly = HostBadge
+    expect(hostApp.component('LayerOnly')).toBeUndefined()
+
+    instance?.close()
+    await new Promise((resolve) => setTimeout(resolve, 250))
   })
 })

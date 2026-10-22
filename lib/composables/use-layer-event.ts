@@ -77,7 +77,7 @@ export default (providedEmitter?: LayerEmitter) => {
    */
   const onOk = (callback?: LayerCallback): LayerEventDisposer => {
     const handler = (message?: unknown) => {
-      callback ? callback(message) : emitter.emit('requestClose', { reason: 'programmatic' })
+      callback ? callback(message) : emitter.emit('requestClose', { reason: 'ok' })
     }
     emitter.on('ok', handler)
     return registerDisposer(() => emitter.off('ok', handler))

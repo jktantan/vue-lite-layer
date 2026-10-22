@@ -31,7 +31,6 @@
           'lite-layer__window--initial': initialHide,
           'lite-layer__window--enter': enterAnim,
           'lite-layer__window--leave': leaveAnim,
-          'lite-layer__window--resizing': isResizing,
           'lite-layer__window--minimized': isMinimized
         }"
         :style="{
@@ -146,30 +145,21 @@ import { useLayerEmitter } from './core/layer-emitter'
 import { useI18n } from 'vue-i18n-lite'
 import type { LayerCommandPayload } from './core/layer-events'
 import LayerLoading from './components/LayerLoading.vue'
+import defaultConfig from './types/defaults'
 
 type InternalLayerConfig = LayerConfig & { teleportKey?: string }
 
 const props = withDefaults(defineProps<InternalLayerConfig>(), {
+  // Keep one source of truth for global defaults. Object-valued props still
+  // need factories so every layer gets its own mutable copy.
+  ...defaultConfig,
   title: '',
-  footer: true,
-  shade: true,
-  shadeClose: true,
-  maxWidth: 'none',
-  maxHeight: 'none',
-  size: () => ({
-    height: '400px',
-    width: '300px'
+  size: () => ({ ...(defaultConfig.size ?? {}) }),
+  i18n: () => ({
+    locale: defaultConfig.i18n?.locale ?? 'zh-CN',
+    messages: {}
   }),
-  location: PositionPreset.CENTER_CENTER,
-  teleport: 'body',
   props: null,
-  max: true,
-  min: false,
-  close: true,
-  closeOnOk: false,
-  closeOnEsc: true,
-  trapFocus: true,
-  restoreFocus: true,
   onCancel: null,
   onOk: null,
   onCommand: null,
@@ -177,8 +167,7 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
   onOpen: null,
   onOpened: null,
   onClose: null,
-  onClosed: null,
-  i18n: () => ({ locale: 'zh-CN', messages: {} })
+  onClosed: null
 })
 
 // ──── 模板引用 / Template Refs ────
@@ -197,7 +186,6 @@ const enterAnim = ref(false)
 const isMaximized = ref(false)
 const isMinimized = ref(false)
 const maximizedBeforeMinimize = ref(false)
-const isResizing = ref(false)
 /**
  * 最小化过渡态：用于给 dock 项打 enter 动画类。最小化进行时 `isMinimizing=true`，
  * `isMinimized` 仍是 false（动画结束后才翻）。
@@ -273,32 +261,24 @@ const isTeleportToBody =
 const teleportGroup =
   props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
-const minimizedIndex = computed(() => {
-  // 显式读 `minimizedGroups` 触发 reactive 订阅，
-  // 否则 layerManager 的 Map.set 不会让 dock 几何重算，
-  // 同组多 dock-item 时第二项会贴在第一项上。
-  // Read `minimizedGroups` (reactive) to register a dep, so layerManager's
-  // Map.set on the (non-reactive) minimizedIndex invalidates this computed.
-  const groups = layerManager.getMinimizedGroups()
-  // touch for reactivity
-  void (groups.size >= 0)
-  return layerManager.getMinimizedIndex(props.id!, teleportGroup)
-})
+const minimizedIndex = computed(() => layerManager.getMinimizedIndex(props.id!, teleportGroup))
 
 /** 停靠栏可用区域的响应式尺寸（已排除滚动条） / Reactive size of the dock area (scrollbars excluded) */
 const dockBounds = reactive({ width: 0, height: 0 })
 
 /** 重新测量停靠栏可用区域（视口或 teleport 容器） / Re-measure the dock area (viewport or teleport container) */
 const syncDockBounds = (): void => {
-  if (isTeleportToBody) {
-    dockBounds.width = document.documentElement.clientWidth
-    dockBounds.height = document.documentElement.clientHeight
-    return
-  }
-  const containerEl = layerRef.value
-  if (!containerEl) return
-  dockBounds.width = containerEl.clientWidth
-  dockBounds.height = containerEl.clientHeight
+  const nextWidth = isTeleportToBody
+    ? document.documentElement.clientWidth
+    : (layerRef.value?.clientWidth ?? 0)
+  const nextHeight = isTeleportToBody
+    ? document.documentElement.clientHeight
+    : (layerRef.value?.clientHeight ?? 0)
+
+  // Avoid invalidating dockLayout on every ResizeObserver tick when the
+  // measured size did not actually change.
+  if (nextWidth !== dockBounds.width) dockBounds.width = nextWidth
+  if (nextHeight !== dockBounds.height) dockBounds.height = nextHeight
 }
 
 /**
@@ -495,10 +475,7 @@ const handleRestore = () => {
   // 还原会解除最大化时取得的滚动锁，可视区随之变化
   // Restoring releases the scroll lock taken while maximized.
   syncScrollLock()
-  isResizing.value = true
-  layerSize.restore(windowRef.value, layerRef.value, () => {
-    isResizing.value = false
-  })
+  layerSize.restore(windowRef.value, layerRef.value)
 }
 
 const handleMaximize = () => {
@@ -516,10 +493,7 @@ const handleMaximize = () => {
   // visible area; re-measure so the window does not leave a scrollbar-wide gap.
   syncScrollLock()
   layerSize.setMaximumSize(layerRef.value)
-  isResizing.value = true
-  layerSize.maximize(windowRef.value, () => {
-    isResizing.value = false
-  })
+  layerSize.maximize(windowRef.value)
 }
 
 const handleMinimize = () => {
@@ -699,14 +673,7 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
     if (isMaximized.value) {
       // 最大化状态下仅更新最大尺寸并重新铺满，不要覆盖 defaultSize
       // When maximized, only update maximum size and re-fill, DO NOT overwrite defaultSize
-      isResizing.value = true
-      layerSize.maximize(
-        windowRef.value,
-        () => {
-          isResizing.value = false
-        },
-        { animated: false }
-      )
+      layerSize.maximize(windowRef.value, undefined, { animated: false })
     }
     // 非最大化时仅更新 maximumSize，不调用 initPosition，否则会覆盖用户拖拽后的位置
     // （ResizeObserver 可能在点击/聚焦等操作时意外触发，导致窗口被重置到中心）

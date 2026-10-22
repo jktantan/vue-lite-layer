@@ -11,7 +11,12 @@ export interface ModuleOptions {
   location?: Position | PositionPreset
   teleport?: string
   max?: boolean
+  min?: boolean
   close?: boolean
+  closeOnOk?: boolean
+  closeOnEsc?: boolean
+  trapFocus?: boolean
+  restoreFocus?: boolean
   banner?: boolean
   i18n?: { locale?: string; messages?: LocaleMessages }
 }
@@ -177,7 +182,14 @@ export const pickSerializableModuleOptions = (options: unknown): ModuleOptions =
     ...(location !== undefined ? { location } : {}),
     ...(isStringOption(optionsRecord.teleport) ? { teleport: optionsRecord.teleport } : {}),
     ...(isBooleanOption(optionsRecord.max) ? { max: optionsRecord.max } : {}),
+    ...(isBooleanOption(optionsRecord.min) ? { min: optionsRecord.min } : {}),
     ...(isBooleanOption(optionsRecord.close) ? { close: optionsRecord.close } : {}),
+    ...(isBooleanOption(optionsRecord.closeOnOk) ? { closeOnOk: optionsRecord.closeOnOk } : {}),
+    ...(isBooleanOption(optionsRecord.closeOnEsc) ? { closeOnEsc: optionsRecord.closeOnEsc } : {}),
+    ...(isBooleanOption(optionsRecord.trapFocus) ? { trapFocus: optionsRecord.trapFocus } : {}),
+    ...(isBooleanOption(optionsRecord.restoreFocus)
+      ? { restoreFocus: optionsRecord.restoreFocus }
+      : {}),
     ...(isBooleanOption(optionsRecord.banner) ? { banner: optionsRecord.banner } : {}),
     ...(i18n !== undefined ? { i18n } : {})
   }
@@ -228,8 +240,28 @@ export const warnUnsupportedModuleOptions = (options: unknown): void => {
     warnInvalidOption('max', 'a boolean')
   }
 
+  if (optionsRecord.min !== undefined && !isBooleanOption(optionsRecord.min)) {
+    warnInvalidOption('min', 'a boolean')
+  }
+
   if (optionsRecord.close !== undefined && !isBooleanOption(optionsRecord.close)) {
     warnInvalidOption('close', 'a boolean')
+  }
+
+  if (optionsRecord.closeOnOk !== undefined && !isBooleanOption(optionsRecord.closeOnOk)) {
+    warnInvalidOption('closeOnOk', 'a boolean')
+  }
+
+  if (optionsRecord.closeOnEsc !== undefined && !isBooleanOption(optionsRecord.closeOnEsc)) {
+    warnInvalidOption('closeOnEsc', 'a boolean')
+  }
+
+  if (optionsRecord.trapFocus !== undefined && !isBooleanOption(optionsRecord.trapFocus)) {
+    warnInvalidOption('trapFocus', 'a boolean')
+  }
+
+  if (optionsRecord.restoreFocus !== undefined && !isBooleanOption(optionsRecord.restoreFocus)) {
+    warnInvalidOption('restoreFocus', 'a boolean')
   }
 
   if (optionsRecord.banner !== undefined && !isBooleanOption(optionsRecord.banner)) {

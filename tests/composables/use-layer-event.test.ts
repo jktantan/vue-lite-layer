@@ -23,6 +23,18 @@ describe('useLayerEvent', () => {
     expect(callback).toHaveBeenCalledWith('first')
   })
 
+  test('onOk without a callback closes with the ok reason', () => {
+    const emitter = mitt<LayerEvents>()
+    const requestClose = vi.fn()
+    emitter.on('requestClose', requestClose)
+
+    const api = useLayerEvent(emitter)
+    api.onOk()
+    api.emitOk()
+
+    expect(requestClose).toHaveBeenCalledWith({ reason: 'ok' })
+  })
+
   test('onCommand receives typed command payload', () => {
     const callback = vi.fn()
     const emitter = mitt<LayerEvents>()
