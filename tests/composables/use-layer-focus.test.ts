@@ -2,9 +2,14 @@ import { describe, expect, test, vi } from 'vitest'
 import { useLayerFocus } from '@lib/composables/use-layer-focus'
 
 describe('useLayerFocus', () => {
-  const createFocusController = (dialog: HTMLElement, requestClose = vi.fn()) =>
+  const createFocusController = (
+    dialog: HTMLElement,
+    requestClose = vi.fn(),
+    layerRoot?: () => HTMLElement | null
+  ) =>
     useLayerFocus({
       getWindow: () => dialog,
+      getLayerRoot: layerRoot,
       shouldCloseOnEsc: () => true,
       shouldTrapFocus: () => true,
       shouldRestoreFocus: () => true,
@@ -52,5 +57,44 @@ describe('useLayerFocus', () => {
     restorePreviousFocus()
 
     expect(document.activeElement).toBe(trigger)
+  })
+
+  test('restores focus when it is on a sibling of the dialog (shade)', () => {
+    const trigger = document.createElement('button')
+    const layerRoot = document.createElement('div')
+    const dialog = document.createElement('div')
+    const shade = document.createElement('div')
+    shade.tabIndex = -1
+    layerRoot.append(dialog, shade)
+    document.body.append(trigger, layerRoot)
+    trigger.focus()
+
+    const { capturePreviousFocus, restorePreviousFocus } = createFocusController(
+      dialog,
+      undefined,
+      () => layerRoot
+    )
+    capturePreviousFocus()
+
+    shade.focus()
+    restorePreviousFocus()
+
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  test('does not steal focus back when focus moved outside the whole layer', () => {
+    const trigger = document.createElement('button')
+    const outside = document.createElement('button')
+    const dialog = document.createElement('div')
+    document.body.append(trigger, outside, dialog)
+    trigger.focus()
+
+    const { capturePreviousFocus, restorePreviousFocus } = createFocusController(dialog)
+    capturePreviousFocus()
+
+    outside.focus()
+    restorePreviousFocus()
+
+    expect(document.activeElement).toBe(outside)
   })
 })

@@ -27,13 +27,7 @@
         </div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-else-if="content && typeof content === 'string'" v-html="content"></div>
-        <component
-          v-else-if="content"
-          :is="content"
-          :key="contentKey"
-          v-bind="props"
-          ref="contentRef"
-        />
+        <component v-else-if="content" :is="content" :key="contentKey" v-bind="props" />
       </div>
     </div>
     <template #fallback>
@@ -51,7 +45,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ResizeObserver } from '@juggle/resize-observer'
 import type { Component } from 'vue'
 import type { AsyncContentConfig, LayerContentType } from '@lib/types/layer'
@@ -72,9 +66,8 @@ const layerProps = withDefaults(defineProps<LayerContainerProps>(), {
 })
 
 const shadowClass = ref('')
-const wrapperRef = useTemplateRef<HTMLElement>('wrapperRef')
-const elementHostRef = useTemplateRef<HTMLElement>('elementHostRef')
-const contentRef = useTemplateRef('contentRef')
+const wrapperRef = ref<HTMLElement | null>(null)
+const elementHostRef = ref<HTMLElement | null>(null)
 let scrollFrame = 0
 let mountedElement: HTMLElement | null = null
 let originalParent: ParentNode | null = null

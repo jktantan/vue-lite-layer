@@ -8,6 +8,7 @@ import layerManager from '@lib/core/layer-manager'
 import { createLayerEmitterPlugin } from '@lib/core/layer-emitter'
 import type { LayerEvents } from '@lib/core/layer-events'
 import { resetScrollLockForTest } from '@lib/core/scroll-lock'
+import { PositionPreset } from '@lib/types/layer'
 import dockMetrics from '@lib/assets/style/metrics.module.scss'
 
 const DOCK_WIDTH = parseFloat(dockMetrics.dockItemWidth)
@@ -667,6 +668,201 @@ describe('LiteLayer', () => {
       vi.useRealTimers()
       restoreViewport()
       layerManager.resetForTest()
+    }
+  })
+
+  test('restores focus to the opener after closing', async () => {
+    vi.useFakeTimers()
+    const opener = document.createElement('button')
+    document.body.append(opener)
+    opener.focus()
+
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'focus-restore-layer',
+        title: 'Focus restore layer',
+        teleport: 'body',
+        content: 'content'
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+    emitter.on('unmount', () => wrapper.unmount())
+
+    try {
+      const closeButton = document.body.querySelector<HTMLButtonElement>('.lite-layer__icon-close')
+      expect(closeButton).not.toBeNull()
+      closeButton!.focus()
+
+      emitter.emit('requestClose', { reason: 'header' })
+      await Promise.resolve()
+      vi.advanceTimersByTime(300)
+      await wrapper.vm.$nextTick()
+
+      // Restored in onBeforeUnmount, while the focused button is still in the DOM.
+      expect(document.activeElement).toBe(opener)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('does not leak minimized dock state when unmounted mid-minimize', async () => {
+    vi.useFakeTimers()
+    layerManager.resetForTest()
+
+    try {
+      const { wrapper, emitter } = await mountMinimizableLayer(
+        'unmount-during-minimize',
+        'Unmount during minimize'
+      )
+
+      emitter.emit('minimize')
+      await Promise.resolve()
+      wrapper.unmount()
+      // Both the withTransition fallback (250ms) and the minimize fallback
+      // (225ms) would fire in this window; neither may re-register the layer.
+      vi.advanceTimersByTime(400)
+
+      expect(layerManager.getMinimizedGroups().size).toBe(0)
+    } finally {
+      vi.useRealTimers()
+      layerManager.resetForTest()
+    }
+  })
+
+  test('ignores programmatic maximize when max is false', async () => {
+    vi.useFakeTimers()
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'max-disabled-layer',
+        title: 'Max disabled layer',
+        teleport: 'body',
+        content: 'content',
+        max: false
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+
+    try {
+      emitter.emit('maximum')
+      await wrapper.vm.$nextTick()
+      vi.advanceTimersByTime(300)
+      await wrapper.vm.$nextTick()
+
+      // The header would show the restore button if the window had maximized.
+      expect(
+        document.body.querySelector('.lite-layer__window-header .lite-layer__icon-restore')
+      ).toBeNull()
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  test('applies updated size and location after open', async () => {
+    const { wrapper } = mountLayer()
+    await wrapper.vm.$nextTick()
+
+    try {
+      const layerEl = document.body.querySelector<HTMLElement>('.lite-layer')!
+      Object.defineProperty(layerEl, 'clientWidth', { configurable: true, value: 800 })
+      Object.defineProperty(layerEl, 'clientHeight', { configurable: true, value: 600 })
+      const windowEl = document.body.querySelector<HTMLElement>('.lite-layer__window')!
+
+      await wrapper.setProps({ size: { width: '500px', height: '250px' } })
+      await wrapper.vm.$nextTick()
+
+      expect(windowEl.style.width).toBe('500px')
+      expect(windowEl.style.height).toBe('250px')
+
+      await wrapper.setProps({ location: PositionPreset.LEFT_TOP })
+      await wrapper.vm.$nextTick()
+
+      expect(windowEl.style.top).toBe('25px')
+      expect(windowEl.style.left).toBe('25px')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  test('still unmounts when onClosed throws', async () => {
+    vi.useFakeTimers()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'on-closed-throw-layer',
+        title: 'onClosed throw layer',
+        teleport: 'body',
+        content: 'content',
+        onClosed: () => {
+          throw new Error('onClosed failed')
+        }
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+    const unmount = vi.fn()
+    emitter.on('unmount', unmount)
+
+    try {
+      emitter.emit('requestClose', { reason: 'programmatic' })
+      await Promise.resolve()
+      vi.advanceTimersByTime(300)
+
+      expect(unmount).toHaveBeenCalledTimes(1)
+      expect(errorSpy).toHaveBeenCalled()
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  test('still closes when onClose throws', async () => {
+    vi.useFakeTimers()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const emitter = mitt<LayerEvents>()
+    const wrapper = mount(LiteLayer, {
+      attachTo: document.body,
+      props: {
+        id: 'on-close-throw-layer',
+        title: 'onClose throw layer',
+        teleport: 'body',
+        content: 'content',
+        onClose: () => {
+          throw new Error('onClose failed')
+        }
+      },
+      global: {
+        plugins: [createLayerEmitterPlugin(emitter)]
+      }
+    })
+    await wrapper.vm.$nextTick()
+    const unmount = vi.fn()
+    emitter.on('unmount', unmount)
+
+    try {
+      emitter.emit('requestClose', { reason: 'programmatic' })
+      await Promise.resolve()
+      vi.advanceTimersByTime(300)
+
+      expect(unmount).toHaveBeenCalledTimes(1)
+      expect(errorSpy).toHaveBeenCalled()
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
     }
   })
 })

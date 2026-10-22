@@ -51,9 +51,24 @@ export const useLayerClose = (
     isUnmounted.value = true
     clearFallbackTimer()
     visible.value = false
-    options.onClosed?.(closeContext)
-    emitter.emit('closed', closeContext)
-    emitter.emit('unmount')
+    // User callbacks must never prevent the layer from being torn down. If
+    // `onClosed` throws, still emit `unmount` so the isolated app unmounts and
+    // layerManager drops the instance; otherwise the layer becomes a ghost.
+    try {
+      options.onClosed?.(closeContext)
+    } catch (error) {
+      console.error('[vue-lite-layer] onClosed failed', error)
+    }
+    try {
+      emitter.emit('closed', closeContext)
+    } catch (error) {
+      console.error('[vue-lite-layer] closed listener failed', error)
+    }
+    try {
+      emitter.emit('unmount')
+    } catch (error) {
+      console.error('[vue-lite-layer] unmount listener failed', error)
+    }
   }
 
   const beginClose = (): void => {
@@ -91,7 +106,13 @@ export const useLayerClose = (
         return
       }
       closeContext = context
-      options.onClose?.(context)
+      // A throwing onClose is a user bug; it must not be mistaken for a
+      // rejected beforeClose guard, which would keep the layer open forever.
+      try {
+        options.onClose?.(context)
+      } catch (error) {
+        console.error('[vue-lite-layer] onClose failed', error)
+      }
       beginClose()
     } catch (error) {
       // A rejected guard cancels closing while avoiding an unhandled promise.
