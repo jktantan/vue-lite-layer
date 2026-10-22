@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
-import { type Position, PositionPreset, type PixelSize } from '../types/layer'
-import { clampPosition, getPresetPosition } from '@lib/core/layer-geometry'
+import { type Position, PositionPreset, type PixelSize, type WindowSize } from '../types/layer'
+import { clampPosition, getPresetPosition, type NumericPosition } from '@lib/core/layer-geometry'
 
 /** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） / Window style (for template binding, prevents Vue re-render from overwriting maximize/restore direct styles) */
 export interface WindowStyle {
@@ -11,6 +11,22 @@ export interface WindowStyle {
 }
 
 export type WindowStylePatch = Partial<WindowStyle>
+
+/**
+ * Controls how an updated size/location is applied.
+ *
+ * - Normal layer: write the window and keep `windowStyle` in sync.
+ * - Maximized layer: only update the stored default size/position so the next
+ *   restore lands on the new values; the maximized layout must not change.
+ * - Minimized layer: update the stored restore target; the hidden window is not
+ *   written directly.
+ */
+export interface WindowLayoutApplyOptions {
+  applyToWindow: boolean
+  storeStyle: boolean
+  maxWidth?: string
+  maxHeight?: string
+}
 
 /**
  * 容器可用于放置窗口的尺寸
@@ -58,6 +74,12 @@ const applyWindowStyle = (
  */
 export const transitionDuration = 200
 export const transitionValue = `top ${transitionDuration}ms ease, left ${transitionDuration}ms ease, width ${transitionDuration}ms ease, height ${transitionDuration}ms ease`
+
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 /**
  * Run a callback inside a 200ms top/left/width/height transition and clean up
  * once the transition ends (or after a `setTimeout` fallback). Returns the cleanup
@@ -69,6 +91,15 @@ export const withTransition = (
   callback: () => void,
   onComplete?: () => void
 ): (() => void) => {
+  // Respect the OS-level reduced-motion preference: apply the final layout
+  // immediately instead of animating it.
+  if (prefersReducedMotion()) {
+    callback()
+    onComplete?.()
+    return () => {}
+  }
+
+  const previousTransition = el.style.transition
   el.style.transition = transitionValue
   callback()
   let cleaned = false
@@ -76,7 +107,7 @@ export const withTransition = (
   const cleanup = () => {
     if (cleaned) return
     cleaned = true
-    el.style.transition = ''
+    el.style.transition = previousTransition
     el.removeEventListener('transitionend', onTransitionEnd)
     if (timeout) clearTimeout(timeout)
     onComplete?.()
@@ -312,6 +343,121 @@ export default (initialSize?: { width?: string; height?: string }) => {
   /** Clear pending transition timers/listeners when the owning layer unmounts. */
   const dispose = (): void => {
     for (const cleanup of transitionCleanups) cleanup()
+    transitionCleanups.clear()
+  }
+
+  /**
+   * Measures a CSS width/height pair without touching the real window.
+   * A hidden probe inherits the container's containing block, so `%`, `rem`,
+   * `vw` and `calc()` values resolve exactly like the window would.
+   */
+  const measureWindowSize = (
+    size: WindowStylePatch,
+    containerEl: HTMLElement,
+    maxWidth?: string,
+    maxHeight?: string
+  ): PixelSize => {
+    if (typeof document === 'undefined') return { height: 0, width: 0 }
+
+    const probe = document.createElement('div')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.position = 'absolute'
+    probe.style.visibility = 'hidden'
+    probe.style.pointerEvents = 'none'
+    probe.style.boxSizing = 'border-box'
+    probe.style.top = '0'
+    probe.style.left = '0'
+    if (size.width) probe.style.width = size.width
+    if (size.height) probe.style.height = size.height
+    if (maxWidth && maxWidth !== 'none') probe.style.maxWidth = maxWidth
+    if (maxHeight && maxHeight !== 'none') probe.style.maxHeight = maxHeight
+
+    containerEl.appendChild(probe)
+    const measured = { height: probe.offsetHeight, width: probe.offsetWidth }
+    probe.remove()
+    return measured
+  }
+
+  /** Resolves custom CSS top/left values against the container. */
+  const measurePosition = (position: Position, containerEl: HTMLElement): NumericPosition => {
+    if (typeof document === 'undefined') return { top: 0, left: 0 }
+
+    const probe = document.createElement('div')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.position = 'absolute'
+    probe.style.visibility = 'hidden'
+    probe.style.pointerEvents = 'none'
+    probe.style.width = '0'
+    probe.style.height = '0'
+    probe.style.top = position.top
+    probe.style.left = position.left
+
+    containerEl.appendChild(probe)
+    const measured = { top: probe.offsetTop, left: probe.offsetLeft }
+    probe.remove()
+    return measured
+  }
+
+  /**
+   * Applies a new `size` after the layer has been opened.
+   *
+   * `defaultSize` is updated from a probe even while maximized/minimized, so a
+   * later restore uses the new size. `storeStyle` controls whether the reactive
+   * `windowStyle` (also used as the minimize/restore target) is updated.
+   */
+  const applySize = (
+    size: WindowSize | undefined,
+    windowEl: HTMLElement | undefined | null,
+    containerEl: HTMLElement | undefined | null,
+    options: WindowLayoutApplyOptions
+  ): void => {
+    if (!size || (size.width == null && size.height == null)) return
+
+    const fallbackWidth = defaultSize.width > 0 ? `${defaultSize.width}px` : windowStyle.width
+    const fallbackHeight = defaultSize.height > 0 ? `${defaultSize.height}px` : windowStyle.height
+    const nextSize: WindowStylePatch = {
+      width: size.width ?? fallbackWidth,
+      height: size.height ?? fallbackHeight
+    }
+    if (!nextSize.width && !nextSize.height) return
+
+    if (containerEl) {
+      const measured = measureWindowSize(nextSize, containerEl, options.maxWidth, options.maxHeight)
+      if (measured.width > 0) defaultSize.width = measured.width
+      if (measured.height > 0) defaultSize.height = measured.height
+    }
+
+    if (options.storeStyle) Object.assign(windowStyle, nextSize)
+    if (!options.applyToWindow || !windowEl) return
+
+    applyWindowStyle(windowStyle, windowEl, nextSize)
+    if (containerEl) {
+      clampToContainer(windowEl, containerEl)
+      setCurrentPosition(windowEl)
+    }
+  }
+
+  /** Applies a new `location` after the layer has been opened. */
+  const applyPosition = (
+    location: Position | PositionPreset | undefined,
+    windowEl: HTMLElement | undefined | null,
+    containerEl: HTMLElement | undefined | null,
+    options: Pick<WindowLayoutApplyOptions, 'applyToWindow' | 'storeStyle'>
+  ): void => {
+    if (!location || !containerEl) return
+
+    const containerSize = getContainerSize(containerEl)
+    const target = isCustomPosition(location)
+      ? measurePosition(location, containerEl)
+      : (getPresetPosition(location, defaultSize, containerSize) ??
+        getPresetPosition(PositionPreset.CENTER_CENTER, defaultSize, containerSize))
+    const { top, left } = clampPosition(target, defaultSize, containerSize)
+
+    currentPosition.top = `${top}px`
+    currentPosition.left = `${left}px`
+    if (options.storeStyle) Object.assign(windowStyle, currentPosition)
+    if (!options.applyToWindow || !windowEl) return
+    applyWindowStyle(windowStyle, windowEl, currentPosition)
   }
 
   return {
@@ -322,6 +468,8 @@ export default (initialSize?: { width?: string; height?: string }) => {
     setMaximumSize,
     initPosition,
     setCurrentPosition,
+    applySize,
+    applyPosition,
     dispose
   }
 }

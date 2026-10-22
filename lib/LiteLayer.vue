@@ -15,7 +15,7 @@
         v-if="shade && !isMinimized"
         class="lite-layer__shade"
         role="button"
-        aria-label="Close layer"
+        :aria-label="t('VueLiteLayer.close')"
         tabindex="-1"
         @click="handleShadeClick"
       />
@@ -24,14 +24,13 @@
         ref="windowRef"
         class="lite-layer__window"
         role="dialog"
-        aria-modal="true"
+        :aria-modal="shade ? 'true' : 'false'"
         :aria-labelledby="titleId"
         tabindex="-1"
         :class="{
           'lite-layer__window--initial': initialHide,
           'lite-layer__window--enter': enterAnim,
           'lite-layer__window--leave': leaveAnim,
-          'lite-layer__window--resizing': isResizing,
           'lite-layer__window--minimized': isMinimized
         }"
         :style="{
@@ -109,14 +108,13 @@
 </template>
 
 <script lang="ts" setup>
-import { ResizeObserver } from '@juggle/resize-observer'
 import {
   computed,
   reactive,
   ref,
-  useTemplateRef,
   onMounted,
   onUnmounted,
+  onBeforeUnmount,
   nextTick,
   watch,
   type ComponentPublicInstance
@@ -129,7 +127,13 @@ import LayerContainer from '@lib/components/LayerContainer.vue'
 import LayerFooter from '@lib/components/LayerFooter.vue'
 import './assets/style/index.scss'
 import dockMetrics from './assets/style/metrics.module.scss'
-import { type LayerArea, type LayerConfig, PositionPreset } from './types/layer'
+import {
+  type LayerArea,
+  type LayerConfig,
+  type Position,
+  type WindowSize,
+  PositionPreset
+} from './types/layer'
 import useLayerSize from './composables/use-layer-size'
 import { withTransition, transitionDuration } from './composables/use-layer-size'
 import { useLayerClose } from './composables/use-layer-close'
@@ -141,28 +145,21 @@ import { useLayerEmitter } from './core/layer-emitter'
 import { useI18n } from 'vue-i18n-lite'
 import type { LayerCommandPayload } from './core/layer-events'
 import LayerLoading from './components/LayerLoading.vue'
-import type { ResizeObserverEntry } from '@juggle/resize-observer/lib/ResizeObserverEntry'
+import defaultConfig from './types/defaults'
 
 type InternalLayerConfig = LayerConfig & { teleportKey?: string }
 
 const props = withDefaults(defineProps<InternalLayerConfig>(), {
+  // Keep one source of truth for global defaults. Object-valued props still
+  // need factories so every layer gets its own mutable copy.
+  ...defaultConfig,
   title: '',
-  footer: true,
-  shade: true,
-  shadeClose: true,
-  maxWidth: 'none',
-  maxHeight: 'none',
-  size: () => ({
-    height: '400px',
-    width: '300px'
+  size: () => ({ ...(defaultConfig.size ?? {}) }),
+  i18n: () => ({
+    locale: defaultConfig.i18n?.locale ?? 'zh-CN',
+    messages: {}
   }),
-  location: PositionPreset.CENTER_CENTER,
-  teleport: 'body',
   props: null,
-  max: true,
-  min: false,
-  close: true,
-  closeOnOk: false,
   onCancel: null,
   onOk: null,
   onCommand: null,
@@ -170,16 +167,18 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
   onOpen: null,
   onOpened: null,
   onClose: null,
-  onClosed: null,
-  i18n: () => ({ locale: 'zh-CN', messages: {} })
+  onClosed: null
 })
 
 // ──── 模板引用 / Template Refs ────
 const { bindDrag, unbindDrag } = useDraggable()
-const windowRef = useTemplateRef<HTMLElement>('windowRef')
-const headerRef = useTemplateRef<ComponentPublicInstance<{ el: HTMLElement }>>('headerRef')
-const layerRef = useTemplateRef<HTMLElement>('layerRef')
-const dockRef = useTemplateRef<HTMLElement>('dockRef')
+// Plain refs keep the library compatible with Vue 3.3/3.4, where
+// `useTemplateRef` (Vue 3.5+) is not available. The template still binds by
+// name (`ref="windowRef"`), which is the pre-3.5 contract.
+const windowRef = ref<HTMLElement | null>(null)
+const headerRef = ref<ComponentPublicInstance<{ el: HTMLElement }> | null>(null)
+const layerRef = ref<HTMLElement | null>(null)
+const dockRef = ref<HTMLElement | null>(null)
 
 // ──── 状态 / State ────
 const initialHide = ref(true) // 初始隐藏，等定位完成后移除 / Initially hidden, removed after positioning completes
@@ -187,7 +186,6 @@ const enterAnim = ref(false)
 const isMaximized = ref(false)
 const isMinimized = ref(false)
 const maximizedBeforeMinimize = ref(false)
-const isResizing = ref(false)
 /**
  * 最小化过渡态：用于给 dock 项打 enter 动画类。最小化进行时 `isMinimizing=true`，
  * `isMinimized` 仍是 false（动画结束后才翻）。
@@ -206,11 +204,29 @@ const isMinimizing = ref(false)
  */
 const restoreStartStyle = ref<Partial<LayerArea>>({})
 let minimizeFallbackTimer: ReturnType<typeof setTimeout> | null = null
+let minimizeTransitionCleanup: (() => void) | null = null
+let restoreTransitionCleanup: (() => void) | null = null
+/**
+ * 组件是否已经进入卸载流程。过渡的兜底定时器可能在卸载之后才触发，
+ * 必须用它阻止 `finishMinimize` 重新把已移除的实例写回 layerManager。
+ * Whether the component has entered teardown. Transition fallback timers can
+ * fire after unmount; this flag stops `finishMinimize` from writing an already
+ * removed instance back into layerManager.
+ */
+let disposed = false
 const clearMinimizeFallback = () => {
   if (minimizeFallbackTimer) {
     clearTimeout(minimizeFallbackTimer)
     minimizeFallbackTimer = null
   }
+}
+const clearMinimizeTransition = () => {
+  minimizeTransitionCleanup?.()
+  minimizeTransitionCleanup = null
+}
+const clearRestoreTransition = () => {
+  restoreTransitionCleanup?.()
+  restoreTransitionCleanup = null
 }
 const MINIMIZED_DOCK_Z_INDEX = 2_147_483_647
 /**
@@ -245,32 +261,24 @@ const isTeleportToBody =
 const teleportGroup =
   props.teleportKey ?? (typeof props.teleport === 'string' ? props.teleport : 'body')
 const currentZIndex = ref(layerManager.allocateZIndex(props.id!, teleportGroup))
-const minimizedIndex = computed(() => {
-  // 显式读 `minimizedGroups` 触发 reactive 订阅，
-  // 否则 layerManager 的 Map.set 不会让 dock 几何重算，
-  // 同组多 dock-item 时第二项会贴在第一项上。
-  // Read `minimizedGroups` (reactive) to register a dep, so layerManager's
-  // Map.set on the (non-reactive) minimizedIndex invalidates this computed.
-  const groups = layerManager.getMinimizedGroups()
-  // touch for reactivity
-  void (groups.size >= 0)
-  return layerManager.getMinimizedIndex(props.id!, teleportGroup)
-})
+const minimizedIndex = computed(() => layerManager.getMinimizedIndex(props.id!, teleportGroup))
 
 /** 停靠栏可用区域的响应式尺寸（已排除滚动条） / Reactive size of the dock area (scrollbars excluded) */
 const dockBounds = reactive({ width: 0, height: 0 })
 
 /** 重新测量停靠栏可用区域（视口或 teleport 容器） / Re-measure the dock area (viewport or teleport container) */
 const syncDockBounds = (): void => {
-  if (isTeleportToBody) {
-    dockBounds.width = document.documentElement.clientWidth
-    dockBounds.height = document.documentElement.clientHeight
-    return
-  }
-  const containerEl = layerRef.value
-  if (!containerEl) return
-  dockBounds.width = containerEl.clientWidth
-  dockBounds.height = containerEl.clientHeight
+  const nextWidth = isTeleportToBody
+    ? document.documentElement.clientWidth
+    : (layerRef.value?.clientWidth ?? 0)
+  const nextHeight = isTeleportToBody
+    ? document.documentElement.clientHeight
+    : (layerRef.value?.clientHeight ?? 0)
+
+  // Avoid invalidating dockLayout on every ResizeObserver tick when the
+  // measured size did not actually change.
+  if (nextWidth !== dockBounds.width) dockBounds.width = nextWidth
+  if (nextHeight !== dockBounds.height) dockBounds.height = nextHeight
 }
 
 /**
@@ -350,6 +358,7 @@ const closeState = useLayerClose(props, emitter, () => {
 const { visible, leaveAnim, isUnmounted, requestClose, finalizeClose } = closeState
 const { capturePreviousFocus, focusWindow, handleKeydown, restorePreviousFocus } = useLayerFocus({
   getWindow: () => windowRef.value,
+  getLayerRoot: () => layerRef.value,
   shouldCloseOnEsc: () => props.closeOnEsc,
   shouldTrapFocus: () => props.trapFocus,
   shouldRestoreFocus: () => props.restoreFocus,
@@ -393,6 +402,7 @@ const handleShadeClick = () => {
 }
 
 const handleRestore = () => {
+  if (disposed || isUnmounted.value || isMinimizing.value) return
   if (isMinimized.value) {
     // 恢复路径：与 handleMinimize 严格对称的飞行式过渡——窗口从 dock 项的
     // 矩形出发，200ms 内位移 + 缩放回最小化前的原位/原尺寸。
@@ -430,13 +440,14 @@ const handleRestore = () => {
     // 闪一下原位再飞。restoreStartStyle 负责让渲染层在那一帧也保持起点值。
     Object.assign(windowEl.style, restoreStartStyle.value)
     nextTick(() => {
+      if (disposed || isUnmounted.value) return
       const el = windowRef.value
       if (!el) return
       // 强制一次 reflow，让渲染层写好的起点矩形成为“当前样式”。否则
       // display:none → 显示 与改目标会落在同一帧，浏览器可能直接以终点
       // 起步、整段恢复一点补间都没有。
       void el.offsetWidth
-      withTransition(
+      restoreTransitionCleanup = withTransition(
         el,
         () => {
           // 清掉起点覆盖并直接写目标：渲染层随后刷成同一个 windowStyle，
@@ -448,7 +459,9 @@ const handleRestore = () => {
           el.style.height = origin.height
         },
         () => {
+          restoreTransitionCleanup = null
           restoreStartStyle.value = {}
+          if (disposed || isUnmounted.value) return
           layerManager.restoreMinimized(props.id!, teleportGroup)
           syncScrollLock()
           handleBringToTop()
@@ -462,13 +475,11 @@ const handleRestore = () => {
   // 还原会解除最大化时取得的滚动锁，可视区随之变化
   // Restoring releases the scroll lock taken while maximized.
   syncScrollLock()
-  isResizing.value = true
-  layerSize.restore(windowRef.value, layerRef.value, () => {
-    isResizing.value = false
-  })
+  layerSize.restore(windowRef.value, layerRef.value)
 }
 
 const handleMaximize = () => {
+  if (disposed || isUnmounted.value || isMinimizing.value || !props.max) return
   if (isMinimized.value) {
     isMinimized.value = false
     layerManager.restoreMinimized(props.id!, teleportGroup)
@@ -482,14 +493,20 @@ const handleMaximize = () => {
   // visible area; re-measure so the window does not leave a scrollbar-wide gap.
   syncScrollLock()
   layerSize.setMaximumSize(layerRef.value)
-  isResizing.value = true
-  layerSize.maximize(windowRef.value, () => {
-    isResizing.value = false
-  })
+  layerSize.maximize(windowRef.value)
 }
 
 const handleMinimize = () => {
-  if (!props.min || isMinimized.value) return
+  if (
+    disposed ||
+    isUnmounted.value ||
+    leaveAnim.value ||
+    !props.min ||
+    isMinimized.value ||
+    isMinimizing.value
+  ) {
+    return
+  }
   const windowEl = windowRef.value
   if (!windowEl) return
   maximizedBeforeMinimize.value = isMaximized.value
@@ -527,13 +544,14 @@ const handleMinimize = () => {
   windowEl.style.height = currentRect.height + 'px'
   clearMinimizeFallback()
   const finishMinimize = () => {
+    if (disposed || isUnmounted.value || isMinimized.value) return
     isMinimizing.value = false
     isMaximized.value = false
     isMinimized.value = true
     layerManager.minimize(props.id!, teleportGroup)
     syncScrollLock()
   }
-  withTransition(
+  minimizeTransitionCleanup = withTransition(
     windowEl,
     () => {
       windowEl.style.top = dockTop + 'px'
@@ -542,6 +560,7 @@ const handleMinimize = () => {
       windowEl.style.height = dockH + 'px'
     },
     () => {
+      minimizeTransitionCleanup = null
       finishMinimize()
       clearMinimizeFallback()
     }
@@ -549,7 +568,7 @@ const handleMinimize = () => {
   // 兜底：若 transitionend 因元素被 v-if 隐藏等原因未触发，也要在
   // transitionDuration + 25ms 后强制收尾，避免 isMinimizing 永久卡住
   minimizeFallbackTimer = setTimeout(() => {
-    if (!isMinimizing.value) return
+    if (disposed || isUnmounted.value || !isMinimizing.value) return
     finishMinimize()
   }, transitionDuration + 25)
 }
@@ -654,14 +673,7 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
     if (isMaximized.value) {
       // 最大化状态下仅更新最大尺寸并重新铺满，不要覆盖 defaultSize
       // When maximized, only update maximum size and re-fill, DO NOT overwrite defaultSize
-      isResizing.value = true
-      layerSize.maximize(
-        windowRef.value,
-        () => {
-          isResizing.value = false
-        },
-        { animated: false }
-      )
+      layerSize.maximize(windowRef.value, undefined, { animated: false })
     }
     // 非最大化时仅更新 maximumSize，不调用 initPosition，否则会覆盖用户拖拽后的位置
     // （ResizeObserver 可能在点击/聚焦等操作时意外触发，导致窗口被重置到中心）
@@ -675,7 +687,13 @@ const handleContainerResize = (entries: ResizeObserverEntry[]) => {
 onMounted(() => {
   capturePreviousFocus()
   props.onOpen?.()
-  resizeObserver = new ResizeObserver(handleContainerResize)
+  // ResizeObserver ships natively in current evergreen browsers. Keeping the
+  // polyfill as a static import added ~5KB gzip to every consumer; hosts that
+  // still target older engines can install a polyfill before the plugin.
+  const ResizeObserverCtor = typeof ResizeObserver === 'undefined' ? null : ResizeObserver
+  if (ResizeObserverCtor) {
+    resizeObserver = new ResizeObserverCtor(handleContainerResize)
+  }
   syncScrollLock()
 
   if (!isTeleportToBody) {
@@ -693,10 +711,10 @@ onMounted(() => {
         height: '100%'
       })
     }
-    if (layerRef.value?.parentNode) {
+    if (resizeObserver && layerRef.value?.parentNode) {
       resizeObserver.observe(layerRef.value.parentNode as Element)
     }
-  } else if (layerRef.value) {
+  } else if (resizeObserver && layerRef.value) {
     resizeObserver.observe(layerRef.value)
   }
 
@@ -729,7 +747,64 @@ onMounted(() => {
 
 watch([() => props.shade, isMinimized, isMaximized], syncScrollLock)
 
+const isSameSize = (a?: WindowSize, b?: WindowSize): boolean =>
+  a?.width === b?.width && a?.height === b?.height
+
+const isSameLocation = (a?: Position | PositionPreset, b?: Position | PositionPreset): boolean => {
+  if (a === b) return true
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    return a.top === b.top && a.left === b.left
+  }
+  return false
+}
+
+/**
+ * Re-applies `size` / `location` when `instance.update()` changes them.
+ *
+ * The layer only writes the live window while it is in its normal state. When
+ * maximized, only the stored default size/position are updated so the next
+ * restore uses the new values; when minimized, the stored restore target is
+ * updated (unless the layer was maximized before minimizing, in which case the
+ * maximized `windowStyle` must be preserved).
+ */
+watch(
+  [() => props.size, () => props.location],
+  ([nextSize, nextLocation], [prevSize, prevLocation]) => {
+    if (disposed || isUnmounted.value) return
+
+    const maximized = isMaximized.value
+    const minimized = isMinimized.value
+    const storeStyle = !maximized && !(minimized && maximizedBeforeMinimize.value)
+    const applyToWindow = !maximized && !minimized
+
+    if (!isSameSize(nextSize, prevSize)) {
+      layerSize.applySize(nextSize, windowRef.value, layerRef.value, {
+        applyToWindow,
+        storeStyle,
+        maxWidth: props.maxWidth,
+        maxHeight: props.maxHeight
+      })
+    }
+    if (!isSameLocation(nextLocation, prevLocation)) {
+      layerSize.applyPosition(nextLocation, windowRef.value, layerRef.value, {
+        applyToWindow,
+        storeStyle
+      })
+    }
+  },
+  { deep: true }
+)
+
+// Focus can only be restored while the focused element is still in the DOM.
+// `onUnmounted` runs after Vue has removed the subtree, at which point the
+// browser has already moved focus to <body>, so the containment check in
+// `restorePreviousFocus` would always fail. Restore in `onBeforeUnmount`.
+onBeforeUnmount(restorePreviousFocus)
+
 onUnmounted(() => {
+  disposed = true
+  clearMinimizeTransition()
+  clearRestoreTransition()
   if (enterFallbackTimer) {
     clearTimeout(enterFallbackTimer)
     enterFallbackTimer = null
@@ -745,7 +820,6 @@ onUnmounted(() => {
     unlockBodyScroll()
     hasScrollLock = false
   }
-  restorePreviousFocus()
 
   emitter.off('maximum', handleMaximize)
   emitter.off('minimize', handleMinimize)

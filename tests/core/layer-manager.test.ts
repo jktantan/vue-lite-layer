@@ -43,4 +43,22 @@ describe('layerManager', () => {
   test('remove is idempotent for unknown ids and groups', () => {
     expect(() => layerManager.remove('missing', 'group', '#target')).not.toThrow()
   })
+
+  test('tracks minimized dock indexes per teleport group', () => {
+    layerManager.minimize('a', 'body')
+    layerManager.minimize('b', 'body')
+    layerManager.minimize('c', '#local')
+
+    expect(layerManager.getMinimizedIndex('a', 'body')).toBe(0)
+    expect(layerManager.getMinimizedIndex('b', 'body')).toBe(1)
+    expect(layerManager.getMinimizedIndex('c', '#local')).toBe(0)
+
+    // Re-index remaining siblings after removal.
+    layerManager.restoreMinimized('a', 'body')
+    expect(layerManager.getMinimizedIndex('b', 'body')).toBe(0)
+
+    layerManager.restoreMinimized('b', 'body')
+    expect(layerManager.getMinimizedIndex('b', 'body')).toBe(-1)
+    expect(layerManager.getMinimizedGroups().has('body')).toBe(false)
+  })
 })

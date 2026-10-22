@@ -20,6 +20,15 @@ describe('layer geometry', () => {
     })
   })
 
+  test('falls back to the center preset for an unknown runtime value', () => {
+    expect(
+      getPresetPosition('UNKNOWN' as PositionPreset, windowSize, containerSize)
+    ).toEqual({
+      top: 250,
+      left: 300
+    })
+  })
+
   test('clamps positions, including windows larger than their container', () => {
     expect(clampPosition({ top: 900, left: -10 }, windowSize, containerSize)).toEqual({
       top: 500,

@@ -7,7 +7,7 @@ import { PositionPreset, type LayerGlobalConfig } from './layer'
  * 当用户未指定某选项时，使用这里的值作为兜底。
  * When user doesn't specify an option, use values here as fallback.
  */
-const defaultConfig: LayerGlobalConfig = {
+const defaultConfig = {
   teleport: 'body',
   size: {
     width: '300px',
@@ -28,6 +28,6 @@ const defaultConfig: LayerGlobalConfig = {
   restoreFocus: true,
   banner: true,
   i18n: { locale: 'zh-CN' }
-}
+} as const satisfies LayerGlobalConfig
 
 export default defaultConfig

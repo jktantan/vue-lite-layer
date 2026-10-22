@@ -152,8 +152,10 @@ const openLayer = (
   if (appContext || sourceProvides) {
     const layerContext = layerApp._context
     if (appContext) {
-      layerContext.components = appContext.components
-      layerContext.directives = appContext.directives
+      // Shallow-copy the registries so a layer-local plugin/component
+      // registration cannot leak back into the host app.
+      layerContext.components = { ...appContext.components }
+      layerContext.directives = { ...appContext.directives }
       layerContext.config = cloneAppConfigForLayer(layerContext.config, appContext.config)
     }
     // Component-scoped provides take precedence over app-level values while

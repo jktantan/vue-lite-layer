@@ -47,5 +47,8 @@ export const getPresetPosition = (
     [PositionPreset.RIGHT_BOTTOM]: { top: top.end, left: left.end }
   }
 
-  return positions[preset]
+  // JavaScript callers can pass an arbitrary string; fall back to the default
+  // preset instead of returning `undefined` and letting initPosition crash on
+  // destructuring.
+  return positions[preset] ?? positions[PositionPreset.CENTER_CENTER]
 }

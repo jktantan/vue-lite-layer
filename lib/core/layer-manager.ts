@@ -7,19 +7,18 @@ const uniqueGroups = new Set<string>()
 /** 所有弹层实例 Map（id → instance） / All layer instances Map (id → instance) */
 const instances = new Map<string, LayerInstance>()
 
-/** 最小化窗口按 Teleport 目标分组，Map 的插入顺序即停靠栏顺序。 */
-const minimizedGroups = reactive(new Map<string, Map<string, true>>())
-
 /**
- * 反向索引：从弹层 id 查其在分组中的位置。
- * `getMinimizedIndex` 之前用 `[...keys()].indexOf(id)` 在 dock 重排时反复
- * 做 O(n) 扫描；这里在 `minimize/restoreMinimized` 时同步维护，使得查询 O(1)。
- * Reverse index: id -> position within its teleport group.
- * Previously `getMinimizedIndex` rebuilt the keys array on every dock layout
- * computation (O(n)). This map is kept in sync with `minimizedGroups` so the
- * lookup is O(1).
+ * 最小化窗口按 Teleport 目标分组。
+ * Map 的插入顺序即停靠栏顺序，value 是该分组内的位置索引。
+ *
+ * 索引直接存在 reactive Map 里：`getMinimizedIndex` 读取 value 即可建立
+ * 响应式依赖，不需要额外的反向 Map 或手工“touch”技巧。
+ * Minimized layers grouped by Teleport target. Insertion order is dock order;
+ * the value is the position within that group. Keeping the index in the
+ * reactive Map means reading it establishes the dependency directly, without a
+ * second reverse index or manual "touch" calls.
  */
-const minimizedIndex = new Map<string, number>()
+const minimizedGroups = reactive(new Map<string, Map<string, number>>())
 
 /**
  * 按 Teleport 目标（父容器）分组的 z-index 记录
@@ -109,11 +108,9 @@ const layerManager = {
   minimize(id: string, teleportTarget: string): void {
     if (!minimizedGroups.has(teleportTarget)) minimizedGroups.set(teleportTarget, new Map())
     const group = minimizedGroups.get(teleportTarget)!
-    // Skip if already present so the reverse index stays at its existing slot.
+    // Skip if already present so the existing slot is preserved.
     if (group.has(id)) return
-    const nextIndex = group.size
-    group.set(id, true)
-    minimizedIndex.set(id, nextIndex)
+    group.set(id, group.size)
   },
 
   /** Remove a layer from its Teleport target's dock. */
@@ -121,41 +118,25 @@ const layerManager = {
     const group = minimizedGroups.get(teleportTarget)
     if (!group) return
     if (!group.delete(id)) return
-    minimizedIndex.delete(id)
-    // Rebuild the reverse index for the remaining siblings so positions stay
-    // contiguous. This is O(n) but only on minimize/restore, not on every
-    // dock layout computation.
-    let i = 0
+    // Re-index the remaining siblings so positions stay contiguous. This is
+    // O(n) on minimize/restore, never on dock layout computation.
+    let index = 0
     for (const sibling of group.keys()) {
-      minimizedIndex.set(sibling, i++)
+      group.set(sibling, index++)
     }
     if (group.size === 0) minimizedGroups.delete(teleportTarget)
   },
 
   /** Get the reactive dock position for one minimized layer (O(1) lookup). */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getMinimizedIndex(id: string, _teleportTarget: string): number {
-    // 参数保留以与计划接口对齐；目前用 O(1) 的全局 `minimizedIndex` 查询
-    // 已经足够（同一 id 在不同 teleport target 间共享索引）。
-    // The argument is kept for API parity with the plan; the O(1) lookup on
-    // the global `minimizedIndex` is sufficient (one id only ever sits in
-    // one dock group at a time).
-    return minimizedIndex.get(id) ?? -1
+  getMinimizedIndex(id: string, teleportTarget: string): number {
+    return minimizedGroups.get(teleportTarget)?.get(id) ?? -1
   },
 
   /**
-   * 暴露 reactive `minimizedGroups` 让调用方在 computed 里访问以建立
-   * reactive 依赖。layerManager 内部的 `minimizedIndex` 是普通 Map，
-   * Map.set 不会触发依赖追踪，所以消费方必须额外读一次 `minimizedGroups`
-   * 的 size/keys 才会让 `minimize` / `restoreMinimized` 之后的 patch
-   * 让 dock 几何重算。
-   * Expose the reactive `minimizedGroups` so callers can read it inside a
-   * `computed` to register a dep. The internal `minimizedIndex` is a plain
-   * Map and `Map.set` doesn't trigger reactivity, so consumers need an extra
-   * touch of `minimizedGroups` (size / keys) for the dock layout to recompute
-   * after `minimize` / `restoreMinimized`.
+   * Expose the reactive `minimizedGroups` for callers that need the whole dock
+   * order. Individual position lookups should use `getMinimizedIndex`.
    */
-  getMinimizedGroups(): Map<string, Map<string, true>> {
+  getMinimizedGroups(): Map<string, Map<string, number>> {
     return minimizedGroups
   },
 
@@ -232,7 +213,6 @@ const layerManager = {
     instances.clear()
     zIndexGroups.clear()
     minimizedGroups.clear()
-    minimizedIndex.clear()
     globalZIndex = BASE_Z_INDEX
   },
 

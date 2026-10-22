@@ -5,6 +5,11 @@ const FOCUSABLE_SELECTOR =
 
 interface LayerFocusOptions {
   getWindow: () => HTMLElement | null
+  /**
+   * Returns the layer root (the element that also owns the shade and dock).
+   * Used only for focus restoration; defaults to the window itself.
+   */
+  getLayerRoot?: () => HTMLElement | null
   shouldCloseOnEsc: () => boolean | undefined
   shouldTrapFocus: () => boolean | undefined
   shouldRestoreFocus: () => boolean | undefined
@@ -21,12 +26,23 @@ interface LayerFocusOptions {
  * with `aria-hidden="true"`, or that have zero rendered size from CSS hiding.
  */
 const isElementVisible = (element: HTMLElement): boolean => {
-  if (element.getAttribute('aria-hidden') === 'true') return false
-  if (element.hasAttribute('hidden')) return false
-  // Walk up so a hidden ancestor also disqualifies the descendant.
+  // ARIA/hidden ancestry is cheap to check and not covered by checkVisibility().
   let current: HTMLElement | null = element
   while (current) {
-    if (current.getAttribute('aria-hidden') === 'true') return false
+    if (current.getAttribute('aria-hidden') === 'true' || current.hasAttribute('hidden')) {
+      return false
+    }
+    current = current.parentElement
+  }
+
+  // Prefer the native API: one call instead of getComputedStyle() on every
+  // ancestor for every Tab press.
+  if (typeof element.checkVisibility === 'function') {
+    return element.checkVisibility({ checkVisibilityCSS: true })
+  }
+
+  current = element
+  while (current) {
     const style = window.getComputedStyle(current)
     if (style.display === 'none' || style.visibility === 'hidden') return false
     current = current.parentElement
@@ -37,6 +53,7 @@ const isElementVisible = (element: HTMLElement): boolean => {
 /** Owns keyboard focus capture, trapping and restoration for one dialog. */
 export const useLayerFocus = ({
   getWindow,
+  getLayerRoot,
   shouldCloseOnEsc,
   shouldTrapFocus,
   shouldRestoreFocus,
@@ -69,6 +86,8 @@ export const useLayerFocus = ({
     }
     if (event.key !== 'Tab' || !shouldTrapFocus()) return
 
+    const windowEl = getWindow()
+    if (!windowEl) return
     const focusable = getFocusableElements()
     if (focusable.length === 0) {
       event.preventDefault()
@@ -77,10 +96,21 @@ export const useLayerFocus = ({
     }
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
+    const active = document.activeElement
+
+    // The dialog itself and the shade are both outside the focusable set (the
+    // dialog has tabindex="-1", the shade is a sibling). Without these guards
+    // Shift+Tab from the dialog or Tab from the shade escapes the trap.
+    if (active === windowEl || !windowEl.contains(active)) {
+      event.preventDefault()
+      ;(event.shiftKey ? last : first).focus()
+      return
+    }
+
+    if (event.shiftKey && active === first) {
       event.preventDefault()
       last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && active === last) {
       event.preventDefault()
       first.focus()
     }
@@ -88,11 +118,13 @@ export const useLayerFocus = ({
 
   const restorePreviousFocus = (): void => {
     const windowEl = getWindow()
-    if (
-      shouldRestoreFocus() &&
-      windowEl?.contains(document.activeElement) &&
-      previouslyFocused?.isConnected
-    ) {
+    const layerRoot = getLayerRoot?.() ?? windowEl
+    const active = document.activeElement
+    // Include the layer root, not just the window: clicking the shade focuses
+    // it (it is a `tabindex="-1"` sibling of the window), and closing from the
+    // dock close button focuses a dock item. Both are still part of the layer.
+    const focusWithinLayer = Boolean(windowEl?.contains(active) || layerRoot?.contains(active))
+    if (shouldRestoreFocus() && focusWithinLayer && previouslyFocused?.isConnected) {
       previouslyFocused.focus()
     }
   }
