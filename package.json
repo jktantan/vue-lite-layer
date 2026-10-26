@@ -29,6 +29,11 @@
       "default": "./dist/vue-lite-layer.es.js"
     },
     "./style.css": "./dist/vue-lite-layer.css",
+    "./theme.css": "./dist/theme.css",
+    "./theme": "./lib/assets/style/theme.scss",
+    "./theme.scss": "./lib/assets/style/theme.scss",
+    "./scss": "./lib/assets/style/index.scss",
+    "./scss/*": "./lib/assets/style/*",
     "./nuxt": {
       "types": "./dist/nuxt/module.d.ts",
       "import": "./dist/nuxt/module.mjs",
@@ -41,7 +46,8 @@
     "module": "./dist/nuxt/module.mjs"
   },
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "**/*.scss"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -90,8 +96,9 @@
     "type-check": "vue-tsc --build --force",
     "lint": "eslint --fix",
     "format": "prettier --write \"lib/**/*.{ts,vue,scss}\" \"docs/**/*.{ts,vue,css}\" \"src/**/*.{ts,vue}\"",
-    "lib:build": "run-s lib:type-check lib:build:main lib:build:nuxt lib:clean lib:build:verify",
+    "lib:build": "run-s lib:type-check lib:build:main lib:build:nuxt lib:build:theme lib:clean lib:build:verify",
     "lib:type-check": "vue-tsc --noEmit --pretty false --project tsconfig.lib.json",
+    "lib:build:theme": "sass --no-source-map --style=compressed --load-path=. lib/assets/style/theme.scss dist/theme.css",
     "test:unit": "vitest run",
     "test:types": "vue-tsc --noEmit --pretty false --project tsconfig.test.json",
     "test:dist": "node tests/dist-checks/html-warning.test.mjs",

@@ -1,5 +1,4 @@
 @use 'icon';
-@use 'common/var' as *;
 
 @mixin inset-shadow-overlay {
   content: '';
@@ -12,43 +11,46 @@
   overflow: hidden;
 
   &__shade {
-    background-color: $lite-layer__color-grey;
+    background-color: var(--lite-layer-shade-bg-color);
     position: absolute;
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
-    opacity: 0.3;
+    opacity: var(--lite-layer-shade-opacity);
   }
 
   &__mask-button {
     height: 100%;
-    width: $lite-layer__icon-size;
-    background-color: $lite-layer__text-color;
-    margin-left: $lite-layer__icon-margin;
+    width: var(--lite-layer-icon-size);
+    background-color: var(--lite-layer-text-color-regular);
+    margin-left: var(--lite-layer-icon-margin);
     border: 0;
     padding: 0;
     appearance: none;
-    transition: $lite-layer__trans;
+    transition: var(--lite-layer-transition);
     cursor: pointer;
 
     &:hover {
-      background-color: $lite-layer__color-primary;
+      background-color: var(--lite-layer-color-primary);
     }
 
     &:active {
-      background-color: $lite-layer__color-primary-activate;
+      background-color: var(--lite-layer-color-primary-active);
     }
 
     &:focus-visible {
-      outline: 2px solid $lite-layer__color-primary;
+      outline: 2px solid var(--lite-layer-color-primary);
       outline-offset: 2px;
     }
   }
+
   &__window {
-    background-color: $lite-layer__color-white;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+    background-color: var(--lite-layer-bg-color-overlay);
+    color: var(--lite-layer-text-color-primary);
+    border: var(--lite-layer-window-border);
+    border-radius: var(--lite-layer-border-radius);
+    box-shadow: var(--lite-layer-box-shadow);
     box-sizing: border-box;
     position: absolute;
     display: flex;
@@ -59,12 +61,12 @@
     }
 
     &-header {
-      padding: 0 8px;
-      height: $lite-layer__header-height;
-      line-height: $lite-layer__header-height;
+      padding: var(--lite-layer-header-padding);
+      height: var(--lite-layer-header-height);
+      line-height: var(--lite-layer-header-height);
       display: flex;
       align-items: center;
-      border-bottom: 1px solid $lite-layer__color-border-light;
+      border-bottom: 1px solid var(--lite-layer-border-color-light);
       &:hover {
         cursor: grab;
         &:active {
@@ -74,7 +76,7 @@
 
       &-title {
         flex: 1 1 0;
-        font-size: $lite-layer__font-size;
+        font-size: var(--lite-layer-font-size);
         text-align: left;
         user-select: none;
         overflow: hidden;
@@ -84,7 +86,7 @@
       &-operator {
         cursor: initial;
         height: 100%;
-        color: $lite-layer__color-black;
+        color: var(--lite-layer-text-color-regular);
         display: flex;
         flex-direction: row;
         pointer-events: all;
@@ -97,25 +99,27 @@
       overflow: hidden;
     }
     &-wrapper {
-      padding: 8px;
+      padding: var(--lite-layer-content-padding);
       height: 100%;
       width: 100%;
       overflow: auto;
       box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--lite-layer-scrollbar-thumb-bg) var(--lite-layer-scrollbar-track-bg);
       &::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: var(--lite-layer-scrollbar-size);
+        height: var(--lite-layer-scrollbar-size);
       }
       &::-webkit-scrollbar-corner {
         background-color: transparent;
       }
       &::-webkit-scrollbar-thumb {
         border-radius: 5px;
-        background: rgba($lite-layer__color-primary, 0.8);
+        background: var(--lite-layer-scrollbar-thumb-bg);
       }
       &::-webkit-scrollbar-track {
         border-radius: 0;
-        background: rgba($lite-layer__color-disabled, 0.4);
+        background: var(--lite-layer-scrollbar-track-bg);
       }
     }
 
@@ -123,16 +127,22 @@
       display: flex;
       flex-direction: row;
       justify-content: flex-end;
-      padding: 8px;
-      border-top: 1px solid $lite-layer__color-border-light;
+      padding: var(--lite-layer-footer-padding);
+      border-top: 1px solid var(--lite-layer-border-color-light);
     }
+  }
+
+  &__content-error {
+    color: var(--lite-layer-text-color-regular);
   }
 
   &__dock-item {
     position: fixed;
-    bottom: $lite-layer__dock-inset;
+    bottom: var(--lite-layer-dock-inset);
     z-index: 1;
-    width: $lite-layer__dock-item-width;
+    width: var(--lite-layer-dock-item-width);
+    height: var(--lite-layer-dock-item-height);
+    line-height: var(--lite-layer-dock-item-height);
     // 必须与 .lite-layer__window-header 的 padding、边框一起参与尺寸计算，
     // 否则实际宽度会超出停靠步进，导致相邻停靠项重叠。
     // Must include the .lite-layer__window-header padding/border in the size
@@ -140,10 +150,10 @@
     // neighbouring dock items overlap.
     box-sizing: border-box;
     pointer-events: auto;
-    background-color: $lite-layer__color-white;
-    border: 1px solid $lite-layer__color-border;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+    background-color: var(--lite-layer-bg-color-overlay);
+    border: 1px solid var(--lite-layer-border-color);
+    border-radius: var(--lite-layer-border-radius);
+    box-shadow: var(--lite-layer-box-shadow);
   }
 
   &__button {
@@ -151,9 +161,9 @@
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
-    background: $lite-layer__color-white;
-    border: 1px solid $lite-layer__color-border;
-    color: $lite-layer__color-text-regular;
+    background: var(--lite-layer-bg-color);
+    border: 1px solid var(--lite-layer-border-color);
+    color: var(--lite-layer-text-color-regular);
     appearance: none;
     text-align: center;
     box-sizing: border-box;
@@ -162,61 +172,70 @@
     transition: 0.1s;
     font-weight: 500;
     user-select: none;
-    padding: 8px 18px;
-    font-size: 14px;
-    border-radius: 4px;
+    padding: var(--lite-layer-button-padding);
+    font-size: var(--lite-layer-button-font-size);
+    border-radius: var(--lite-layer-button-radius);
 
     & + .lite-layer__button {
-      margin-left: 12px;
+      margin-left: var(--lite-layer-button-gap);
     }
 
     &:hover {
-      color: $lite-layer__color-primary;
-      border-color: $lite-layer__color-primary-border;
-      background-color: $lite-layer__color-primary-light;
+      color: var(--lite-layer-color-primary);
+      border-color: var(--lite-layer-color-primary-border);
+      background-color: var(--lite-layer-color-primary-light);
     }
 
     &:active {
-      color: $lite-layer__color-primary-active;
-      border-color: $lite-layer__color-primary-active;
+      color: var(--lite-layer-color-primary-active);
+      border-color: var(--lite-layer-color-primary-active);
       outline: none;
     }
 
     &:focus-visible {
-      outline: 2px solid $lite-layer__color-primary;
+      outline: 2px solid var(--lite-layer-color-primary);
       outline-offset: 2px;
     }
 
+    &:disabled {
+      cursor: not-allowed;
+      color: var(--lite-layer-text-color-disabled);
+      border-color: var(--lite-layer-border-color-light);
+      background-color: var(--lite-layer-fill-color-light);
+    }
+
     &.primary {
-      color: $lite-layer__color-white;
-      background-color: $lite-layer__color-primary;
-      border-color: $lite-layer__color-primary;
+      color: var(--lite-layer-color-white);
+      background-color: var(--lite-layer-color-primary);
+      border-color: var(--lite-layer-color-primary);
 
       &:hover {
-        background: $lite-layer__color-primary-hover;
-        border-color: $lite-layer__color-primary-hover;
-        color: $lite-layer__color-white;
+        background: var(--lite-layer-color-primary-hover);
+        border-color: var(--lite-layer-color-primary-hover);
+        color: var(--lite-layer-color-white);
       }
 
       &:active {
-        background: $lite-layer__color-primary-active;
-        border-color: $lite-layer__color-primary-active;
-        color: $lite-layer__color-white;
+        background: var(--lite-layer-color-primary-active);
+        border-color: var(--lite-layer-color-primary-active);
+        color: var(--lite-layer-color-white);
       }
     }
   }
 
   &__shadow-top-inset::after {
     @include inset-shadow-overlay;
-    box-shadow: $shadow-top-inset;
+    box-shadow: inset 0 12px 10px -12px var(--lite-layer-scroll-shadow-color);
   }
   &__shadow-bottom-inset::after {
     @include inset-shadow-overlay;
-    box-shadow: $shadow-bottom-inset;
+    box-shadow: inset 0 -12px 10px -12px var(--lite-layer-scroll-shadow-color);
   }
   &__shadow-horizontal-inset::after {
     @include inset-shadow-overlay;
-    box-shadow: $shadow-horizontal-inset;
+    box-shadow:
+      inset 0 12px 10px -12px var(--lite-layer-scroll-shadow-color),
+      inset 0 -12px 10px -12px var(--lite-layer-scroll-shadow-color);
   }
   &__disabled-point-event {
     &:hover {

@@ -35,6 +35,15 @@ export type {
 export { PositionPreset } from '@lib/types/layer'
 export type { LayerCallback } from '@lib/types/callback'
 export type { LayerInstance } from '@lib/types/instance'
+export type {
+  LayerComponentSize,
+  LayerTheme,
+  LayerThemeColorType,
+  LayerThemeColors,
+  LayerThemeConfig,
+  LayerThemeMode,
+  LayerThemeVars
+} from '@lib/types/theme'
 export type { LocaleMessages } from '@lib/i18n'
 
 const VueLiteLayerPlugin: Plugin<[LayerGlobalConfig?]> = {

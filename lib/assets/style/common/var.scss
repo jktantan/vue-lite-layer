@@ -5,19 +5,34 @@ $lite-layer__color-primary-active: #3a8ee6 !default;
 $lite-layer__color-primary-light: #ecf5ff !default;
 $lite-layer__color-primary-border: #c6e2ff !default;
 $lite-layer__color-primary-invert: #ffac30 !default;
+$lite-layer__color-success: #67c23a !default;
+$lite-layer__color-warning: #e6a23c !default;
 $lite-layer__color-danger: #ef4f4f !default;
+$lite-layer__color-error: #f56c6c !default;
+$lite-layer__color-info: #909399 !default;
 $lite-layer__color-white: #fff !default;
 $lite-layer__color-black: #000 !default;
 $lite-layer__color-grey: #4d4d4d !default;
 $lite-layer__color-disabled: #aaa !default;
 $lite-layer__color-border: #dcdfe6 !default;
-$lite-layer__color-border-light: #f0f0f0 !default;
+$lite-layer__color-border-light: #e4e7ed !default;
+$lite-layer__color-border-lighter: #ebeef5 !default;
+$lite-layer__color-text-primary: #303133 !default;
 $lite-layer__color-text-regular: #606266 !default;
+$lite-layer__color-text-secondary: #909399 !default;
+$lite-layer__color-text-placeholder: #a8abb2 !default;
+$lite-layer__color-text-disabled: #c0c4cc !default;
+$lite-layer__color-fill: #f0f2f5 !default;
+$lite-layer__color-fill-light: #f5f7fa !default;
+$lite-layer__color-fill-lighter: #fafafa !default;
+$lite-layer__color-bg: #fff !default;
+$lite-layer__color-bg-page: #f2f3f5 !default;
+$lite-layer__color-bg-overlay: #fff !default;
 $lite-layer__color-primary-activate: color.mix($lite-layer__color-primary, #000, 80%) !default;
 /** 标题栏文本颜色 / Title bar text color */
-$lite-layer__text-color: $lite-layer__color-grey;
+$lite-layer__text-color: $lite-layer__color-grey !default;
 /** 标题栏文本大小 / Title bar font size */
-$lite-layer__font-size: 16px;
+$lite-layer__font-size: 16px !default;
 
 /** 标题栏高度 / Title bar height */
 $lite-layer__header-height: 40px !default;
@@ -25,13 +40,14 @@ $lite-layer__header-height: 40px !default;
 /**
  * 最小化停靠栏的几何尺寸 / Geometry of the minimized dock
  *
- * 这些值是停靠布局的唯一真源：style.scss 消费它们做样式，
- * LiteLayer.vue 通过 metrics.module.scss 的 :export 消费它们做排列计算，
- * 从而避免样式与脚本各写一份导致不一致。
- * These values are the single source of truth for the dock layout: style.scss
- * consumes them for styling, and LiteLayer.vue consumes them through the
- * :export of metrics.module.scss for layout math, so the stylesheet and the
- * script can never drift apart.
+ * 这些值是停靠布局的 SCSS 真源：style.scss 消费它们做默认样式，
+ * LiteLayer.vue 通过 metrics.module.scss 的 :export 取得 jsdom/SSR 下的
+ * 兜底值；真实浏览器中还会读取 `--lite-layer-dock-item-*` 的运行时值，
+ * 以便主题尺寸预设能同步改变停靠布局。
+ * These are the SCSS source of truth for the dock: style.scss uses them for
+ * default styling, LiteLayer.vue reads them through metrics.module.scss as
+ * fallbacks for jsdom/SSR, and real browsers additionally resolve the runtime
+ * `--lite-layer-dock-item-*` values so size presets can change dock layout.
  */
 
 /** 停靠项宽度 / Dock item width */
@@ -43,11 +59,118 @@ $lite-layer__dock-item-gap: 12px !default;
 /** 停靠栏距容器左/下边缘的偏移 / Inset of the dock from the container edge */
 $lite-layer__dock-inset: 12px !default;
 
-$lite-layer__icon-margin: 10px;
-$lite-layer__icon-size: $lite-layer__font-size;
+$lite-layer__icon-margin: 10px !default;
+$lite-layer__icon-size: $lite-layer__font-size !default;
+/** 窗口圆角 / Window border radius */
+$lite-layer__border-radius: 4px !default;
 
-$lite-layer__trans: all 0.3s ease-in-out;
+$lite-layer__trans: all 0.3s ease-in-out !default;
 
-$shadow-top-inset: inset 0 12px 10px -12px rgb(0 0 0 / 60%); /* 上内阴影 / Top inset shadow */
-$shadow-bottom-inset: inset 0 -12px 10px -12px rgb(0 0 0 / 60%); /* 下内阴影 / Bottom inset shadow */
-$shadow-horizontal-inset: $shadow-top-inset, $shadow-bottom-inset;
+$shadow-top-inset: inset 0 12px 10px -12px rgb(0 0 0 / 60%) !default; /* 上内阴影 / Top inset shadow */
+$shadow-bottom-inset: inset 0 -12px 10px -12px rgb(0 0 0 / 60%) !default; /* 下内阴影 / Bottom inset shadow */
+$shadow-horizontal-inset: $shadow-top-inset, $shadow-bottom-inset !default;
+
+/**
+ * 语义色表 / Semantic color map
+ *
+ * 新增一种语义色只需要在这里加一项；theme.scss 会自动为它生成
+ * `light-3/5/7/8/9` 与 `dark-2` 派生变量。
+ * Adding a semantic color only requires one entry here; theme.scss generates
+ * `light-3/5/7/8/9` and `dark-2` derivations automatically.
+ */
+$lite-layer__theme-colors: (
+  'primary': $lite-layer__color-primary,
+  'success': $lite-layer__color-success,
+  'warning': $lite-layer__color-warning,
+  'danger': $lite-layer__color-danger,
+  'error': $lite-layer__color-error,
+  'info': $lite-layer__color-info
+) !default;
+
+/**
+ * 深色主题令牌表 / Dark theme token map
+ *
+ * 键名会映射为 `--lite-layer-<key>`；构建期可整体替换。
+ * Keys map to `--lite-layer-<key>` and can be replaced wholesale at build time.
+ */
+$lite-layer__dark-tokens: (
+  'text-color-primary': #e5eaf3,
+  'text-color-regular': #cfd3dc,
+  'text-color-secondary': #a3a6ad,
+  'text-color-placeholder': #8d9095,
+  'text-color-disabled': #6c6e72,
+  'border-color': #4c4d4f,
+  'border-color-light': #414243,
+  'border-color-lighter': #363637,
+  'fill-color': #303030,
+  'fill-color-light': #262727,
+  'fill-color-lighter': #1d1d1d,
+  'bg-color': #141414,
+  'bg-color-page': #0a0a0a,
+  'bg-color-overlay': #1d1e1f,
+  // 与浅色模式保持相同的阴影尺寸，只把颜色反转为浅色。
+  // Keep the same shadow geometry as light mode; only invert the color.
+  'shade-bg-color': #e5eaf3,
+  'shade-opacity': 0.18,
+  'window-border': 1px solid rgb(255 255 255 / 16%),
+  'box-shadow': 0 1px 3px rgb(255 255 255 / 30%),
+  'box-shadow-light': 0 0 12px rgb(255 255 255 / 12%),
+  'scroll-shadow-color': rgb(255 255 255 / 25%)
+) !default;
+
+/**
+ * 组件尺寸预设表 / Component size preset map
+ *
+ * 键名会成为 `--lite-layer-<key>` 变量，并在 `data-lite-layer-size` 上切换。
+ * Keys become `--lite-layer-<key>` variables toggled by `data-lite-layer-size`.
+ */
+$lite-layer__size-metrics: (
+  'small': (
+    'font-size': 14px,
+    'header-height': 32px,
+    'header-padding': 0 6px,
+    'content-padding': 6px,
+    'footer-padding': 6px,
+    'button-font-size': 12px,
+    'button-padding': 5px 12px,
+    'button-radius': 2px,
+    'border-radius': 3px,
+    'icon-size': 14px,
+    'dock-item-width': 180px,
+    'dock-item-height': 32px,
+    'dock-item-gap': 10px,
+    'dock-inset': 10px
+  ),
+  'default': (
+    'font-size': $lite-layer__font-size,
+    'header-height': $lite-layer__header-height,
+    'header-padding': 0 8px,
+    'content-padding': 8px,
+    'footer-padding': 8px,
+    'button-font-size': 14px,
+    'button-padding': 8px 18px,
+    'button-radius': 4px,
+    'border-radius': $lite-layer__border-radius,
+    'icon-size': $lite-layer__icon-size,
+    'dock-item-width': $lite-layer__dock-item-width,
+    'dock-item-height': $lite-layer__dock-item-height,
+    'dock-item-gap': $lite-layer__dock-item-gap,
+    'dock-inset': $lite-layer__dock-inset
+  ),
+  'large': (
+    'font-size': 18px,
+    'header-height': 48px,
+    'header-padding': 0 12px,
+    'content-padding': 12px,
+    'footer-padding': 12px,
+    'button-font-size': 16px,
+    'button-padding': 10px 22px,
+    'button-radius': 6px,
+    'border-radius': 6px,
+    'icon-size': 18px,
+    'dock-item-width': 260px,
+    'dock-item-height': 48px,
+    'dock-item-gap': 14px,
+    'dock-inset': 14px
+  )
+) !default;

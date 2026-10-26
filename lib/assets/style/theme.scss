@@ -1,0 +1,198 @@
+@forward 'common/var';
+@use 'sass:map';
+@use 'common/var' as *;
+
+/**
+ * 主题令牌 / Theme tokens
+ *
+ * 所有颜色、间距、字号都收敛到 `--lite-layer-*` CSS 自定义属性：
+ * 运行时可被 `theme` 配置内联覆盖，也可被宿主 CSS 直接覆盖。
+ *
+ * Every color, spacing and font size resolves to a `--lite-layer-*` custom
+ * property, so it can be overridden inline by the `theme` option or directly
+ * by host CSS at runtime.
+ *
+ * 覆盖方式 / Override examples:
+ * ```css
+ * .lite-layer { --lite-layer-color-primary: #7c3aed; }
+ * .lite-layer[data-lite-layer-theme='brand'] { --lite-layer-color-primary: #0ea5e9; }
+ * ```
+ */
+
+/** 为一组语义色生成 Element Plus 风格的交互色阶 / Generate Element Plus-style interaction scales */
+@mixin color-scale($type, $mode: light) {
+  --lite-layer-color-#{$type}-light-3: color-mix(
+    in srgb,
+    var(--lite-layer-color-#{$type}) 70%,
+    var(--lite-layer-bg-color)
+  );
+  --lite-layer-color-#{$type}-light-5: color-mix(
+    in srgb,
+    var(--lite-layer-color-#{$type}) 50%,
+    var(--lite-layer-bg-color)
+  );
+  --lite-layer-color-#{$type}-light-7: color-mix(
+    in srgb,
+    var(--lite-layer-color-#{$type}) 30%,
+    var(--lite-layer-bg-color)
+  );
+  --lite-layer-color-#{$type}-light-8: color-mix(
+    in srgb,
+    var(--lite-layer-color-#{$type}) 20%,
+    var(--lite-layer-bg-color)
+  );
+  --lite-layer-color-#{$type}-light-9: color-mix(
+    in srgb,
+    var(--lite-layer-color-#{$type}) 10%,
+    var(--lite-layer-bg-color)
+  );
+
+  // 深色主题的 active 色应比主色更亮，浅色主题则更深
+  // Active color is lighter than the base in dark mode, darker in light mode.
+  @if $mode == dark {
+    --lite-layer-color-#{$type}-dark-2: color-mix(
+      in srgb,
+      var(--lite-layer-color-#{$type}) 80%,
+      var(--lite-layer-color-white)
+    );
+  } @else {
+    --lite-layer-color-#{$type}-dark-2: color-mix(
+      in srgb,
+      var(--lite-layer-color-#{$type}) 80%,
+      var(--lite-layer-color-black)
+    );
+  }
+}
+
+@mixin size-vars($size) {
+  $metrics: map.get($lite-layer__size-metrics, $size);
+
+  @each $token, $value in $metrics {
+    --lite-layer-#{$token}: #{$value};
+  }
+}
+
+@mixin shared-tokens {
+  --lite-layer-color-white: #{$lite-layer__color-white};
+  --lite-layer-color-black: #{$lite-layer__color-black};
+
+  /** 主色快捷别名，引用派生色阶 / Primary shortcuts pointing at the generated scale */
+  --lite-layer-color-primary-hover: var(--lite-layer-color-primary-light-3);
+  --lite-layer-color-primary-active: var(--lite-layer-color-primary-dark-2);
+  --lite-layer-color-primary-light: var(--lite-layer-color-primary-light-9);
+  --lite-layer-color-primary-border: var(--lite-layer-color-primary-light-7);
+
+  --lite-layer-icon-margin: #{$lite-layer__icon-margin};
+  --lite-layer-transition: #{$lite-layer__trans};
+  --lite-layer-button-gap: 12px;
+  --lite-layer-scrollbar-size: 6px;
+  --lite-layer-loading-spinner-size: 36px;
+  --lite-layer-loading-spinner-border: 3px;
+  --lite-layer-loading-mask-bg: color-mix(in srgb, var(--lite-layer-bg-color) 80%, transparent);
+  --lite-layer-loading-track-color: var(--lite-layer-border-color-light);
+}
+
+@mixin light-tokens {
+  color-scheme: light;
+
+  @each $type, $value in $lite-layer__theme-colors {
+    --lite-layer-color-#{$type}: #{$value};
+    @include color-scale($type);
+  }
+
+  --lite-layer-text-color-primary: #{$lite-layer__color-text-primary};
+  --lite-layer-text-color-regular: #{$lite-layer__color-text-regular};
+  --lite-layer-text-color-secondary: #{$lite-layer__color-text-secondary};
+  --lite-layer-text-color-placeholder: #{$lite-layer__color-text-placeholder};
+  --lite-layer-text-color-disabled: #{$lite-layer__color-text-disabled};
+
+  --lite-layer-border-color: #{$lite-layer__color-border};
+  --lite-layer-border-color-light: #{$lite-layer__color-border-light};
+  --lite-layer-border-color-lighter: #{$lite-layer__color-border-lighter};
+
+  --lite-layer-fill-color: #{$lite-layer__color-fill};
+  --lite-layer-fill-color-light: #{$lite-layer__color-fill-light};
+  --lite-layer-fill-color-lighter: #{$lite-layer__color-fill-lighter};
+
+  --lite-layer-bg-color: #{$lite-layer__color-bg};
+  --lite-layer-bg-color-page: #{$lite-layer__color-bg-page};
+  --lite-layer-bg-color-overlay: #{$lite-layer__color-bg-overlay};
+
+  --lite-layer-shade-bg-color: #{$lite-layer__color-grey};
+  --lite-layer-shade-opacity: 0.3;
+  // 透明占位，切换深色时不会产生 2px 的尺寸跳动。
+  // Transparent placeholder keeps layout stable when switching to dark.
+  --lite-layer-window-border: 1px solid transparent;
+  --lite-layer-box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+  --lite-layer-box-shadow-light: 0 0 12px rgb(0 0 0 / 12%);
+  --lite-layer-scroll-shadow-color: rgb(0 0 0 / 60%);
+  --lite-layer-scrollbar-thumb-bg: color-mix(
+    in srgb,
+    var(--lite-layer-color-primary) 80%,
+    transparent
+  );
+  --lite-layer-scrollbar-track-bg: color-mix(
+    in srgb,
+    var(--lite-layer-text-color-disabled) 40%,
+    transparent
+  );
+
+  @include shared-tokens;
+}
+
+@mixin dark-tokens {
+  color-scheme: dark;
+
+  @each $type, $value in $lite-layer__theme-colors {
+    --lite-layer-color-#{$type}: #{$value};
+    @include color-scale($type, dark);
+  }
+
+  @each $token, $value in $lite-layer__dark-tokens {
+    --lite-layer-#{$token}: #{$value};
+  }
+
+  --lite-layer-scrollbar-thumb-bg: color-mix(
+    in srgb,
+    var(--lite-layer-color-primary) 80%,
+    transparent
+  );
+  --lite-layer-scrollbar-track-bg: color-mix(
+    in srgb,
+    var(--lite-layer-text-color-disabled) 40%,
+    transparent
+  );
+
+  @include shared-tokens;
+}
+
+/**
+ * 基础令牌：默认浅色 + default 尺寸
+ * Base tokens: light theme + default size
+ */
+.lite-layer {
+  @include light-tokens;
+  @include size-vars('default');
+}
+
+/** 深色主题（显式配置）/ Dark theme (explicitly configured) */
+.lite-layer[data-lite-layer-theme='dark'] {
+  @include dark-tokens;
+}
+
+/**
+ * 宿主级深色：未显式配置 theme 时自动跟随 `html.dark`
+ * Host-level dark: follow `html.dark` when no theme is explicitly configured
+ */
+html.dark .lite-layer:not([data-lite-layer-theme]) {
+  @include dark-tokens;
+}
+
+/** 尺寸预设 / Size presets */
+.lite-layer[data-lite-layer-size='small'] {
+  @include size-vars('small');
+}
+
+.lite-layer[data-lite-layer-size='large'] {
+  @include size-vars('large');
+}

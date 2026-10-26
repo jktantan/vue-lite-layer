@@ -73,14 +73,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--lite-layer-loading-mask-bg, rgba(255, 255, 255, 0.8));
 }
 
 .vll-loading-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #e5e6eb;
-  border-top-color: #409eff;
+  width: var(--lite-layer-loading-spinner-size, 36px);
+  height: var(--lite-layer-loading-spinner-size, 36px);
+  border: var(--lite-layer-loading-spinner-border, 3px) solid
+    var(--lite-layer-loading-track-color, #e5e6eb);
+  border-top-color: var(--lite-layer-color-primary, #409eff);
   border-radius: 50%;
   animation: vue-lite-layer-loading-rotate 0.8s linear infinite;
 }

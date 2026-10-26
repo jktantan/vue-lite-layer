@@ -4,11 +4,14 @@
       ref="layerRef"
       class="lite-layer"
       :data-layer-id="id"
+      :data-lite-layer-theme="themeMode"
+      :data-lite-layer-size="themeSize"
       :style="{
         position: isTeleportToBody ? 'fixed' : 'absolute',
         'z-index': isMinimized ? MINIMIZED_DOCK_Z_INDEX : currentZIndex,
         pointerEvents: shade && !isMinimized ? 'auto' : 'none',
-        ...layerStyle
+        ...layerStyle,
+        ...themeStyle
       }"
     >
       <div
@@ -135,6 +138,7 @@ import {
   PositionPreset
 } from './types/layer'
 import useLayerSize from './composables/use-layer-size'
+import useLayerTheme from './composables/use-layer-theme'
 import { withTransition, transitionDuration } from './composables/use-layer-size'
 import { useLayerClose } from './composables/use-layer-close'
 import { useLayerFocus } from './composables/use-layer-focus'
@@ -169,6 +173,13 @@ const props = withDefaults(defineProps<InternalLayerConfig>(), {
   onClose: null,
   onClosed: null
 })
+
+// ──── 主题 / Theme ────
+// `auto` 会跟随 prefers-color-scheme 与宿主 html.dark；颜色/变量以内联
+// 自定义属性写到根节点，只影响当前弹层。
+// `auto` follows prefers-color-scheme and the host's html.dark; colors/vars
+// are inlined on the root element and only affect this layer.
+const { themeMode, themeSize, themeStyle } = useLayerTheme(() => props.theme)
 
 // ──── 模板引用 / Template Refs ────
 const { bindDrag, unbindDrag } = useDraggable()
@@ -247,6 +258,37 @@ const DOCK_ITEM_WIDTH = parseMetric(dockMetrics.dockItemWidth, 220)
 const DOCK_ITEM_HEIGHT = parseMetric(dockMetrics.dockItemHeight, 40)
 const DOCK_ITEM_GAP = parseMetric(dockMetrics.dockItemGap, 12)
 const DOCK_INSET = parseMetric(dockMetrics.dockInset, 12)
+/**
+ * 运行时停靠几何：优先读取主题/宿主 CSS 里的 `--lite-layer-dock-item-*`，
+ * 读取失败（jsdom、SSR、样式尚未注入）时回退到 SCSS 导出的默认值。
+ * Runtime dock geometry: prefer the themed `--lite-layer-dock-item-*` values,
+ * and fall back to the SCSS-exported defaults when they can't be read
+ * (jsdom, SSR, or before the stylesheet is injected).
+ */
+const dockGeometry = reactive({
+  width: DOCK_ITEM_WIDTH,
+  height: DOCK_ITEM_HEIGHT,
+  gap: DOCK_ITEM_GAP,
+  inset: DOCK_INSET
+})
+const readDockGeometry = (): void => {
+  if (!layerRef.value || typeof window === 'undefined') return
+
+  const styles = window.getComputedStyle(layerRef.value)
+  dockGeometry.width = parseMetric(
+    styles.getPropertyValue('--lite-layer-dock-item-width'),
+    DOCK_ITEM_WIDTH
+  )
+  dockGeometry.height = parseMetric(
+    styles.getPropertyValue('--lite-layer-dock-item-height'),
+    DOCK_ITEM_HEIGHT
+  )
+  dockGeometry.gap = parseMetric(
+    styles.getPropertyValue('--lite-layer-dock-item-gap'),
+    DOCK_ITEM_GAP
+  )
+  dockGeometry.inset = parseMetric(styles.getPropertyValue('--lite-layer-dock-inset'), DOCK_INSET)
+}
 const dockPosition = reactive({ left: '', top: '' })
 let stopDockDrag: (() => void) | null = null
 const titleId = `lite-layer-title-${props.id ?? nanoid()}`
@@ -295,18 +337,18 @@ const syncDockBounds = (): void => {
  */
 const dockLayout = computed(() => {
   const index = Math.max(0, minimizedIndex.value)
-  const stepX = DOCK_ITEM_WIDTH + DOCK_ITEM_GAP
-  const stepY = DOCK_ITEM_HEIGHT + DOCK_ITEM_GAP
+  const stepX = dockGeometry.width + dockGeometry.gap
+  const stepY = dockGeometry.height + dockGeometry.gap
   // Guard against negative/NaN container dimensions. `dockBounds.width` can be
   // 0 before the layout settles, and a missing clientHeight during SSR or in
   // hidden iframes can yield NaN through `Math.floor(NaN)`. Clamp to a safe
   // single-column layout so dock coordinates never go negative.
-  const usableWidth = Math.max(0, dockBounds.width) - DOCK_INSET + DOCK_ITEM_GAP
+  const usableWidth = Math.max(0, dockBounds.width) - dockGeometry.inset + dockGeometry.gap
   const perRowRaw = Number.isFinite(usableWidth) && stepX > 0 ? Math.floor(usableWidth / stepX) : 1
   const perRow = Math.max(1, perRowRaw)
   const row = Math.floor(index / perRow)
   const col = index % perRow
-  return { left: DOCK_INSET + col * stepX, bottom: DOCK_INSET + row * stepY }
+  return { left: dockGeometry.inset + col * stepX, bottom: dockGeometry.inset + row * stepY }
 })
 
 /**
@@ -323,8 +365,8 @@ const dockLayout = computed(() => {
  * the symmetry between minimize and restore.
  */
 const dockItemRect = computed(() => {
-  const dockW = DOCK_ITEM_WIDTH
-  const dockH = DOCK_ITEM_HEIGHT
+  const dockW = dockGeometry.width
+  const dockH = dockGeometry.height
   const geometryTop = Math.max(0, dockBounds.height - dockLayout.value.bottom - dockH)
   const draggedLeft = parseFloat(dockPosition.left)
   const draggedTop = parseFloat(dockPosition.top)
@@ -509,6 +551,7 @@ const handleMinimize = () => {
   }
   const windowEl = windowRef.value
   if (!windowEl) return
+  readDockGeometry()
   maximizedBeforeMinimize.value = isMaximized.value
   isMinimizing.value = true
   // 注意：这里绝不能顺手 `isMaximized.value = false`。`isMaximized` 被
@@ -530,8 +573,8 @@ const handleMinimize = () => {
   // 窗口会飞到 dock 几何位置、和 dock 项实际位置错开。
   // Use the dock item's actual position (tracks user drag) so the fly
   // target stays in sync with where the dock item really lives.
-  const dockW = DOCK_ITEM_WIDTH
-  const dockH = DOCK_ITEM_HEIGHT
+  const dockW = dockGeometry.width
+  const dockH = dockGeometry.height
   const dockLeft = dockItemRect.value.left
   const dockTop = dockItemRect.value.top
   // 先把窗口当前位置固化到 style（防 Vue 重渲染抹掉），再让 withTransition
@@ -721,6 +764,7 @@ onMounted(() => {
   nextTick(() => {
     layerSize.setDefaultSize(windowRef.value)
     layerSize.setMaximumSize(layerRef.value)
+    readDockGeometry()
     syncDockBounds()
     layerSize.initPosition(props.location, layerRef.value, windowRef.value)
     bindDrag(headerRef.value?.el, windowRef.value, layerRef.value, layerSize)
@@ -746,6 +790,11 @@ onMounted(() => {
 })
 
 watch([() => props.shade, isMinimized, isMaximized], syncScrollLock)
+
+// 主题尺寸/变量变化后重新读取停靠几何，保证 dock 布局与 CSS 同步。
+// Re-read dock geometry when the theme size/vars change so the dock layout
+// stays in sync with the stylesheet.
+watch([themeSize, themeStyle], () => nextTick(readDockGeometry), { deep: true })
 
 const isSameSize = (a?: WindowSize, b?: WindowSize): boolean =>
   a?.width === b?.width && a?.height === b?.height
