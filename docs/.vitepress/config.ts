@@ -74,6 +74,7 @@ export default defineConfig({
             items: [
               { text: '安装', link: '/guide/install' },
               { text: '快速上手', link: '/guide/quickstart' },
+              { text: '主题与样式', link: '/advanced/theme' },
               { text: 'Nuxt 支持', link: '/guide/nuxt' }
             ]
           },
@@ -148,6 +149,7 @@ export default defineConfig({
             items: [
               { text: 'Installation', link: '/en/guide/install' },
               { text: 'Quick Start', link: '/en/guide/quickstart' },
+              { text: 'Theme & Styling', link: '/en/advanced/theme' },
               { text: 'Nuxt Support', link: '/en/guide/nuxt' }
             ]
           },

@@ -24,6 +24,7 @@
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | 国际化配置 |
 | `asyncContent` | `AsyncContentConfig` | — | 异步内容的加载、失败和重试展示配置 |
 | `banner` | `boolean` | `true` | 是否在插件安装时输出版本 banner |
+| `theme` | `LayerTheme` | —（浅色） | 主题名或主题配置对象，支持 `mode`/`size`/`colors`/`vars`，详见[主题与样式](/advanced/theme) |
 
 ## LayerConfig
 
