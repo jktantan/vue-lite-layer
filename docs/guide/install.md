@@ -4,6 +4,9 @@
 
 - **Node.js** >= 18
 - **Vue** >= 3.3.0
+- **Nuxt** >= 3（仅在使用 Nuxt 模块 `vue-lite-layer/nuxt` 时需要；Nuxt 3 / Nuxt 4 均支持）
+
+Nuxt 模块所需的 `nuxt` 与 `@nuxt/kit` 由 Nuxt 项目自身提供，已声明为可选 peer 依赖，无需额外安装。
 
 ## 包管理器安装
 

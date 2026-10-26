@@ -1,6 +1,6 @@
 # Nuxt 支持
 
-Vue Lite Layer 提供了官方 Nuxt 模块，开箱即用地集成到 Nuxt 3 项目中。
+Vue Lite Layer 提供了官方 Nuxt 模块，开箱即用地集成到 Nuxt 3 / Nuxt 4 项目中。
 
 ## 安装
 
@@ -23,7 +23,7 @@ export default defineNuxtConfig({
     shade: true,
     shadeClose: true,
     size: { width: '500px', height: '400px' },
-    location: 'CC',
+    location: 'CC', // 字符串字面量，等价于 PositionPreset.CENTER_CENTER
   }
 })
 ```
@@ -51,17 +51,17 @@ Nuxt 模块会自动完成以下操作：
 
 ```vue
 <!-- pages/index.vue -->
-<script setup>
+<script setup lang="ts">
 // 无需手动 import，Nuxt 自动导入
 const { openLayer } = useLiteLayer()
-const { appContext } = getCurrentInstance()
+const instance = getCurrentInstance()
 
 const handleOpen = () => {
   openLayer({
     title: '来自 Nuxt 的弹层',
     textContent: '在 Nuxt 中使用 Vue Lite Layer，就是这么简单。',
     size: { width: '500px', height: '300px' },
-  }, appContext)
+  }, instance?.appContext)
 }
 </script>
 
@@ -69,6 +69,18 @@ const handleOpen = () => {
   <button @click="handleOpen">打开弹层</button>
 </template>
 ```
+
+## TypeScript 类型提示
+
+`vueLiteLayer` 的配置类型由 Nuxt 生成。首次安装依赖或修改模块配置后，执行一次 `nuxi prepare`（启动 `nuxt dev` / 执行 `nuxt build` 时也会自动生成）：
+
+```bash
+npx nuxi prepare
+```
+
+生成完成后，`.nuxt/types/modules.d.ts` 会把 `vueLiteLayer` 合并进 `NuxtConfig`。如果编辑器仍提示 `vueLiteLayer` 不存在，请确认 `.nuxt` 目录已生成，并重启 TS Server。
+
+`useLiteLayer` / `useLayerEvent` 的自动导入类型来自 `vue-lite-layer` 包内的声明文件，无需额外配置。`location` 同时接受 `PositionPreset` 枚举和字符串字面量（如 `'CC'`，等价于 `PositionPreset.CENTER_CENTER`）。
 
 ## SSR 注意事项
 
@@ -93,7 +105,7 @@ export default defineNuxtConfig({
     shade: true,
     shadeClose: false,     // 禁止点击遮罩关闭
     max: false,            // 禁用最大化按钮
-    location: 'CT',        // 顶部居中
+    location: 'CT',        // 顶部居中，等价于 PositionPreset.CENTER_TOP
     i18n: { locale: 'en' } // 使用英文界面
   }
 })

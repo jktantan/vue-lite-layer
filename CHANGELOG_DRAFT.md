@@ -1,5 +1,42 @@
 # 版本更新草稿
 
+## v1.3.1
+
+### 🐛 修复
+
+1. **`location` 字符串字面量类型**
+   - 新增 `PositionPresetValue`（`'LT' | ... | 'RB'`）；`location` 现在同时接受 `PositionPreset` 枚举与字符串字面量，修复 `location: 'CC'` 这类文档 / JSON 配置在 Nuxt 与 Vue 类型检查中报错的问题。
+   - 相关文件：`lib/types/layer.ts`, `lib/nuxt/module-options.ts`, `lib/index.ts`
+
+2. **Nuxt 类型解析**
+   - 将 `nuxt` 声明为可选 peerDependency，避免严格依赖布局（如 Yarn PnP）下 `nuxt/schema` 无法解析、`vueLiteLayer` 类型静默退化为 `Record<string, any>`。
+
+### 📝 文档与发布
+
+- 更新中英文 README、API 文档、安装与 Nuxt 指南，补充 `location` 字面量、`PositionPresetValue`、Nuxt 类型生成与 Nuxt 3 / 4 支持说明。
+- 新增 `prepublishOnly`，发布前自动执行 `pnpm lib:build`，避免过期声明文件进入 npm 包。
+- 新增 dist 类型回归断言：theme 导出、`PositionPresetValue`、字符串 `location`。
+
+### 🧪 验证
+
+- `pnpm lib:type-check`、`pnpm test:types`、`pnpm test:unit`（94 tests）通过。
+- `pnpm lib:build`、`pnpm test:dist-types` 通过。
+- 使用打包后的 tarball 在 Nuxt 4.5.2 + pnpm 项目中执行 `nuxi prepare` + `vue-tsc` 通过。
+
+## v1.3.0
+
+### ✨ 新功能
+
+1. **主题系统**
+   - 新增全局 / 实例级 `theme` 配置，支持 `light`、`dark`、`auto` 以及自定义主题名，并可覆盖 `size`、语义色 `colors` 与任意 `--lite-layer-*` CSS 变量。
+   - 新增 `LayerTheme`、`LayerThemeConfig`、`LayerThemeMode`、`LayerThemeColorType`、`LayerThemeColors`、`LayerThemeVars`、`LayerComponentSize` 类型导出。
+   - 新增 `vue-lite-layer/theme.css`、`vue-lite-layer/theme` 与 `vue-lite-layer/scss` 主题入口。
+   - 相关文件：`lib/types/theme.ts`, `lib/composables/use-layer-theme.ts`, `lib/assets/style/theme.scss`, `lib/nuxt/module-options.ts`
+
+2. **Nuxt 模块**
+   - `vueLiteLayer.theme` 支持主题配置。
+   - 补全模块配置与自动导入的类型声明。
+
 ## v1.1.0
 
 ### ✨ 新功能

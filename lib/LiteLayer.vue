@@ -134,6 +134,7 @@ import {
   type LayerArea,
   type LayerConfig,
   type Position,
+  type PositionPresetValue,
   type WindowSize,
   PositionPreset
 } from './types/layer'
@@ -799,7 +800,10 @@ watch([themeSize, themeStyle], () => nextTick(readDockGeometry), { deep: true })
 const isSameSize = (a?: WindowSize, b?: WindowSize): boolean =>
   a?.width === b?.width && a?.height === b?.height
 
-const isSameLocation = (a?: Position | PositionPreset, b?: Position | PositionPreset): boolean => {
+const isSameLocation = (
+  a?: Position | PositionPreset | PositionPresetValue,
+  b?: Position | PositionPreset | PositionPresetValue
+): boolean => {
   if (a === b) return true
   if (a && b && typeof a === 'object' && typeof b === 'object') {
     return a.top === b.top && a.left === b.left

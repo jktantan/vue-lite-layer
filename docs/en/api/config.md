@@ -12,7 +12,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `maxWidth` | `string` | `'none'` | Maximum width (CSS value, e.g. `'800px'`, `'90%'`) |
 | `maxHeight` | `string` | `'none'` | Maximum height (CSS value) |
 | `size` | `WindowSize` | `{ width: '300px', height: '400px' }` | Default layer size |
-| `location` | `PositionPreset \| Position` | `'CC'` | Layer position, see below |
+| `location` | `PositionPreset \| PositionPresetValue \| Position` | `'CC'` | Layer position, see below |
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport target, CSS selector or DOM element |
 | `max` | `boolean` | `true` | Whether to allow maximize |
 | `min` | `boolean` | `false` | Whether to allow minimization to the Teleport target's bottom dock |
@@ -204,7 +204,11 @@ interface WindowSize {
 
 ## PositionPreset
 
-Position preset enum values, in `ColumnRow` format:
+Position preset enum values, in `ColumnRow` format. You can also pass string literals such as `'CC'`, which are equivalent to the enum member values. `PositionPresetValue` is the corresponding string literal union:
+
+```typescript
+type PositionPresetValue = 'LT' | 'LC' | 'LB' | 'CT' | 'CC' | 'CB' | 'RT' | 'RC' | 'RB'
+```
 
 | Value | Description |
 | --- | --- |
