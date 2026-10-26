@@ -1,5 +1,11 @@
 import { reactive } from 'vue'
-import { type Position, PositionPreset, type PixelSize, type WindowSize } from '../types/layer'
+import {
+  type Position,
+  PositionPreset,
+  type PositionPresetValue,
+  type PixelSize,
+  type WindowSize
+} from '../types/layer'
 import { clampPosition, getPresetPosition, type NumericPosition } from '@lib/core/layer-geometry'
 
 /** 窗口样式（供模板绑定，避免 Vue 重渲染覆盖 maximize/restore 的 direct style） / Window style (for template binding, prevents Vue re-render from overwriting maximize/restore direct styles) */
@@ -149,7 +155,9 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * 判断传入的定位参数是否为自定义坐标对象
    * Determine if the passed positioning parameter is a custom coordinate object
    */
-  const isCustomPosition = (item: Position | PositionPreset): item is Position => {
+  const isCustomPosition = (
+    item: Position | PositionPreset | PositionPresetValue
+  ): item is Position => {
     return (item as Position).top != null && (item as Position).left != null
   }
 
@@ -265,7 +273,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
    * @param windowEl - 弹层窗口元素 / Layer window element
    */
   const initPosition = (
-    location: Position | PositionPreset,
+    location: Position | PositionPreset | PositionPresetValue,
     containerEl: HTMLElement | undefined | null,
     windowEl: HTMLElement | undefined | null
   ) => {
@@ -439,7 +447,7 @@ export default (initialSize?: { width?: string; height?: string }) => {
 
   /** Applies a new `location` after the layer has been opened. */
   const applyPosition = (
-    location: Position | PositionPreset | undefined,
+    location: Position | PositionPreset | PositionPresetValue | undefined,
     windowEl: HTMLElement | undefined | null,
     containerEl: HTMLElement | undefined | null,
     options: Pick<WindowLayoutApplyOptions, 'applyToWindow' | 'storeStyle'>

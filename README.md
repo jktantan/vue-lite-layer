@@ -57,7 +57,7 @@
 ### 环境要求
 
 - Vue `>= 3.3`
-- Nuxt `>= 3`（仅在使用 `vue-lite-layer/nuxt` 时需要）
+- Nuxt `>= 3`（含 Nuxt 4；仅在使用 `vue-lite-layer/nuxt` 时需要）
 - Node.js `>= 18`（构建与 SSR 环境）
 
 ### 安装
@@ -313,12 +313,14 @@ Layer 默认自动聚焦、锁定 Tab 焦点、支持 Esc 关闭，并在关闭�
 export default defineNuxtConfig({
   modules: ['vue-lite-layer/nuxt'],
   vueLiteLayer: {
-    // 全局配置（可选）
+    shade: true,
+    location: 'CC', // 字符串字面量，等价于 PositionPreset.CENTER_CENTER
+    theme: { mode: 'auto' }
   }
 })
 ```
 
-Nuxt 模块会自动注册客户端插件、注入样式，并自动导入 `useLiteLayer` 与 `useLayerEvent`。
+Nuxt 模块会自动注册客户端插件、注入样式，并自动导入 `useLiteLayer` 与 `useLayerEvent`。`vueLiteLayer` 的配置类型会在 `nuxi prepare` 后生成；自动导入 composable 的类型来自包内声明文件，无需额外配置。
 
 ### 第三方 UI 组件（Element Plus）
 
@@ -395,7 +397,7 @@ A lightweight, flexible Vue 3 modal / layer library built around a service-style
 ### Requirements
 
 - Vue `>= 3.3`
-- Nuxt `>= 3` (only when using `vue-lite-layer/nuxt`)
+- Nuxt `>= 3` (including Nuxt 4; only when using `vue-lite-layer/nuxt`)
 - Node.js `>= 18` (build and SSR environments)
 
 ### Installation
@@ -651,12 +653,14 @@ Shaded Layers teleported to body lock page scrolling safely, including stacked L
 export default defineNuxtConfig({
   modules: ['vue-lite-layer/nuxt'],
   vueLiteLayer: {
-    // Global config (optional)
+    shade: true,
+    location: 'CC', // String literal, equivalent to PositionPreset.CENTER_CENTER
+    theme: { mode: 'auto' }
   }
 })
 ```
 
-The Nuxt module registers the client plugin, injects the stylesheet, and auto-imports `useLiteLayer` and `useLayerEvent`.
+The Nuxt module registers the client plugin, injects the stylesheet, and auto-imports `useLiteLayer` and `useLayerEvent`. The `vueLiteLayer` configuration type is generated after `nuxi prepare`; auto-import types come from the declaration files in the package, with no extra configuration required.
 
 ### Third-party UI Components (Element Plus)
 

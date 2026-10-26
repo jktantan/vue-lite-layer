@@ -1,4 +1,4 @@
-import { PositionPreset, type PixelSize } from '@lib/types/layer'
+import { PositionPreset, type PixelSize, type PositionPresetValue } from '@lib/types/layer'
 
 export interface NumericPosition {
   top: number
@@ -19,7 +19,7 @@ export const clampPosition = (
 
 /** Calculates the top-left coordinate for one of the public nine-point presets. */
 export const getPresetPosition = (
-  preset: PositionPreset,
+  preset: PositionPreset | PositionPresetValue,
   windowSize: PixelSize,
   containerSize: PixelSize,
   gap = DEFAULT_GAP
@@ -35,7 +35,7 @@ export const getPresetPosition = (
     end: containerSize.width - windowSize.width - gap
   }
 
-  const positions: Record<PositionPreset, NumericPosition> = {
+  const positions = {
     [PositionPreset.LEFT_TOP]: { top: top.start, left: left.start },
     [PositionPreset.LEFT_CENTER]: { top: top.center, left: left.start },
     [PositionPreset.LEFT_BOTTOM]: { top: top.end, left: left.start },
@@ -45,10 +45,10 @@ export const getPresetPosition = (
     [PositionPreset.RIGHT_TOP]: { top: top.start, left: left.end },
     [PositionPreset.RIGHT_CENTER]: { top: top.center, left: left.end },
     [PositionPreset.RIGHT_BOTTOM]: { top: top.end, left: left.end }
-  }
+  } satisfies Record<PositionPresetValue, NumericPosition>
 
   // JavaScript callers can pass an arbitrary string; fall back to the default
   // preset instead of returning `undefined` and letting initPosition crash on
   // destructuring.
-  return positions[preset] ?? positions[PositionPreset.CENTER_CENTER]
+  return positions[preset as PositionPresetValue] ?? positions[PositionPreset.CENTER_CENTER]
 }

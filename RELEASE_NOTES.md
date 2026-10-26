@@ -1,3 +1,33 @@
+# v1.3.1
+
+## Highlights
+
+- **`location` literals**: new `PositionPresetValue` export. `location` accepts both the `PositionPreset` enum and string literals such as `'CC'`.
+- **Nuxt typing**: `nuxt` is now an optional peer dependency, so `nuxt/schema` and `nuxt/app` resolve in strict layouts (for example Yarn PnP).
+- **Publishing**: `prepublishOnly` rebuilds `dist` before publishing so stale declarations cannot be shipped.
+
+## Validation Summary
+
+- `pnpm lib:type-check`, `pnpm test:types`, and `pnpm test:unit` (94 tests) passed
+- `pnpm lib:build` and `pnpm test:dist-types` passed
+- Packaged tarball verified in a Nuxt 4.5.2 + pnpm project via `nuxi prepare` + `vue-tsc`
+
+## Docs Updated
+
+- `README.md`
+- `CHANGELOG_DRAFT.md`
+- `docs/guide/nuxt.md` / `docs/en/guide/nuxt.md`
+- `docs/guide/install.md` / `docs/en/guide/install.md`
+- `docs/api/config.md` / `docs/en/api/config.md`
+
+# v1.3.0
+
+## Highlights
+
+- **Theme system**: the new `theme` option supports `light`, `dark`, `auto`, or a custom theme name at both global and per-layer level, with `size`, semantic `colors`, and raw `--lite-layer-*` overrides.
+- **Theme entry points**: prebuilt `vue-lite-layer/theme.css`, plus `vue-lite-layer/theme` and `vue-lite-layer/scss` Sass entries.
+- **Nuxt module**: `vueLiteLayer.theme` support; module configuration and auto-import types are generated from the package declarations.
+
 # v1.1.0
 
 ## Highlights

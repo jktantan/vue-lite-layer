@@ -1,4 +1,9 @@
-import { PositionPreset, type Position, type WindowSize } from '../types/layer'
+import {
+  PositionPreset,
+  type Position,
+  type PositionPresetValue,
+  type WindowSize
+} from '../types/layer'
 import type {
   LayerComponentSize,
   LayerTheme,
@@ -15,7 +20,7 @@ export interface ModuleOptions {
   maxWidth?: string
   maxHeight?: string
   size?: WindowSize
-  location?: Position | PositionPreset
+  location?: Position | PositionPreset | PositionPresetValue
   teleport?: string
   max?: boolean
   min?: boolean

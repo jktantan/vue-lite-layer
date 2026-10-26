@@ -12,7 +12,7 @@
 | `maxWidth` | `string` | `'none'` | 弹层最大宽度（CSS 值，如 `'800px'`、`'90%'`） |
 | `maxHeight` | `string` | `'none'` | 弹层最大高度（CSS 值） |
 | `size` | `WindowSize` | `{ width: '300px', height: '400px' }` | 弹层默认尺寸 |
-| `location` | `PositionPreset \| Position` | `'CC'` | 弹层定位方式，见下方说明 |
+| `location` | `PositionPreset \| PositionPresetValue \| Position` | `'CC'` | 弹层定位方式，见下方说明 |
 | `teleport` | `string \| HTMLElement \| RendererNode` | `'body'` | Teleport 目标，CSS 选择器或 DOM 元素 |
 | `max` | `boolean` | `true` | 是否允许最大化 |
 | `min` | `boolean` | `false` | 是否允许最小化到 Teleport 容器底部的停靠栏 |
@@ -213,7 +213,11 @@ interface WindowSize {
 
 ## PositionPreset
 
-预设定位枚举值，格式为 `列行`：
+预设定位枚举值，格式为 `列行`。也可以直接传入字符串字面量（如 `'CC'`），与枚举成员值等价。`PositionPresetValue` 是对应的字符串字面量联合：
+
+```typescript
+type PositionPresetValue = 'LT' | 'LC' | 'LB' | 'CT' | 'CC' | 'CB' | 'RT' | 'RC' | 'RB'
+```
 
 | 值 | 说明 |
 | --- | --- |

@@ -60,6 +60,15 @@ export enum PositionPreset {
   RIGHT_BOTTOM = 'RB'
 }
 
+/**
+ * 预设定位的字符串字面量形式 / String literal form of the position presets
+ *
+ * 与 `PositionPreset` 枚举成员值等价，便于在 `nuxt.config` 或 JSON 配置中
+ * 直接书写 `'CC'` 等字面量 / Equivalent to the `PositionPreset` member values,
+ * so literals such as `'CC'` can be written directly in `nuxt.config` or JSON.
+ */
+export type PositionPresetValue = `${PositionPreset}`
+
 export type LayerContentType = 'html' | 'text'
 
 export type LayerCloseReason = 'programmatic' | 'header' | 'shade' | 'escape' | 'cancel' | 'ok'
@@ -114,8 +123,8 @@ export interface LayerGlobalConfig {
   maxHeight?: string
   /** 弹层默认尺寸 / Layer default size */
   size?: WindowSize
-  /** 弹层定位方式：预设枚举或自定义坐标 / Layer positioning method: preset enum or custom coordinates */
-  location?: Position | PositionPreset
+  /** 弹层定位方式：预设枚举、预设字面量或自定义坐标 / Layer positioning method: preset enum, preset literal, or custom coordinates */
+  location?: Position | PositionPreset | PositionPresetValue
   /** Teleport 目标：CSS 选择器字符串或 DOM 元素 / Teleport target: CSS selector string or DOM element */
   teleport?: string | HTMLElement | RendererNode
   /** 是否允许最大化 / Whether maximization is allowed */

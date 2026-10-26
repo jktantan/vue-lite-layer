@@ -1,6 +1,6 @@
 # Nuxt Support
 
-Vue Lite Layer provides an official Nuxt module for seamless integration with Nuxt 3 projects.
+Vue Lite Layer provides an official Nuxt module for seamless integration with Nuxt 3 / Nuxt 4 projects.
 
 ## Installation
 
@@ -23,7 +23,7 @@ export default defineNuxtConfig({
     shade: true,
     shadeClose: true,
     size: { width: '500px', height: '400px' },
-    location: 'CC',
+    location: 'CC', // String literal, equivalent to PositionPreset.CENTER_CENTER
   }
 })
 ```
@@ -51,17 +51,17 @@ Adds `vue-lite-layer` to Nuxt's build transpile list to ensure the library code 
 
 ```vue
 <!-- pages/index.vue -->
-<script setup>
+<script setup lang="ts">
 // No manual import needed — Nuxt auto-imports
 const { openLayer } = useLiteLayer()
-const { appContext } = getCurrentInstance()
+const instance = getCurrentInstance()
 
 const handleOpen = () => {
   openLayer({
     title: 'Layer from Nuxt',
     textContent: 'Using Vue Lite Layer in Nuxt is this simple.',
     size: { width: '500px', height: '300px' },
-  }, appContext)
+  }, instance?.appContext)
 }
 </script>
 
@@ -69,6 +69,18 @@ const handleOpen = () => {
   <button @click="handleOpen">Open Layer</button>
 </template>
 ```
+
+## TypeScript Typing
+
+Nuxt generates the type for `vueLiteLayer`. After installing dependencies or changing module configuration, run `nuxi prepare` once (`nuxt dev` / `nuxt build` also generate it automatically):
+
+```bash
+npx nuxi prepare
+```
+
+Once generated, `.nuxt/types/modules.d.ts` merges `vueLiteLayer` into `NuxtConfig`. If your editor still reports that `vueLiteLayer` does not exist, make sure the `.nuxt` directory has been generated and restart the TS server.
+
+The auto-import types for `useLiteLayer` / `useLayerEvent` come from the declaration files shipped with `vue-lite-layer`; no extra configuration is needed. `location` accepts both the `PositionPreset` enum and string literals such as `'CC'` (equivalent to `PositionPreset.CENTER_CENTER`).
 
 ## SSR Considerations
 
@@ -93,7 +105,7 @@ export default defineNuxtConfig({
     shade: true,
     shadeClose: false,     // Disable shade-click-to-close
     max: false,            // Disable maximize button
-    location: 'CT',        // Top center
+    location: 'CT',        // Top center, equivalent to PositionPreset.CENTER_TOP
     i18n: { locale: 'en' } // English UI
   }
 })

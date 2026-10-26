@@ -30,6 +30,7 @@ export type {
   LayerGlobalConfig,
   PixelSize,
   Position,
+  PositionPresetValue,
   WindowSize
 } from '@lib/types/layer'
 export { PositionPreset } from '@lib/types/layer'
