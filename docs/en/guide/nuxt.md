@@ -47,6 +47,29 @@ No manual `import` needed — the following composables are available directly i
 
 Adds `vue-lite-layer` to Nuxt's build transpile list to ensure the library code is processed correctly.
 
+### 4. Auto-inject Styles
+
+By default, `vue-lite-layer/style.css` is added to Nuxt's CSS list.
+
+When the host needs to control stylesheet order (for example, to load its own theme adapter after the library styles), set `css: false` and register the stylesheet manually:
+
+```typescript
+export default defineNuxtConfig({
+  modules: ['vue-lite-layer/nuxt'],
+
+  vueLiteLayer: {
+    css: false
+  },
+
+  css: [
+    'vue-lite-layer/style.css',
+    '~/assets/css/lite-layer-theme.css'
+  ]
+})
+```
+
+The host then controls the exact order of the library styles and its adapter.
+
 ## Usage Example
 
 ```vue

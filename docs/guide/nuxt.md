@@ -47,6 +47,30 @@ Nuxt 模块会自动完成以下操作：
 
 将 `vue-lite-layer` 加入 Nuxt 的构建转译列表，确保库代码被正确处理。
 
+### 4. 自动注入样式
+
+默认会把 `vue-lite-layer/style.css` 加入 Nuxt 的 CSS 列表。
+
+如果宿主需要控制样式加载顺序（例如在库样式之后加载自己的主题适配层），
+设置 `css: false`，再在 `nuxt.config.ts` 的 `css` 中手动登记：
+
+```typescript
+export default defineNuxtConfig({
+  modules: ['vue-lite-layer/nuxt'],
+
+  vueLiteLayer: {
+    css: false
+  },
+
+  css: [
+    'vue-lite-layer/style.css',
+    '~/assets/css/lite-layer-theme.css'
+  ]
+})
+```
+
+这样库样式与适配层的先后顺序完全由宿主决定。
+
 ## 使用示例
 
 ```vue

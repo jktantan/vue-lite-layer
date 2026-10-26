@@ -30,6 +30,13 @@ export interface ModuleOptions {
   trapFocus?: boolean
   restoreFocus?: boolean
   banner?: boolean
+  /**
+   * 是否自动把库样式注入到 Nuxt 的 CSS 列表，默认 true。
+   *
+   * 宿主需要控制样式加载顺序（例如在其后加载自己的适配层）时设为 false，
+   * 并在 nuxt.config.ts 的 css 中自行登记 'vue-lite-layer/style.css'。
+   */
+  css?: boolean
   i18n?: { locale?: string; messages?: LocaleMessages }
   theme?: LayerTheme
 }
@@ -329,6 +336,10 @@ export const warnUnsupportedModuleOptions = (options: unknown): void => {
 
   if (optionsRecord.banner !== undefined && !isBooleanOption(optionsRecord.banner)) {
     warnInvalidOption('banner', 'a boolean')
+  }
+
+  if (optionsRecord.css !== undefined && !isBooleanOption(optionsRecord.css)) {
+    warnInvalidOption('css', 'a boolean')
   }
 
   if (optionsRecord.i18n !== undefined && !isPlainObject(optionsRecord.i18n)) {

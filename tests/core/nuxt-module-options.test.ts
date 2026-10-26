@@ -101,4 +101,18 @@ describe('nuxt module options', () => {
       warn.mockRestore()
     }
   })
+
+  test('accepts a boolean css option and keeps it out of runtime config', () => {
+    expect(pickSerializableModuleOptions({ css: false })).not.toHaveProperty('css')
+    expect(pickSerializableModuleOptions({ css: true })).not.toHaveProperty('css')
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      warnUnsupportedModuleOptions({ css: 'yes' })
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('css'))
+    } finally {
+      warn.mockRestore()
+    }
+  })
 })

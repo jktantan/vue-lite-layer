@@ -322,6 +322,8 @@ export default defineNuxtConfig({
 
 Nuxt 模块会自动注册客户端插件、注入样式，并自动导入 `useLiteLayer` 与 `useLayerEvent`。`vueLiteLayer` 的配置类型会在 `nuxi prepare` 后生成；自动导入 composable 的类型来自包内声明文件，无需额外配置。
 
+需要自己控制样式加载顺序（例如在库样式之后加载主题适配层）时，设置 `vueLiteLayer: { css: false }`，并在 `nuxt.config.ts` 的 `css` 中手动登记 `vue-lite-layer/style.css`。
+
 ### 第三方 UI 组件（Element Plus）
 
 - 通过 `useLiteLayer().openLayer()` 打开时，Layer 会自动继承调用组件所在树的 `provide`；因此位于祖先 `<ElConfigProvider :locale="...">` 的调用点，Layer 内的 Element Plus 组件会默认使用同一份 locale，并跟随其响应式变化。
@@ -661,6 +663,8 @@ export default defineNuxtConfig({
 ```
 
 The Nuxt module registers the client plugin, injects the stylesheet, and auto-imports `useLiteLayer` and `useLayerEvent`. The `vueLiteLayer` configuration type is generated after `nuxi prepare`; auto-import types come from the declaration files in the package, with no extra configuration required.
+
+To control stylesheet order (for example, to load a theme adapter after the library styles), set `vueLiteLayer: { css: false }` and register `vue-lite-layer/style.css` manually in `nuxt.config.ts`.
 
 ### Third-party UI Components (Element Plus)
 
