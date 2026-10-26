@@ -1,4 +1,11 @@
 import { PositionPreset, type Position, type WindowSize } from '../types/layer'
+import type {
+  LayerComponentSize,
+  LayerTheme,
+  LayerThemeColors,
+  LayerThemeConfig,
+  LayerThemeVars
+} from '../types/theme'
 import type { LocaleMessages } from '../i18n'
 
 export interface ModuleOptions {
@@ -19,6 +26,7 @@ export interface ModuleOptions {
   restoreFocus?: boolean
   banner?: boolean
   i18n?: { locale?: string; messages?: LocaleMessages }
+  theme?: LayerTheme
 }
 
 type ModuleOptionsRecord = Record<string, unknown>
@@ -27,6 +35,16 @@ type SerializableValue =
   SerializablePrimitive | SerializableValue[] | { [key: string]: SerializableValue }
 
 const POSITION_PRESET_VALUES = new Set<string>(Object.values(PositionPreset))
+const THEME_SIZES = new Set<string>(['small', 'default', 'large'])
+const THEME_COLOR_TYPES = new Set<string>([
+  'primary',
+  'success',
+  'warning',
+  'danger',
+  'error',
+  'info'
+])
+const THEME_VAR_PREFIX = '--lite-layer-'
 
 const warnInvalidOption = (path: string, expected: string): void => {
   console.warn(
@@ -164,6 +182,44 @@ const pickSerializableI18n = (i18n: unknown): ModuleOptions['i18n'] => {
   return serializableI18n
 }
 
+/** 只保留可序列化且合法的主题配置 / Keep only serializable, valid theme config */
+const pickTheme = (theme: unknown): LayerTheme | undefined => {
+  if (typeof theme === 'string') return theme.trim() || undefined
+  if (!isPlainObject(theme)) return undefined
+
+  const picked: LayerThemeConfig = {}
+
+  if (typeof theme.mode === 'string' && theme.mode.trim()) {
+    picked.mode = theme.mode.trim()
+  }
+
+  if (typeof theme.size === 'string' && THEME_SIZES.has(theme.size)) {
+    picked.size = theme.size as LayerComponentSize
+  }
+
+  if (isPlainObject(theme.colors)) {
+    const colors: LayerThemeColors = {}
+    for (const [type, value] of Object.entries(theme.colors)) {
+      if (!THEME_COLOR_TYPES.has(type)) continue
+      if (typeof value !== 'string' || !value.trim()) continue
+      colors[type as keyof LayerThemeColors] = value
+    }
+    if (Object.keys(colors).length > 0) picked.colors = colors
+  }
+
+  if (isPlainObject(theme.vars)) {
+    const vars: LayerThemeVars = {}
+    for (const [name, value] of Object.entries(theme.vars)) {
+      if (!name.startsWith(THEME_VAR_PREFIX)) continue
+      if (typeof value !== 'string' || !value.trim()) continue
+      vars[name as keyof LayerThemeVars] = value
+    }
+    if (Object.keys(vars).length > 0) picked.vars = vars
+  }
+
+  return Object.keys(picked).length > 0 ? picked : undefined
+}
+
 export const pickSerializableModuleOptions = (options: unknown): ModuleOptions => {
   const optionsRecord = toOptionsRecord(options)
   if (optionsRecord === undefined) return {}
@@ -171,6 +227,7 @@ export const pickSerializableModuleOptions = (options: unknown): ModuleOptions =
   const size = pickWindowSize(optionsRecord.size)
   const location = pickLocation(optionsRecord.location)
   const i18n = pickSerializableI18n(optionsRecord.i18n)
+  const theme = pickTheme(optionsRecord.theme)
 
   return {
     ...(isFooterOption(optionsRecord.footer) ? { footer: optionsRecord.footer } : {}),
@@ -191,7 +248,8 @@ export const pickSerializableModuleOptions = (options: unknown): ModuleOptions =
       ? { restoreFocus: optionsRecord.restoreFocus }
       : {}),
     ...(isBooleanOption(optionsRecord.banner) ? { banner: optionsRecord.banner } : {}),
-    ...(i18n !== undefined ? { i18n } : {})
+    ...(i18n !== undefined ? { i18n } : {}),
+    ...(theme !== undefined ? { theme } : {})
   }
 }
 
@@ -283,6 +341,49 @@ export const warnUnsupportedModuleOptions = (options: unknown): void => {
       !isLocaleMessages(optionsRecord.i18n.messages)
     ) {
       warnInvalidOption('i18n.messages', 'a JSON-serializable locale messages object')
+    }
+  }
+
+  if (optionsRecord.theme !== undefined) {
+    const theme = optionsRecord.theme
+
+    if (typeof theme !== 'string' && !isPlainObject(theme)) {
+      warnInvalidOption('theme', 'a theme name string or an object')
+      return
+    }
+
+    if (!isPlainObject(theme)) return
+
+    if (theme.mode !== undefined && !isStringOption(theme.mode)) {
+      warnInvalidOption('theme.mode', 'a string')
+    }
+
+    if (theme.size !== undefined && (!isStringOption(theme.size) || !THEME_SIZES.has(theme.size))) {
+      warnInvalidOption('theme.size', "'small', 'default' or 'large'")
+    }
+
+    if (theme.colors !== undefined && !isPlainObject(theme.colors)) {
+      warnInvalidOption('theme.colors', 'an object')
+    } else if (isPlainObject(theme.colors)) {
+      for (const [type, value] of Object.entries(theme.colors)) {
+        if (!THEME_COLOR_TYPES.has(type)) {
+          warnInvalidOption(`theme.colors.${type}`, 'a known semantic color type')
+        } else if (!isStringOption(value)) {
+          warnInvalidOption(`theme.colors.${type}`, 'a string')
+        }
+      }
+    }
+
+    if (theme.vars !== undefined && !isPlainObject(theme.vars)) {
+      warnInvalidOption('theme.vars', 'an object')
+    } else if (isPlainObject(theme.vars)) {
+      for (const [name, value] of Object.entries(theme.vars)) {
+        if (!name.startsWith(THEME_VAR_PREFIX)) {
+          warnInvalidOption('theme.vars', `CSS variables starting with '${THEME_VAR_PREFIX}'`)
+        } else if (!isStringOption(value)) {
+          warnInvalidOption(`theme.vars.${name}`, 'a string')
+        }
+      }
     }
   }
 }
