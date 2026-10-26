@@ -36,8 +36,11 @@ export default defineNuxtModule<ModuleOptions>({
       mode: 'client'
     })
 
-    nuxt.options.css = nuxt.options.css || []
-    nuxt.options.css.push('vue-lite-layer/dist/vue-lite-layer.css')
+    // 宿主可通过 css: false 关闭自动注入，自行控制样式与适配层的加载顺序。
+    if (options.css !== false) {
+      nuxt.options.css = nuxt.options.css || []
+      nuxt.options.css.push('vue-lite-layer/dist/vue-lite-layer.css')
+    }
 
     addImports([
       { name: 'useLiteLayer', from: 'vue-lite-layer' },
