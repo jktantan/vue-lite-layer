@@ -1,5 +1,6 @@
 import type { Component, RendererNode } from 'vue'
 import type { LayerCallback } from './callback'
+import type { LayerTheme } from './theme'
 import type { LocaleMessages } from '@lib/i18n'
 
 /**
@@ -137,6 +138,11 @@ export interface LayerGlobalConfig {
   i18n?: { locale?: string; messages?: LocaleMessages }
   /** 异步内容加载及失败状态配置 / Async content state configuration */
   asyncContent?: AsyncContentConfig
+  /**
+   * 主题配置：浅色/深色/跟随系统/自定义主题名，或主题对象
+   * Theme configuration: light/dark/auto/custom name, or a theme object
+   */
+  theme?: LayerTheme
 }
 
 /**

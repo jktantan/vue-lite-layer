@@ -49,6 +49,7 @@
 - **滚动锁定** — body 遮罩弹层自动锁定页面滚动，多个弹层安全叠加
 - **事件通信** — Footer → Container → 调用方的完整事件链路
 - **国际化** — 内置中文/英文，支持自定义语言包
+- **主题系统** — 支持 light/dark/auto、语义色、尺寸预设和自定义命名主题，所有样式通过 `--lite-layer-*` 变量开放覆盖
 - **Nuxt 支持** — 提供 Nuxt 模块，自动注册插件和 composables
 - **Teleport** — 支持挂载到 `body` 或任意 DOM 容器；HTMLElement 目标在实例上通过稳定的 `teleportKey` 标识
 - **TypeScript** — 完整的类型定义
@@ -171,8 +172,38 @@ openLayer({
 | `uniqueGroup` | — | 同组仅允许一个 Layer |
 | `closeOnEsc` | `true` | 是否允许 `Esc` 请求关闭 |
 | `closeOnOk` | `false` | 默认确认按钮是否自动关闭 |
+| `theme` | —（浅色） | 主题名或配置：`mode`/`size`/`colors`/`vars` |
 
 `content` 的字符串默认按 HTML 渲染，仅可传可信内容。用户输入请使用 `textContent` 或 `contentType: 'text'`。
+
+### 主题与样式定制
+
+所有视觉样式都通过 `--lite-layer-*` CSS 变量暴露，支持 Element Plus 风格的浅色/深色、语义色和尺寸预设：
+
+```ts
+app.use(VueLiteLayer, {
+  theme: {
+    mode: 'auto',
+    size: 'default',
+    colors: { primary: '#7c3aed' }
+  }
+})
+```
+
+也可以为单个弹层传入 `theme`，或注册命名主题后用纯 CSS 扩展：
+
+```css
+.lite-layer[data-lite-layer-theme='brand'] {
+  --lite-layer-color-primary: #0ea5e9;
+  --lite-layer-bg-color-overlay: #f8fafc;
+}
+```
+
+```ts
+openLayer({ theme: 'brand', title: '品牌主题', textContent: '...' })
+```
+
+包同时暴露 `vue-lite-layer/theme`、`vue-lite-layer/scss`、预构建的 `vue-lite-layer/theme.css` 和 SCSS 变量，可在构建期生成静态主题。完整令牌与用法见[主题文档](https://jktantan.github.io/vue-lite-layer/advanced/theme)，也可以直接打开[在线主题 Demo](https://jktantan.github.io/vue-lite-layer/advanced/theme#在线体验) 切换模式、主色和尺寸。
 
 ### 关闭控制与实例结果
 
@@ -356,6 +387,7 @@ A lightweight, flexible Vue 3 modal / layer library built around a service-style
 - **Scroll Lock** — Shaded body layers safely lock page scrolling, including stacked layers
 - **Event Communication** — Complete event chain from Footer → Container → Caller
 - **i18n** — Built-in Chinese/English, supports custom language packs
+- **Theming** — Light/dark/auto modes, semantic colors, size presets, named custom themes, and all styles exposed as `--lite-layer-*` CSS variables
 - **Nuxt Support** — Nuxt module for automatic plugin and composable registration
 - **Teleport** — Mount to `body` or any DOM container; HTMLElement targets are identified on the instance via the stable `teleportKey`
 - **TypeScript** — Full type definitions
@@ -478,8 +510,38 @@ These are the options most NPM users need. See the [full API reference](https://
 | `uniqueGroup` | — | Limits a group to one open Layer |
 | `closeOnEsc` | `true` | Whether Escape requests closing |
 | `closeOnOk` | `false` | Whether the default OK button closes automatically |
+| `theme` | — (light) | Theme name or config: `mode`/`size`/`colors`/`vars` |
 
 String `content` is rendered as HTML and must be trusted. Use `textContent` or `contentType: 'text'` for user input.
+
+### Theme & Styling
+
+Every visual value is exposed as a `--lite-layer-*` CSS variable, with Element Plus-style light/dark palettes, semantic colors and size presets:
+
+```ts
+app.use(VueLiteLayer, {
+  theme: {
+    mode: 'auto',
+    size: 'default',
+    colors: { primary: '#7c3aed' }
+  }
+})
+```
+
+Pass `theme` per layer, or register a named theme and extend it with plain CSS:
+
+```css
+.lite-layer[data-lite-layer-theme='brand'] {
+  --lite-layer-color-primary: #0ea5e9;
+  --lite-layer-bg-color-overlay: #f8fafc;
+}
+```
+
+```ts
+openLayer({ theme: 'brand', title: 'Brand theme', textContent: '...' })
+```
+
+The package also exposes `vue-lite-layer/theme`, `vue-lite-layer/scss`, a prebuilt `vue-lite-layer/theme.css`, and SCSS variables for build-time themes. See the [theme guide](https://jktantan.github.io/vue-lite-layer/en/advanced/theme) for all tokens, or open the [live theme playground](https://jktantan.github.io/vue-lite-layer/en/advanced/theme#live-playground) to switch mode, color and size.
 
 ### Close Control and Instance Results
 

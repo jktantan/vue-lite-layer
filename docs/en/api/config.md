@@ -24,6 +24,7 @@ Global configuration passed via `app.use(VueLiteLayer, globalConfig)`, serving a
 | `i18n` | `{ locale?: string; messages?: object }` | `{ locale: 'zh-CN' }` | Internationalization configuration |
 | `asyncContent` | `AsyncContentConfig` | — | Loading, failure and retry presentation for async content |
 | `banner` | `boolean` | `true` | Whether to print the version banner during plugin installation |
+| `theme` | `LayerTheme` | — (light) | Theme name or config object with `mode`/`size`/`colors`/`vars`; see [Theme & Styling](/en/advanced/theme) |
 
 ## LayerConfig
 

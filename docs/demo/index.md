@@ -15,7 +15,14 @@ import LifecycleDemo from '../components/LifecycleDemo.vue'
 import MultiLayerDemo from '../components/MultiLayerDemo.vue'
 import InstanceDemo from '../components/InstanceDemo.vue'
 import MinimizeDemo from '../components/MinimizeDemo.vue'
+import ThemeDemo from '../components/ThemeDemo.vue'
 </script>
+
+## 主题实时体验
+
+切换模式、主色、尺寸和圆角，已打开的弹层会立即更新；「品牌」模式演示命名主题。
+
+<ThemeDemo />
 
 ## 基础用法
 
