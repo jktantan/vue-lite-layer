@@ -76,13 +76,34 @@ onUnmounted(() => {
   background: var(--lite-layer-loading-mask-bg, rgba(255, 255, 255, 0.8));
 }
 
+/* 三层圆环同轴旋转 / Three concentric rings rotating on the same axis */
 .vll-loading-spinner {
+  position: relative;
+  box-sizing: border-box;
   width: var(--lite-layer-loading-spinner-size, 36px);
-  height: var(--lite-layer-loading-spinner-size, 36px);
-  border: var(--lite-layer-loading-spinner-border, 3px) solid
-    var(--lite-layer-loading-track-color, #e5e6eb);
-  border-top-color: var(--lite-layer-color-primary, #409eff);
+  aspect-ratio: 1;
+  border: var(--lite-layer-loading-spinner-border, 3px) solid transparent;
+  border-right-color: var(--lite-layer-color-primary, #409eff);
   border-radius: 50%;
-  animation: vue-lite-layer-loading-rotate 0.8s linear infinite;
+  animation: vue-lite-layer-loading-rotate var(--lite-layer-loading-spinner-duration, 0.8s) infinite
+    linear;
+}
+
+.vll-loading-spinner::before,
+.vll-loading-spinner::after {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+  inset: calc(var(--lite-layer-loading-spinner-border, 3px) * -1);
+  border: var(--lite-layer-loading-spinner-border, 3px) solid transparent;
+  border-right-color: var(--lite-layer-color-primary, #409eff);
+  border-radius: 50%;
+  animation: vue-lite-layer-loading-rotate
+    calc(var(--lite-layer-loading-spinner-duration, 0.8s) * 2) infinite linear;
+}
+
+/* 最外层转得最慢，形成错层效果 / Outermost ring spins slowest for the layered effect */
+.vll-loading-spinner::after {
+  animation-duration: calc(var(--lite-layer-loading-spinner-duration, 0.8s) * 4);
 }
 </style>

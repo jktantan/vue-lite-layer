@@ -88,8 +88,8 @@
   --lite-layer-scrollbar-size: 6px;
   --lite-layer-loading-spinner-size: 36px;
   --lite-layer-loading-spinner-border: 3px;
+  --lite-layer-loading-spinner-duration: 0.8s;
   --lite-layer-loading-mask-bg: color-mix(in srgb, var(--lite-layer-bg-color) 80%, transparent);
-  --lite-layer-loading-track-color: var(--lite-layer-border-color-light);
 }
 
 @mixin light-tokens {

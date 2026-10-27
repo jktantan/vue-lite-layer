@@ -234,7 +234,7 @@ html.dark .lite-layer[data-lite-layer-theme='brand'] {
 | Content | `--lite-layer-content-padding`, `--lite-layer-scrollbar-size`, `--lite-layer-scrollbar-thumb-bg` |
 | Buttons | `--lite-layer-button-padding`, `--lite-layer-button-font-size`, `--lite-layer-button-radius` |
 | Dock | `--lite-layer-dock-item-width`, `--lite-layer-dock-item-height`, `--lite-layer-dock-item-gap`, `--lite-layer-dock-inset` |
-| Loading | `--lite-layer-loading-mask-bg`, `--lite-layer-loading-spinner-size`, `--lite-layer-loading-track-color` |
+| Loading | `--lite-layer-loading-mask-bg`, `--lite-layer-loading-spinner-size`, `--lite-layer-loading-spinner-duration` |
 
 See [`lib/assets/style/theme.scss`](https://github.com/jktantan/vue-lite-layer/blob/main/lib/assets/style/theme.scss) for the complete token list.
 

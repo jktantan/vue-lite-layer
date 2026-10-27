@@ -234,7 +234,7 @@ html.dark .lite-layer[data-lite-layer-theme='brand'] {
 | 内容区 | `--lite-layer-content-padding`、`--lite-layer-scrollbar-size`、`--lite-layer-scrollbar-thumb-bg` |
 | 按钮 | `--lite-layer-button-padding`、`--lite-layer-button-font-size`、`--lite-layer-button-radius` |
 | 停靠栏 | `--lite-layer-dock-item-width`、`--lite-layer-dock-item-height`、`--lite-layer-dock-item-gap`、`--lite-layer-dock-inset` |
-| 加载态 | `--lite-layer-loading-mask-bg`、`--lite-layer-loading-spinner-size`、`--lite-layer-loading-track-color` |
+| 加载态 | `--lite-layer-loading-mask-bg`、`--lite-layer-loading-spinner-size`、`--lite-layer-loading-spinner-duration` |
 
 完整令牌列表见 [`lib/assets/style/theme.scss`](https://github.com/jktantan/vue-lite-layer/blob/main/lib/assets/style/theme.scss)。
 

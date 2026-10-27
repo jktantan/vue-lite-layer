@@ -1,6 +1,6 @@
 {
   "name": "vue-lite-layer",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "A lightweight, flexible Vue 3 modal / layer component library with a service-style API: drag, maximize & restore, multi-layer z-index management, focus trap, i18n and Nuxt module support.",
   "private": false,
   "packageManager": "pnpm@12.4.1",
